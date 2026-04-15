@@ -7,9 +7,16 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --spacing-touch: var(--touch-target-min);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,24 +56,34 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Calm neutral base + restrained accent for trust */
+  --background: oklch(0.995 0.002 260);
+  --foreground: oklch(0.2 0.02 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.2 0.02 260);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.2 0.02 260);
+  --primary: oklch(0.22 0.04 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.965 0.008 260);
+  --secondary-foreground: oklch(0.25 0.02 260);
+  --muted: oklch(0.965 0.006 260);
+  --muted-foreground: oklch(0.45 0.02 260);
+  --accent: oklch(0.965 0.012 260);
+  --accent-foreground: oklch(0.22 0.03 260);
+  --destructive: oklch(0.52 0.2 25);
+  --border: oklch(0.91 0.008 260);
+  --input: oklch(0.91 0.008 260);
+  --ring: oklch(0.45 0.08 260);
+  /* Semantic feedback */
+  --success: oklch(0.42 0.1 155);
+  --success-foreground: oklch(0.99 0.01 155);
+  --warning: oklch(0.55 0.12 85);
+  --warning-foreground: oklch(0.2 0.03 85);
+  --info: oklch(0.45 0.08 250);
+  --info-foreground: oklch(0.99 0.01 250);
+  /* Touch: 44px minimum for primary interactive targets */
+  --touch-target-min: 2.75rem;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -84,24 +101,30 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: oklch(0.16 0.02 260);
+  --foreground: oklch(0.97 0.01 260);
+  --card: oklch(0.2 0.02 260);
+  --card-foreground: oklch(0.97 0.01 260);
+  --popover: oklch(0.2 0.02 260);
+  --popover-foreground: oklch(0.97 0.01 260);
+  --primary: oklch(0.93 0.02 260);
+  --primary-foreground: oklch(0.18 0.03 260);
+  --secondary: oklch(0.28 0.02 260);
+  --secondary-foreground: oklch(0.97 0.01 260);
+  --muted: oklch(0.28 0.02 260);
+  --muted-foreground: oklch(0.72 0.02 260);
+  --accent: oklch(0.28 0.03 260);
+  --accent-foreground: oklch(0.97 0.01 260);
+  --destructive: oklch(0.65 0.18 22);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.62 0.1 260);
+  --success: oklch(0.72 0.14 155);
+  --success-foreground: oklch(0.16 0.04 155);
+  --warning: oklch(0.78 0.12 85);
+  --warning-foreground: oklch(0.22 0.04 85);
+  --info: oklch(0.72 0.1 250);
+  --info-foreground: oklch(0.14 0.04 250);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -122,9 +145,75 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    text-rendering: optimizeLegibility;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* Typography scale — mobile-first, comfortable line lengths */
+@layer utilities {
+  .text-display {
+    @apply text-[1.75rem] font-semibold tracking-tight text-balance sm:text-4xl sm:leading-tight;
+  }
+  .text-headline {
+    @apply text-xl font-semibold tracking-tight text-balance sm:text-2xl sm:leading-snug;
+  }
+  .text-subhead {
+    @apply text-base font-medium leading-snug text-foreground sm:text-lg;
+  }
+  .text-body {
+    @apply text-base leading-relaxed text-foreground;
+  }
+  .text-body-muted {
+    @apply text-base leading-relaxed text-muted-foreground;
+  }
+  .text-caption {
+    @apply text-sm leading-normal text-muted-foreground;
+  }
+  .text-label {
+    @apply text-sm font-medium leading-none text-foreground;
+  }
+  /* Readable measure for long copy on phones */
+  .prose-app {
+    @apply max-w-prose text-base leading-relaxed text-muted-foreground;
+  }
+  /* Bottom safe area for notched devices + sticky bars */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  /** Subtle step change in wizard — motion-safe avoids distraction for reduced-motion users */
+  .animate-wizard-step {
+    animation: app-wizard-step 0.22s ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-wizard-step {
+      animation: none;
+    }
+  }
+}
+
+@keyframes app-wizard-step {
+  from {
+    opacity: 0.92;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Resume preview / future PDF export — keep screen and print aligned */
+@media print {
+  .resume-paper {
+    box-shadow: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }
