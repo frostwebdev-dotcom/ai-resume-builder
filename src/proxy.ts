@@ -2,20 +2,22 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { isPublicPath } from "@/lib/auth/config";
 import { ROUTES } from "@/lib/constants";
-import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
+import { filterCookiesForSupabaseProject } from "@/lib/supabase/cookie-filter";
+import {
+  copyResponseCookies,
+  createSupabaseMiddlewareClient,
+} from "@/lib/supabase/middleware";
 
 /**
  * Refreshes Supabase session cookies and enforces auth boundaries for `/app` and `/admin`.
  */
 export async function proxy(request: NextRequest) {
-  const response = NextResponse.next({
-    request: { headers: request.headers },
-  });
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!url || !anonKey) {
-    return response;
+    return NextResponse.next({
+      request: { headers: new Headers(request.headers) },
+    });
   }
 
   const pathname = request.nextUrl.pathname;
@@ -32,13 +34,27 @@ export async function proxy(request: NextRequest) {
     pathname === ROUTES.auth.forgotPassword;
 
   if (!needsSession) {
-    return response;
+    return NextResponse.next({
+      request: { headers: new Headers(request.headers) },
+    });
   }
 
-  const supabase = createSupabaseMiddlewareClient(request, response);
+  const { supabase, getResponse } = createSupabaseMiddlewareClient(request);
+
+  const authCookies = filterCookiesForSupabaseProject(request.cookies.getAll(), url).filter((c) =>
+    c.name.startsWith("sb-"),
+  );
+  console.log(`[proxy] ${pathname} | auth cookies: ${authCookies.length > 0 ? authCookies.map((c) => c.name).join(", ") : "(none)"}`);
+
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
+
+  if (userError) {
+    console.log(`[proxy] ${pathname} | getUser error: ${userError.message}`);
+  }
+  console.log(`[proxy] ${pathname} | user: ${user ? user.id : "null"}`);
 
   if (!isPublicPath(pathname)) {
     if (!user) {
@@ -47,7 +63,9 @@ export async function proxy(request: NextRequest) {
         "next",
         `${pathname}${request.nextUrl.search}`,
       );
-      return NextResponse.redirect(loginUrl);
+      const redirect = NextResponse.redirect(loginUrl);
+      copyResponseCookies(getResponse(), redirect);
+      return redirect;
     }
   }
 
@@ -59,7 +77,9 @@ export async function proxy(request: NextRequest) {
       .single();
 
     if (profile?.role !== "admin") {
-      return NextResponse.redirect(new URL(ROUTES.app.root, request.url));
+      const redirect = NextResponse.redirect(new URL(ROUTES.app.root, request.url));
+      copyResponseCookies(getResponse(), redirect);
+      return redirect;
     }
   }
 
@@ -76,13 +96,17 @@ export async function proxy(request: NextRequest) {
       .maybeSingle();
 
     if (profile) {
-      return NextResponse.redirect(new URL(ROUTES.app.root, request.url));
+      const redirect = NextResponse.redirect(new URL(ROUTES.app.root, request.url));
+      copyResponseCookies(getResponse(), redirect);
+      return redirect;
     }
 
-    return NextResponse.redirect(new URL(ROUTES.auth.incomplete, request.url));
+    const redirect = NextResponse.redirect(new URL(ROUTES.auth.incomplete, request.url));
+    copyResponseCookies(getResponse(), redirect);
+    return redirect;
   }
 
-  return response;
+  return getResponse();
 }
 
 export const config = {

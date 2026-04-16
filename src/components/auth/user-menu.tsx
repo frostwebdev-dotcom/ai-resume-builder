@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -62,10 +63,12 @@ export function UserMenu({ email, isAdmin, variant = "default" }: UserMenuProps)
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[12rem]">
-        <DropdownMenuLabel className="font-normal">
-          <span className="block truncate text-xs text-muted-foreground">Signed in as</span>
-          <span className="block truncate text-sm font-medium text-foreground">{email}</span>
-        </DropdownMenuLabel>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="font-normal">
+            <span className="block truncate text-xs text-muted-foreground">Signed in as</span>
+            <span className="block truncate text-sm font-medium text-foreground">{email}</span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href={ROUTES.app.account} className="cursor-pointer" />}>
           <Settings className="size-4 opacity-70" aria-hidden />

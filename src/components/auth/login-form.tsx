@@ -1,27 +1,108 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { Loader2, Mail } from "lucide-react";
 
-import { SubmitButton } from "@/components/auth/submit-button";
+import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { PasswordInput } from "@/components/ui/password-input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ROUTES } from "@/lib/constants";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { loginSchema } from "@/validation/auth";
+import { cn } from "@/lib/utils";
 
 type LoginFormProps = {
   nextPath: string;
 };
 
+function errorAlert(code: string | null) {
+  if (!code) return null;
+  if (code === "email_unconfirmed") {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Confirm your email</AlertTitle>
+        <AlertDescription>
+          This account exists but the email address is not confirmed yet. Use the link in your inbox or sign
+          up again to resend.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  if (code === "credentials") {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Could not sign in</AlertTitle>
+        <AlertDescription>Invalid email or password.</AlertDescription>
+      </Alert>
+    );
+  }
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>Could not sign in</AlertTitle>
+      <AlertDescription>Something went wrong. Try again.</AlertDescription>
+    </Alert>
+  );
+}
+
 /**
- * Posts to a Route Handler so Supabase session cookies are written onto the redirect response.
- * (Server Action cookie writes are often dropped in this Next.js + Supabase SSR setup.)
+ * Signs in with the browser Supabase client so the session is stored in cookies via `document.cookie`.
+ * Server routes and Server Actions are unreliable for persisting Supabase cookie chunks in some setups.
  */
 export function LoginForm({ nextPath }: LoginFormProps) {
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setErrorCode(null);
+
+    const formData = new FormData(e.currentTarget);
+    const parsed = loginSchema.safeParse({
+      email: formData.get("email"),
+      password: formData.get("password"),
+    });
+    if (!parsed.success) {
+      setErrorCode("credentials");
+      return;
+    }
+
+    setPending(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: parsed.data.email,
+        password: parsed.data.password,
+      });
+
+      if (error) {
+        const m = error.message.toLowerCase();
+        if (m.includes("email not confirmed")) {
+          setErrorCode("email_unconfirmed");
+        } else {
+          setErrorCode("credentials");
+        }
+        setPending(false);
+        return;
+      }
+
+      // Ensure cookie storage finished before full navigation (avoids RSC seeing no session).
+      await supabase.auth.getSession();
+
+      // Relative path from `sanitizeNextPath` — resolves on the current origin (localhost vs 127.0.0.1).
+      window.location.href = nextPath;
+    } catch {
+      setErrorCode("unknown");
+      setPending(false);
+    }
+  }
+
   return (
-    <form action="/api/auth/sign-in" method="post" className="flex flex-col gap-6">
-      <input type="hidden" name="next" value={nextPath} />
+    <form method="post" action="#" onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {errorAlert(errorCode)}
 
       <Field id="login-email" label="Email" required>
         <InputWithIcon leading={<Mail />}>
@@ -30,6 +111,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
+            required
           />
         </InputWithIcon>
       </Field>
@@ -61,7 +143,24 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       </div>
 
       <div className="flex flex-col gap-5">
-        <SubmitButton pendingLabel="Signing in…">Sign in</SubmitButton>
+        <Button
+          type="submit"
+          size="touch"
+          disabled={pending}
+          aria-busy={pending}
+          className={cn(
+            "w-full gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
+          )}
+        >
+          {pending ? (
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Signing in…
+            </>
+          ) : (
+            "Sign in"
+          )}
+        </Button>
         <div
           className="relative flex items-center justify-center"
           aria-hidden

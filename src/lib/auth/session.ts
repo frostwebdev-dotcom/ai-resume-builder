@@ -25,9 +25,10 @@ export async function getSessionUser(): Promise<User | null> {
   }
 
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[auth/session] getSessionUser user=${user ? user.id : "null"} error=${error?.message ?? "none"}`);
+  }
   return user;
 }
 
@@ -71,6 +72,11 @@ export async function getAuthContext(): Promise<AuthContext | null> {
     .eq("id", user.id)
     .maybeSingle();
 
+  if (process.env.NODE_ENV !== "production") {
+    console.log(
+      `[auth/session] getAuthContext user=${user.id} profile=${profile ? "yes" : "no"} error=${error?.message ?? "none"}`,
+    );
+  }
   if (error || !profile) return null;
   return { user, profile };
 }

@@ -1,12 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Inbox, Mail } from "lucide-react";
+import { CheckCircle2, Inbox, Loader2, Mail } from "lucide-react";
 
 import { PasswordStrength } from "@/components/auth/password-strength";
-import { SubmitButton } from "@/components/auth/submit-button";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
@@ -16,21 +15,82 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { getBrowserOrigin } from "@/lib/app/browser-origin";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
-import { signupAction, type AuthActionState } from "@/services/auth/actions";
-
-const initial: AuthActionState = {};
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { signupSchema } from "@/validation/auth";
 
 export function SignupForm() {
-  const [state, formAction] = useActionState(signupAction, initial);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   const confirmMismatch =
     confirm.length > 0 && password.length > 0 && confirm !== password;
 
-  if (state.success) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const parsed = signupSchema.safeParse({
+      email: formData.get("email"),
+      password: formData.get("password"),
+      confirmPassword: formData.get("confirmPassword"),
+    });
+    if (!parsed.success) {
+      const err = parsed.error.flatten();
+      setError(
+        err.fieldErrors.email?.[0] ??
+        err.fieldErrors.password?.[0] ??
+        err.fieldErrors.confirmPassword?.[0] ??
+        "Fix the highlighted fields.",
+      );
+      return;
+    }
+
+    setPending(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const origin = getBrowserOrigin();
+      const emailRedirectTo = `${origin}${ROUTES.auth.callback}?next=${encodeURIComponent(ROUTES.app.root)}`;
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        options: { emailRedirectTo },
+      });
+
+      if (signUpError) {
+        if (signUpError.message.toLowerCase().includes("already registered")) {
+          setError("An account with this email already exists. Try signing in.");
+        } else {
+          setError(signUpError.message);
+        }
+        setPending(false);
+        return;
+      }
+
+      if (data.session) {
+        await supabase.auth.getSession();
+        window.location.href = ROUTES.app.root;
+        return;
+      }
+
+      setSuccess(
+        "Check your email for a confirmation link. After confirming, you can sign in.",
+      );
+      setPending(false);
+    } catch {
+      setError("Something went wrong. Check your connection and try again.");
+      setPending(false);
+    }
+  }
+
+  if (success) {
     return (
       <div className="space-y-5 text-center">
         <span
@@ -42,7 +102,7 @@ export function SignupForm() {
         <div className="space-y-2">
           <h2 className="text-headline text-foreground">Check your inbox</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {state.success}
+            {success}
           </p>
         </div>
         <ul className="mx-auto max-w-xs space-y-2 text-left text-sm text-muted-foreground">
@@ -75,11 +135,11 @@ export function SignupForm() {
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-6">
-      {state.error ? (
+    <form method="post" action="#" onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {error ? (
         <Alert variant="destructive">
           <AlertTitle>Could not create account</AlertTitle>
-          <AlertDescription>{state.error}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -90,6 +150,7 @@ export function SignupForm() {
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
+            required
           />
         </InputWithIcon>
       </Field>
@@ -126,7 +187,24 @@ export function SignupForm() {
         />
       </Field>
 
-      <SubmitButton pendingLabel="Creating account…">Create account</SubmitButton>
+      <Button
+        type="submit"
+        size="touch"
+        disabled={pending}
+        aria-busy={pending}
+        className={cn(
+          "w-full gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
+        )}
+      >
+        {pending ? (
+          <>
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Creating account…
+          </>
+        ) : (
+          "Create account"
+        )}
+      </Button>
 
       <div className="relative flex items-center justify-center" aria-hidden>
         <span className="h-px w-full bg-border" />

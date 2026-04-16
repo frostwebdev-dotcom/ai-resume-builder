@@ -1,6 +1,7 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { emailConfirmationHandoffResponse } from "@/lib/auth/email-confirm-handoff";
 import { sanitizeNextPath } from "@/lib/auth/redirect";
 import { ROUTES } from "@/lib/constants";
 import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
@@ -33,15 +34,23 @@ export async function GET(request: NextRequest) {
   const next = sanitizeNextPath(nextRaw);
   const redirectTo = new URL(next, request.url);
 
+  console.log(`[auth/callback] code=${code ? "yes" : "no"} token_hash=${url.searchParams.get("token_hash") ? "yes" : "no"} type=${url.searchParams.get("type")} error=${url.searchParams.get("error")} next=${next}`);
+
   if (code) {
-    const response = NextResponse.redirect(redirectTo);
-    const supabase = createSupabaseMiddlewareClient(request, response);
+    const handoffResponse = emailConfirmationHandoffResponse(redirectTo);
+    const { supabase, getResponse } = createSupabaseMiddlewareClient(
+      request,
+      handoffResponse,
+    );
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
+    console.log(`[auth/callback] exchangeCodeForSession: ${error ? `ERROR: ${error.message}` : "ok"}`);
+
     if (error) {
-      return NextResponse.redirect(
-        new URL(`${ROUTES.auth.login}?error=auth`, request.url),
-      );
+      const loginUrl = new URL(ROUTES.auth.login, request.url);
+      loginUrl.searchParams.set("error", "auth");
+      loginUrl.searchParams.set("next", next);
+      return NextResponse.redirect(loginUrl);
     }
 
     const {
@@ -53,20 +62,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return response;
+    return getResponse();
   }
 
   const tokenHash = url.searchParams.get("token_hash");
   const otpType = parseEmailOtpType(url.searchParams.get("type"));
   if (tokenHash && otpType) {
-    const response = NextResponse.redirect(redirectTo);
-    const supabase = createSupabaseMiddlewareClient(request, response);
+    const handoffResponse = emailConfirmationHandoffResponse(redirectTo);
+    const { supabase, getResponse } = createSupabaseMiddlewareClient(
+      request,
+      handoffResponse,
+    );
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: otpType });
 
+    console.log(`[auth/callback] verifyOtp: ${error ? `ERROR: ${error.message}` : "ok"}`);
+
     if (error) {
-      return NextResponse.redirect(
-        new URL(`${ROUTES.auth.login}?error=auth`, request.url),
-      );
+      const loginUrl = new URL(ROUTES.auth.login, request.url);
+      loginUrl.searchParams.set("error", "auth");
+      loginUrl.searchParams.set("next", next);
+      return NextResponse.redirect(loginUrl);
     }
 
     const {
@@ -78,7 +93,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return response;
+    return getResponse();
   }
 
   const errorCode = url.searchParams.get("error_code");

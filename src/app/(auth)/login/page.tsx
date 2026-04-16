@@ -1,15 +1,19 @@
+import { redirect } from "next/navigation";
+
 import { AuthCard } from "@/components/auth/auth-card";
 import { LoginForm } from "@/components/auth/login-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { sanitizeNextPath } from "@/lib/auth/redirect";
+import { ROUTES } from "@/lib/constants";
 
 type LoginPageProps = {
-  searchParams: Promise<{
-    next?: string;
-    error?: string;
-    reset?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+function firstParam(v: string | string[] | undefined): string | undefined {
+  if (v === undefined) return undefined;
+  return Array.isArray(v) ? v[0] : v;
+}
 
 function loginErrorAlert(error: string | undefined) {
   if (error === "link_expired") {
@@ -40,6 +44,17 @@ function loginErrorAlert(error: string | undefined) {
       </Alert>
     );
   }
+  if (error === "email_unconfirmed") {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Confirm your email</AlertTitle>
+        <AlertDescription>
+          This account exists but the email address is not confirmed yet. Use the link in your inbox or
+          request a new confirmation email from the sign-up flow.
+        </AlertDescription>
+      </Alert>
+    );
+  }
   if (error === "rate_limited") {
     return (
       <Alert variant="destructive">
@@ -63,7 +78,21 @@ function loginErrorAlert(error: string | undefined) {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const sp = await searchParams;
-  const nextPath = sanitizeNextPath(sp.next);
+
+  // Never allow credentials in the query string (GET form leak, bookmarks, shared URLs).
+  if (firstParam(sp.password) !== undefined) {
+    const params = new URLSearchParams();
+    const next = firstParam(sp.next);
+    const error = firstParam(sp.error);
+    const reset = firstParam(sp.reset);
+    if (next) params.set("next", next);
+    if (error) params.set("error", error);
+    if (reset) params.set("reset", reset);
+    const q = params.toString();
+    redirect(q ? `${ROUTES.auth.login}?${q}` : ROUTES.auth.login);
+  }
+
+  const nextPath = sanitizeNextPath(firstParam(sp.next));
 
   return (
     <AuthCard
@@ -71,9 +100,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       description="Use your email and password to continue to your resumes."
     >
       <div className="flex flex-col gap-6">
-        {loginErrorAlert(sp.error)}
+        {loginErrorAlert(firstParam(sp.error))}
 
-        {sp.reset === "success" ? (
+        {firstParam(sp.reset) === "success" ? (
           <Alert>
             <AlertTitle>Password updated</AlertTitle>
             <AlertDescription>
