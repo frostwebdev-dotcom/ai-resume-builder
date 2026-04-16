@@ -16,6 +16,10 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-ring: var(--brand-ring);
   --spacing-touch: var(--touch-target-min);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -82,6 +86,19 @@
   --warning-foreground: oklch(0.2 0.03 85);
   --info: oklch(0.45 0.08 250);
   --info-foreground: oklch(0.99 0.01 250);
+  /* Brand accent — restrained indigo that reads as trustworthy & professional */
+  --brand: oklch(0.48 0.14 258);
+  --brand-foreground: oklch(0.99 0.01 258);
+  --brand-muted: oklch(0.96 0.02 258);
+  --brand-ring: oklch(0.48 0.14 258 / 0.35);
+  /* Shared shadow recipes — referenced by utility classes below */
+  --shadow-soft:
+    0 1px 0 0 color-mix(in oklch, var(--foreground) 4%, transparent),
+    0 8px 24px -12px color-mix(in oklch, var(--foreground) 18%, transparent);
+  --shadow-elevated:
+    0 1px 0 0 color-mix(in oklch, var(--foreground) 6%, transparent),
+    0 18px 40px -16px color-mix(in oklch, var(--foreground) 24%, transparent),
+    0 4px 10px -6px color-mix(in oklch, var(--foreground) 12%, transparent);
   /* Touch: 44px minimum for primary interactive targets */
   --touch-target-min: 2.75rem;
   --chart-1: oklch(0.87 0 0);
@@ -125,6 +142,10 @@
   --warning-foreground: oklch(0.22 0.04 85);
   --info: oklch(0.72 0.1 250);
   --info-foreground: oklch(0.14 0.04 250);
+  --brand: oklch(0.72 0.13 258);
+  --brand-foreground: oklch(0.16 0.04 258);
+  --brand-muted: oklch(0.28 0.05 258);
+  --brand-ring: oklch(0.72 0.13 258 / 0.45);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -147,19 +168,45 @@
   body {
     @apply bg-background text-foreground antialiased;
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   html {
     @apply font-sans;
+  }
+  /* Selection uses brand so highlighted text feels on-brand */
+  ::selection {
+    background-color: color-mix(in oklch, var(--brand) 28%, transparent);
+    color: var(--foreground);
+  }
+  /* Restrained scrollbars — premium feel without OS chrome clashing */
+  @media (pointer: fine) {
+    *::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    *::-webkit-scrollbar-thumb {
+      background-color: color-mix(in oklch, var(--foreground) 14%, transparent);
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+    *::-webkit-scrollbar-thumb:hover {
+      background-color: color-mix(in oklch, var(--foreground) 22%, transparent);
+    }
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
   }
 }
 
 /* Typography scale — mobile-first, comfortable line lengths */
 @layer utilities {
   .text-display {
-    @apply text-[1.75rem] font-semibold tracking-tight text-balance sm:text-4xl sm:leading-tight;
+    @apply text-[1.9rem] font-semibold tracking-[-0.02em] text-balance sm:text-[2.6rem] sm:leading-[1.08] lg:text-[3rem];
   }
   .text-headline {
-    @apply text-xl font-semibold tracking-tight text-balance sm:text-2xl sm:leading-snug;
+    @apply text-xl font-semibold tracking-tight text-balance sm:text-[1.6rem] sm:leading-snug;
   }
   .text-subhead {
     @apply text-base font-medium leading-snug text-foreground sm:text-lg;
@@ -179,6 +226,104 @@
   /* Readable measure for long copy on phones */
   .prose-app {
     @apply max-w-prose text-base leading-relaxed text-muted-foreground;
+  }
+  /* Small uppercase label used above headings for visual rhythm */
+  .text-eyebrow {
+    @apply inline-flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-brand;
+  }
+  /* Brand gradient text — use sparingly on a key headline phrase */
+  .text-gradient-brand {
+    background-image: linear-gradient(
+      135deg,
+      var(--foreground) 0%,
+      color-mix(in oklch, var(--brand) 78%, var(--foreground)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Soft elevation for interactive cards */
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+  /* Subtle dotted grid — use on section backgrounds for depth */
+  .bg-grid-subtle {
+    background-image: radial-gradient(
+      color-mix(in oklch, var(--foreground) 7%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+    background-position: center;
+  }
+  /* Gentle brand aurora for hero backgrounds */
+  .bg-aurora {
+    background-image:
+      radial-gradient(
+        60% 50% at 15% 0%,
+        color-mix(in oklch, var(--brand) 14%, transparent) 0%,
+        transparent 60%
+      ),
+      radial-gradient(
+        55% 45% at 85% 10%,
+        color-mix(in oklch, var(--info) 12%, transparent) 0%,
+        transparent 55%
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklch, var(--muted) 50%, var(--background)) 0%,
+        var(--background) 80%
+      );
+  }
+  /* Reusable brand mark — small gradient tile with a monogram */
+  .brand-mark {
+    @apply relative inline-flex size-8 items-center justify-center overflow-hidden rounded-lg text-[0.78rem] font-bold tracking-tight text-brand-foreground ring-1 ring-foreground/10;
+    background-image: linear-gradient(
+      135deg,
+      color-mix(in oklch, var(--brand) 94%, white) 0%,
+      color-mix(in oklch, var(--brand) 72%, var(--foreground)) 100%
+    );
+    box-shadow: var(--shadow-soft);
+  }
+  .brand-mark::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklch, white 22%, transparent) 0%,
+      transparent 55%
+    );
+    pointer-events: none;
+  }
+  /* Trust row: compact icon + label chips for reassurance under CTAs */
+  .trust-row {
+    @apply flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground;
+  }
+  .trust-row > * {
+    @apply inline-flex items-center gap-1.5;
+  }
+  /* Hairline horizontal rule using border color */
+  .hr-hairline {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--border),
+      transparent
+    );
+    border: 0;
+  }
+  /* Interactive card hover — opt-in via the `card-interactive` class */
+  .card-interactive {
+    @apply transition-all duration-200 ease-out;
+  }
+  .card-interactive:hover {
+    @apply -translate-y-0.5;
+    box-shadow: var(--shadow-elevated);
+    border-color: color-mix(in oklch, var(--brand) 24%, var(--border));
   }
   /* Bottom safe area for notched devices + sticky bars */
   .pb-safe {

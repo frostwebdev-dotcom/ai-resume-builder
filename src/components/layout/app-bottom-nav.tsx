@@ -20,7 +20,7 @@ export function AppBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/90 md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/85 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/75 md:hidden"
       aria-label="Primary"
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-around px-2">
@@ -34,17 +34,18 @@ export function AppBottomNav() {
             <li key={href} className="flex min-w-0 flex-1 justify-center">
               <Link
                 href={href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-[3.25rem] min-w-[3.25rem] flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 text-[0.7rem] font-medium transition-colors",
+                  "flex min-h-[3.25rem] min-w-[3.25rem] flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-[0.7rem] font-medium transition-all",
                   active
-                    ? "text-foreground"
+                    ? "bg-brand-muted text-foreground"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Icon
                   className={cn(
-                    "size-6",
-                    active ? "text-foreground" : "opacity-70",
+                    "size-6 transition-colors",
+                    active ? "text-brand" : "opacity-70",
                   )}
                   aria-hidden
                 />

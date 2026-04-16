@@ -22,8 +22,10 @@ export function AppMobileHeader({
   showBack = false,
   user,
 }: AppMobileHeaderProps) {
+  const isDefaultTitle = title === APP_NAME;
+
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/95 pt-safe backdrop-blur-md supports-[backdrop-filter]:bg-background/90 md:hidden">
+    <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 pt-safe backdrop-blur-md supports-[backdrop-filter]:bg-background/70 md:hidden">
       <div className="grid h-14 min-h-14 grid-cols-[minmax(0,1fr)_minmax(0,2fr)_minmax(0,1fr)] items-center gap-2 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))]">
         <div className="flex justify-start">
           {showBack ? (
@@ -36,10 +38,24 @@ export function AppMobileHeader({
             >
               ← Back
             </Link>
-          ) : null}
+          ) : (
+            <Link
+              href={ROUTES.app.root}
+              aria-label={`${APP_NAME} — dashboard`}
+              className="inline-flex min-h-10 items-center gap-2 px-2"
+            >
+              <span className="brand-mark !size-7 !text-[0.65rem]" aria-hidden>
+                R
+              </span>
+            </Link>
+          )}
         </div>
         <h1 className="min-w-0 truncate text-center text-base font-semibold leading-tight">
-          {title}
+          {isDefaultTitle ? (
+            <span className="text-foreground">{title}</span>
+          ) : (
+            title
+          )}
         </h1>
         <div className="flex justify-end">
           <UserMenu email={user.email} isAdmin={user.isAdmin} variant="icon" />

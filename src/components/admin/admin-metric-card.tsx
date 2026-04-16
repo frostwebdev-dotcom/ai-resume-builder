@@ -1,25 +1,54 @@
 import { cn } from "@/lib/utils";
 
+type AdminMetricTone = "default" | "brand" | "success" | "warning" | "destructive";
+
 type AdminMetricCardProps = {
   label: string;
   value: string | number;
   hint?: string;
   className?: string;
+  /** Subtle accent to signal what the number means. */
+  tone?: AdminMetricTone;
 };
 
-export function AdminMetricCard({ label, value, hint, className }: AdminMetricCardProps) {
+const toneAccent: Record<AdminMetricTone, string> = {
+  default: "bg-foreground/30",
+  brand: "bg-brand",
+  success: "bg-success",
+  warning: "bg-warning",
+  destructive: "bg-destructive",
+};
+
+export function AdminMetricCard({
+  label,
+  value,
+  hint,
+  className,
+  tone = "default",
+}: AdminMetricCardProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card px-4 py-4 shadow-sm sm:px-5 sm:py-5",
+        "group relative overflow-hidden rounded-xl border border-border/70 bg-card px-5 py-5 shadow-soft transition-all hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevated sm:px-6 sm:py-6",
         className,
       )}
     >
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-2 font-heading text-2xl font-semibold tabular-nums text-foreground sm:text-3xl">
+      <span
+        className={cn(
+          "absolute left-0 top-0 h-full w-0.5 opacity-70 transition-opacity group-hover:opacity-100",
+          toneAccent[tone],
+        )}
+        aria-hidden
+      />
+      <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-2 font-heading text-2xl font-semibold tracking-tight tabular-nums text-foreground sm:text-3xl">
         {value}
       </p>
-      {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
+      {hint ? (
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{hint}</p>
+      ) : null}
     </div>
   );
 }

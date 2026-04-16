@@ -42,20 +42,23 @@ const templates = [
 export default function TemplatesPage() {
   return (
     <>
-      <MktSection className="pt-10 sm:pt-14">
+      <MktSection className="pt-12 sm:pt-20">
         <PageContainer>
           <div className="mx-auto max-w-2xl text-center">
-            <h1 className="text-display text-balance">Resume templates</h1>
-            <p className="mt-3 text-body-muted">
+            <p className="text-eyebrow justify-center">Templates</p>
+            <h1 className="mt-3 text-display text-balance">
+              Clean layouts that <span className="text-gradient-brand">read well everywhere</span>
+            </h1>
+            <p className="mt-4 text-body-muted">
               Every layout prioritizes readable structure over decoration — so both humans and ATS
               tools can scan your experience quickly.
             </p>
           </div>
 
-          <ul className="mx-auto mt-12 grid max-w-5xl gap-8 md:grid-cols-3">
+          <ul className="mx-auto mt-14 grid max-w-5xl gap-6 md:grid-cols-3">
             {templates.map((t) => (
               <li key={t.name}>
-                <Card className="overflow-hidden border-border/80 shadow-sm">
+                <Card interactive className="overflow-hidden">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">{t.name}</CardTitle>
                     <CardDescription className="text-sm leading-relaxed">
@@ -70,20 +73,31 @@ export default function TemplatesPage() {
             ))}
           </ul>
 
-          <div className="mx-auto mt-14 max-w-3xl rounded-xl border border-border bg-muted/30 p-6 sm:p-8">
-            <h2 className="text-subhead">Mobile and desktop</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Edit on your phone when you need to — buttons and fields use large tap targets. For long
-              editing sessions, desktop still shines: you will preview the same PDF employers see.
-            </p>
-            <h2 className="mt-8 text-subhead">ATS-friendly approach</h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              We avoid multi-column tricks and tiny footnotes that confuse parsers. Headings follow
-              conventional names; dates and titles stay in predictable positions so automated screeners
-              can map your history.
-            </p>
-            <div className="mt-8">
-              <Link href={ROUTES.auth.signup} className={cn(buttonVariants({ size: "touch" }))}>
+          <div className="mx-auto mt-16 grid max-w-4xl gap-6 rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-10 md:grid-cols-2 md:gap-10">
+            <div>
+              <p className="text-eyebrow">Mobile &amp; desktop</p>
+              <h2 className="mt-2 text-subhead">Edit anywhere, export anywhere</h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Tweak on your phone with large tap targets; settle in on desktop for long edits.
+                Previews match exactly what employers will see in the PDF.
+              </p>
+            </div>
+            <div>
+              <p className="text-eyebrow">ATS-friendly</p>
+              <h2 className="mt-2 text-subhead">Parsers actually read these</h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                No multi-column tricks or tiny footnotes. Conventional headings, predictable dates
+                and titles — so automated screeners can map your history reliably.
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <Link
+                href={ROUTES.auth.signup}
+                className={cn(
+                  buttonVariants({ size: "touch" }),
+                  "w-full bg-brand text-brand-foreground hover:bg-brand/90 sm:w-auto",
+                )}
+              >
                 Start with a template
               </Link>
             </div>

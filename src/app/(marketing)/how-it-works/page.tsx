@@ -34,26 +34,37 @@ const steps = [
 
 export default function HowItWorksPage() {
   return (
-    <MktSection className="pt-10 sm:pt-14">
+    <MktSection className="pt-12 sm:pt-20">
       <PageContainer>
-        <div className="mx-auto max-w-2xl">
-          <h1 className="text-display text-balance">How it works</h1>
-          <p className="mt-3 text-body-muted">
-            A focused flow from blank page to downloadable PDF — built for speed and clarity, not
-            feature bloat.
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-eyebrow justify-center">How it works</p>
+          <h1 className="mt-3 text-display text-balance">
+            From blank page to <span className="text-gradient-brand">downloadable PDF</span>
+          </h1>
+          <p className="mt-4 text-body-muted">
+            A focused flow built for speed and clarity — not feature bloat.
           </p>
         </div>
 
-        <ol className="mx-auto mt-14 max-w-3xl space-y-10">
+        <ol className="mx-auto mt-16 max-w-3xl">
           {steps.map((step, i) => (
-            <li key={step.title} className="flex gap-4 sm:gap-6">
+            <li
+              key={step.title}
+              className="relative flex gap-5 pb-10 sm:gap-7 sm:pb-12 last:pb-0"
+            >
+              {i < steps.length - 1 ? (
+                <span
+                  className="absolute left-[1.375rem] top-12 bottom-0 w-px bg-gradient-to-b from-border to-transparent sm:left-[1.625rem]"
+                  aria-hidden
+                />
+              ) : null}
               <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-sm font-semibold text-foreground"
+                className="brand-mark !size-11 shrink-0 !text-base sm:!size-12 sm:!text-lg"
                 aria-hidden
               >
                 {i + 1}
               </span>
-              <div>
+              <div className="pt-1">
                 <h2 className="text-subhead">{step.title}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
                   {step.body}
@@ -64,7 +75,13 @@ export default function HowItWorksPage() {
         </ol>
 
         <div className="mx-auto mt-14 flex max-w-3xl flex-col items-stretch justify-center gap-3 sm:flex-row sm:justify-start">
-          <Link href={ROUTES.auth.signup} className={cn(buttonVariants({ size: "touch" }))}>
+          <Link
+            href={ROUTES.auth.signup}
+            className={cn(
+              buttonVariants({ size: "touch" }),
+              "bg-brand text-brand-foreground hover:bg-brand/90",
+            )}
+          >
             Start free
           </Link>
           <Link

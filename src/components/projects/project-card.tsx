@@ -80,12 +80,10 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <>
       <Card
         size="sm"
-        className={cn(
-          "transition-shadow hover:shadow-md",
-          project.isArchived && "opacity-90",
-        )}
+        interactive={!project.isArchived}
+        className={cn(project.isArchived && "opacity-90")}
       >
-        <CardHeader className="gap-3 border-b border-border/80 pb-3 [.border-b]:pb-3">
+        <CardHeader className="gap-3 border-b border-border/70 pb-3 [.border-b]:pb-3">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <Link
@@ -187,7 +185,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
             href={ROUTES.app.project(project.id)}
             className={cn(
               buttonVariants({ size: "sm" }),
-              "w-full min-h-11 justify-center sm:w-auto sm:min-h-9",
+              "w-full min-h-11 justify-center bg-brand text-brand-foreground hover:bg-brand/90 sm:w-auto sm:min-h-9",
             )}
           >
             Open

@@ -33,10 +33,11 @@ export function AdminNav() {
           <Link
             key={href}
             href={href}
+            aria-current={active ? "page" : undefined}
             className={cn(
               "shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               active
-                ? "bg-primary text-primary-foreground"
+                ? "bg-brand text-brand-foreground shadow-soft"
                 : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >

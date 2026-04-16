@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { CheckCircle2, LayoutTemplate, XCircle, AlertCircle } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  LayoutTemplate,
+  NotebookPen,
+  Sparkles,
+  XCircle,
+} from "lucide-react";
 
 import { PreviewViewedTracker } from "@/components/analytics/preview-viewed-tracker";
 import { IncompletePreviewNote } from "@/components/resume-preview/incomplete-preview-note";
@@ -118,14 +126,16 @@ export function ProjectPreviewClient({
         </Alert>
       ) : null}
 
-      <div className="flex flex-col gap-4 border-b border-border/80 pb-6 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-border/70 pb-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-2">
           <Link
             href={ROUTES.app.project(projectId)}
-            className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
           >
-            ← Back to project
+            <ArrowLeft className="size-4" aria-hidden />
+            Back to project
           </Link>
+          <p className="text-eyebrow">Preview &amp; export</p>
           <h1 className="text-balance text-display text-foreground">Preview</h1>
           <p className="text-sm text-muted-foreground">{projectTitle}</p>
         </div>
@@ -133,9 +143,10 @@ export function ProjectPreviewClient({
           href={ROUTES.app.projectBuild(projectId)}
           className={cn(
             buttonVariants({ variant: "outline", size: "touch" }),
-            "inline-flex w-full justify-center sm:w-auto",
+            "inline-flex w-full justify-center gap-1.5 sm:w-auto",
           )}
         >
+          <NotebookPen className="size-4" aria-hidden />
           Edit in builder
         </Link>
       </div>
@@ -151,15 +162,21 @@ export function ProjectPreviewClient({
         hasDownloadHistory={downloadAccess.hasDownloadHistory}
       />
 
-      <section className="space-y-3" aria-labelledby="template-heading">
+      <section className="space-y-4" aria-labelledby="template-heading">
         <div className="flex items-center gap-2">
-          <LayoutTemplate className="size-5 text-muted-foreground" aria-hidden />
+          <span
+            className="flex size-8 items-center justify-center rounded-lg bg-brand-muted text-brand ring-1 ring-brand/15"
+            aria-hidden
+          >
+            <LayoutTemplate className="size-4" />
+          </span>
           <h2 id="template-heading" className="text-subhead text-foreground">
             Template
           </h2>
         </div>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Choose a layout. Previews use the same structure we intend for PDF export — simple columns, clear headings, no graphics that confuse ATS tools.
+          Choose a layout. Previews use the same structure we intend for PDF export — simple columns,
+          clear headings, no graphics that confuse ATS tools.
         </p>
         {error ? (
           <p className="text-sm font-medium text-destructive" role="alert">
@@ -175,19 +192,31 @@ export function ProjectPreviewClient({
                 type="button"
                 disabled={pending}
                 onClick={() => selectTemplate(t.id)}
+                aria-pressed={active}
                 className={cn(
-                  "rounded-xl border bg-card p-4 text-left text-sm shadow-sm ring-1 transition-colors",
+                  "group/tmpl relative overflow-hidden rounded-xl border bg-card p-4 text-left text-sm shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-elevated disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
                   active
-                    ? "border-primary ring-2 ring-primary/25"
-                    : "border-border/80 ring-foreground/5 hover:border-border hover:bg-muted/30",
+                    ? "border-brand/40 ring-2 ring-brand/25"
+                    : "border-border/70 hover:border-brand/30",
                 )}
               >
-                <span className="font-semibold text-foreground">{t.name}</span>
-                {t.isPremium ? (
-                  <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-caption text-primary">
-                    Premium
+                {active ? (
+                  <span
+                    className="absolute right-2.5 top-2.5 inline-flex size-5 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-soft"
+                    aria-hidden
+                  >
+                    <CheckCircle2 className="size-3.5" strokeWidth={2.5} />
                   </span>
                 ) : null}
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">{t.name}</span>
+                  {t.isPremium ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-warning-foreground ring-1 ring-warning/25">
+                      <Sparkles className="size-3" aria-hidden />
+                      Premium
+                    </span>
+                  ) : null}
+                </div>
                 {t.description ? (
                   <p className="mt-2 text-caption leading-relaxed text-muted-foreground">
                     {t.description}
@@ -200,9 +229,14 @@ export function ProjectPreviewClient({
       </section>
 
       <section className="space-y-3" aria-labelledby="live-heading">
-        <h2 id="live-heading" className="text-subhead text-foreground">
-          Live preview
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="live-heading" className="text-subhead text-foreground">
+            Live preview
+          </h2>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border">
+            Matches export
+          </span>
+        </div>
         <p className="text-caption text-muted-foreground sm:hidden">
           Scroll horizontally on small screens to see the full page width, or rotate for a roomier view.
         </p>

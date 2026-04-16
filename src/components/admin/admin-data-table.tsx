@@ -10,20 +10,28 @@ export function AdminDataTable({ children, className }: AdminDataTableProps) {
   return (
     <div
       className={cn(
-        "-mx-1 overflow-x-auto rounded-lg border border-border bg-card shadow-sm",
+        "-mx-1 overflow-x-auto rounded-xl border border-border/70 bg-card shadow-soft",
         className,
       )}
     >
-      <table className="w-full min-w-[640px] border-collapse text-left text-sm">{children}</table>
+      <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+        {children}
+      </table>
     </div>
   );
 }
 
-export function AdminTh({ children, className }: { children: React.ReactNode; className?: string }) {
+export function AdminTh({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <th
       className={cn(
-        "border-b border-border bg-muted/40 px-3 py-3 font-medium text-foreground first:rounded-tl-lg last:rounded-tr-lg sm:px-4",
+        "border-b border-border/70 bg-muted/40 px-4 py-3 text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground first:rounded-tl-xl last:rounded-tr-xl",
         className,
       )}
     >
@@ -44,7 +52,10 @@ export function AdminTd({
   return (
     <td
       colSpan={colSpan}
-      className={cn("border-b border-border/80 px-3 py-2.5 align-top text-foreground sm:px-4", className)}
+      className={cn(
+        "border-b border-border/60 px-4 py-3 align-top text-foreground last:pr-5",
+        className,
+      )}
     >
       {children}
     </td>
@@ -52,5 +63,9 @@ export function AdminTd({
 }
 
 export function AdminTr({ children }: { children: React.ReactNode }) {
-  return <tr className="hover:bg-muted/30">{children}</tr>;
+  return (
+    <tr className="transition-colors last:[&_td]:border-b-0 hover:bg-brand-muted/40">
+      {children}
+    </tr>
+  );
 }

@@ -22,16 +22,25 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-[15.5rem] shrink-0 flex-col border-r border-border bg-card lg:w-60 lg:shrink-0 md:flex">
-      <div className="flex h-14 items-center border-b border-border px-4">
+    <aside className="hidden w-[15.5rem] shrink-0 flex-col border-r border-border/70 bg-card/60 supports-[backdrop-filter]:backdrop-blur-sm lg:w-60 lg:shrink-0 md:flex">
+      <div className="flex h-14 items-center border-b border-border/70 px-4">
         <Link
           href={ROUTES.app.root}
-          className="text-sm font-semibold tracking-tight text-foreground"
+          aria-label={`${APP_NAME} — dashboard`}
+          className="group flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand-ring"
         >
-          {APP_NAME}
+          <span className="brand-mark" aria-hidden>
+            R
+          </span>
+          <span className="text-sm font-semibold tracking-tight text-foreground">
+            {APP_NAME}
+          </span>
         </Link>
       </div>
-      <nav className="flex flex-1 flex-col gap-0.5 p-3" aria-label="App">
+      <p className="px-4 pt-4 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
+        Workspace
+      </p>
+      <nav className="flex flex-1 flex-col gap-0.5 p-3 pt-2" aria-label="App">
         {items.map(({ href, label, icon: Icon }) => {
           const active =
             href === ROUTES.app.root
@@ -42,20 +51,33 @@ export function AppSidebar({ user }: AppSidebarProps) {
             <Link
               key={href}
               href={href}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex min-h-10 items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "relative flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                 active
-                  ? "bg-muted text-foreground"
-                  : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                  ? "bg-brand-muted text-foreground"
+                  : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
               )}
             >
-              <Icon className="size-4 shrink-0 opacity-80" aria-hidden />
+              {active ? (
+                <span
+                  className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r-full bg-brand"
+                  aria-hidden
+                />
+              ) : null}
+              <Icon
+                className={cn(
+                  "size-4 shrink-0 transition-colors",
+                  active ? "text-brand" : "opacity-80",
+                )}
+                aria-hidden
+              />
               {label}
             </Link>
           );
         })}
       </nav>
-      <div className="border-t border-border p-3">
+      <div className="border-t border-border/70 p-3">
         <UserMenu email={user.email} isAdmin={user.isAdmin} />
       </div>
     </aside>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 
 import { AdminNav } from "@/components/admin/admin-nav";
 import { PageContainer } from "@/components/layout/page-container";
@@ -11,22 +12,29 @@ type AdminShellProps = {
 export function AdminShell({ children }: AdminShellProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-muted/30">
-      <header className="border-b border-border bg-background">
+      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
         <PageContainer className="flex h-14 items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="shrink-0 text-sm font-semibold">Admin</span>
-            <span className="text-muted-foreground">·</span>
+            <span
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-muted px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-brand ring-1 ring-brand/20"
+              aria-label="Admin area"
+            >
+              <ShieldCheck className="size-3.5" aria-hidden />
+              Admin
+            </span>
+            <span className="hidden text-muted-foreground sm:inline">·</span>
             <Link
               href={ROUTES.home}
-              className="min-w-0 truncate text-sm text-muted-foreground hover:text-foreground"
+              className="hidden min-w-0 truncate text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
             >
               {APP_NAME}
             </Link>
           </div>
           <Link
             href={ROUTES.app.root}
-            className="shrink-0 text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
+            <ArrowLeft className="size-4" aria-hidden />
             Back to app
           </Link>
         </PageContainer>

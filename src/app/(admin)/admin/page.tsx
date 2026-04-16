@@ -5,6 +5,7 @@ import { Activity, ArrowRight, ClipboardList, CreditCard, Download, FileText, Us
 import { AdminMetricCard } from "@/components/admin/admin-metric-card";
 import { buttonVariants } from "@/components/ui/button";
 import { formatUsdFromCents } from "@/lib/billing/format-money";
+import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 import { getAdminHealthProbe, getAdminOverviewMetrics } from "@/services/admin/overview";
 import { getRollingFunnelSnapshot } from "@/services/analytics/snapshot";
@@ -33,7 +34,8 @@ export default async function AdminOverviewPage() {
   return (
     <div className="space-y-10">
       <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+        <p className="text-eyebrow">Control center</p>
+        <h1 className="mt-2 font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
           Overview
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
@@ -41,78 +43,119 @@ export default async function AdminOverviewPage() {
         </p>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <AdminMetricCard label="Registered users" value={metrics.userCount} />
-        <AdminMetricCard label="Resume projects" value={metrics.projectCount} hint="Excluding deleted" />
-        <AdminMetricCard label="Completed orders" value={metrics.completedOrderCount} />
-        <AdminMetricCard
-          label="Recorded revenue"
-          value={formatUsdFromCents(metrics.paymentTotalCents)}
-          hint="Sum of paid payment rows"
-        />
+      <section aria-labelledby="core-metrics" className="space-y-4">
+        <h2
+          id="core-metrics"
+          className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+        >
+          Core metrics
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <AdminMetricCard tone="brand" label="Registered users" value={metrics.userCount} />
+          <AdminMetricCard label="Resume projects" value={metrics.projectCount} hint="Excluding deleted" />
+          <AdminMetricCard tone="success" label="Completed orders" value={metrics.completedOrderCount} />
+          <AdminMetricCard
+            tone="success"
+            label="Recorded revenue"
+            value={formatUsdFromCents(metrics.paymentTotalCents)}
+            hint="Sum of paid payment rows"
+          />
+        </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <AdminMetricCard label="All orders" value={metrics.orderCount} />
-        <AdminMetricCard label="PDF downloads" value={metrics.downloadCount} />
-        <AdminMetricCard label="AI requests (total)" value={metrics.aiLogCount} />
-        <AdminMetricCard
-          label="AI failures (24h)"
-          value={metrics.aiFailureCount24h}
-          hint="Investigate spikes"
-        />
+      <section aria-labelledby="activity-metrics" className="space-y-4">
+        <h2
+          id="activity-metrics"
+          className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+        >
+          Activity
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <AdminMetricCard label="All orders" value={metrics.orderCount} />
+          <AdminMetricCard label="PDF downloads" value={metrics.downloadCount} />
+          <AdminMetricCard label="AI requests (total)" value={metrics.aiLogCount} />
+          <AdminMetricCard
+            tone={metrics.aiFailureCount24h > 0 ? "destructive" : "default"}
+            label="AI failures (24h)"
+            value={metrics.aiFailureCount24h}
+            hint="Investigate spikes"
+          />
+        </div>
       </section>
 
-      <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      <section aria-labelledby="rolling-metrics" className="space-y-4">
+        <h2
+          id="rolling-metrics"
+          className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+        >
           Last {rolling.windowDays} days (database)
         </h2>
-        <p className="mb-4 max-w-2xl text-xs text-muted-foreground">
+        <p className="max-w-2xl text-xs text-muted-foreground">
           Rolling counts from Postgres — useful for funnel trends alongside structured analytics logs (see
           hosting logs for <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">analytics_event</code>{" "}
           lines).
         </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <AdminMetricCard label="Projects created" value={rolling.projectsCreated} />
-          <AdminMetricCard label="Orders completed" value={rolling.ordersCompleted} />
+          <AdminMetricCard tone="brand" label="Projects created" value={rolling.projectsCreated} />
+          <AdminMetricCard tone="success" label="Orders completed" value={rolling.ordersCompleted} />
           <AdminMetricCard label="AI generations (ok)" value={rolling.aiGenerationsSucceeded} />
           <AdminMetricCard label="PDF downloads" value={rolling.pdfDownloads} />
         </div>
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Platform health</h2>
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <span
-              className={
-                health.ok
-                  ? "inline-flex rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success"
-                  : "inline-flex rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive"
-              }
+      <section className="relative overflow-hidden rounded-xl border border-border/70 bg-card p-6 shadow-soft sm:p-8">
+        <div
+          className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-brand/8 blur-3xl"
+          aria-hidden
+        />
+        <div className="relative">
+          <p className="text-eyebrow">Platform health</p>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+                  health.ok
+                    ? "bg-success/12 text-success ring-success/25"
+                    : "bg-destructive/12 text-destructive ring-destructive/25",
+                )}
+              >
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full",
+                    health.ok ? "bg-success" : "bg-destructive",
+                  )}
+                  aria-hidden
+                />
+                {health.ok ? "API reachable" : "API check failed"}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                /api/health · <span className="tabular-nums">{health.latencyMs} ms</span>
+              </span>
+            </div>
+            <Link
+              href="/api/health"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+              target="_blank"
+              rel="noreferrer"
             >
-              {health.ok ? "API reachable" : "API check failed"}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              /api/health · {health.latencyMs} ms
-            </span>
+              View JSON
+            </Link>
           </div>
-          <Link
-            href="/api/health"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-            target="_blank"
-            rel="noreferrer"
-          >
-            View JSON
-          </Link>
+          <p className="mt-4 text-xs text-muted-foreground">
+            Audit events (all time):{" "}
+            <span className="font-semibold tabular-nums text-foreground">
+              {metrics.auditLogCount}
+            </span>
+          </p>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Audit events (all time): <span className="font-medium text-foreground">{metrics.auditLogCount}</span>
-        </p>
       </section>
 
-      <section>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      <section aria-labelledby="data-views" className="space-y-4">
+        <h2
+          id="data-views"
+          className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+        >
           Data views
         </h2>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -120,15 +163,18 @@ export default async function AdminOverviewPage() {
             <li key={href}>
               <Link
                 href={href}
-                className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/20"
+                className="group/card flex items-start gap-3 rounded-xl border border-border/70 bg-card p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevated"
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                  <Icon className="size-5 text-foreground" aria-hidden />
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-muted text-brand ring-1 ring-brand/15 transition-colors group-hover/card:bg-brand group-hover/card:text-brand-foreground">
+                  <Icon className="size-5" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1 font-medium text-foreground">
+                  <span className="flex items-center gap-1 font-semibold text-foreground">
                     {label}
-                    <ArrowRight className="size-4 shrink-0 opacity-50" aria-hidden />
+                    <ArrowRight
+                      className="size-4 shrink-0 opacity-50 transition-all group-hover/card:translate-x-0.5 group-hover/card:text-brand group-hover/card:opacity-100"
+                      aria-hidden
+                    />
                   </span>
                   <span className="mt-0.5 block text-sm text-muted-foreground">{description}</span>
                 </span>

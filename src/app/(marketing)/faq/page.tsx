@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
@@ -42,25 +43,29 @@ const faqs = [
 
 export default function FaqPage() {
   return (
-    <MktSection className="pt-10 sm:pt-14">
+    <MktSection className="pt-12 sm:pt-20">
       <PageContainer>
         <div className="mx-auto max-w-2xl text-center">
-          <h1 className="text-display">Frequently asked questions</h1>
-          <p className="mt-3 text-body-muted">
+          <p className="text-eyebrow justify-center">Help center</p>
+          <h1 className="mt-3 text-display">Frequently asked questions</h1>
+          <p className="mt-4 text-body-muted">
             Straight answers about building, exporting, and privacy — updated as we ship new
             features.
           </p>
         </div>
 
-        <div className="mx-auto mt-12 max-w-3xl divide-y divide-border rounded-xl border border-border bg-card">
+        <div className="mx-auto mt-14 max-w-3xl divide-y divide-border/70 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-soft">
           {faqs.map((item) => (
             <details
               key={item.q}
-              className="group px-4 py-4 sm:px-6 [&_summary::-webkit-details-marker]:hidden"
+              className="group px-5 py-5 transition-colors hover:bg-muted/30 sm:px-7 [&_summary::-webkit-details-marker]:hidden"
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-sm font-semibold text-foreground marker:content-none">
-                {item.q}
-                <span className="text-muted-foreground transition group-open:rotate-180">▼</span>
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-foreground marker:content-none">
+                <span>{item.q}</span>
+                <ChevronDown
+                  className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-out group-open:rotate-180 group-open:text-brand"
+                  aria-hidden
+                />
               </summary>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
             </details>
@@ -69,14 +74,23 @@ export default function FaqPage() {
 
         <p className="mx-auto mt-10 max-w-2xl text-center text-caption">
           Still stuck?{" "}
-          <Link href={ROUTES.contact} className="font-medium text-foreground underline-offset-4 hover:underline">
+          <Link
+            href={ROUTES.contact}
+            className="font-medium text-brand underline-offset-4 hover:underline"
+          >
             Contact us
           </Link>
           .
         </p>
 
         <div className="mt-10 flex justify-center">
-          <Link href={ROUTES.auth.signup} className={cn(buttonVariants({ size: "touch" }))}>
+          <Link
+            href={ROUTES.auth.signup}
+            className={cn(
+              buttonVariants({ size: "touch" }),
+              "bg-brand text-brand-foreground hover:bg-brand/90",
+            )}
+          >
             Start free
           </Link>
         </div>

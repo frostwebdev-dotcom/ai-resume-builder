@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { FileText, Lock, ShieldCheck, Sparkles } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { StickyBottomBar } from "@/components/layout/sticky-bottom-bar";
@@ -45,11 +45,75 @@ export default function StyleGuidePage() {
   return (
     <div className="flex flex-1 flex-col gap-16 py-12 sm:gap-20 sm:py-16">
       <PageContainer>
+        <p className="text-eyebrow">Design system</p>
+        <div className="mt-3">
+          <SectionHeader
+            level="page"
+            title="Design system"
+            description="Minimal, trustworthy SaaS UI: strong type hierarchy, generous spacing, 44px touch targets on mobile, and a restrained brand accent for trust moments. Use these tokens and components for a consistent product."
+          />
+        </div>
+      </PageContainer>
+
+      <PageContainer className="space-y-6">
         <SectionHeader
-          level="page"
-          title="Design system"
-          description="Minimal, trustworthy SaaS UI: strong type hierarchy, generous spacing, 44px touch targets on mobile, and no decorative noise. Use these tokens and components for a consistent product."
+          title="Brand surfaces"
+          description="The brand accent, gradient text, aurora background, and dotted grid — used sparingly for trust moments and hero chrome."
         />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-aurora p-8 shadow-soft">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-grid-subtle opacity-40 [mask-image:radial-gradient(circle_at_center,black_30%,transparent_75%)]"
+            />
+            <div className="relative">
+              <span className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand-muted px-3 py-1 text-[0.72rem] font-medium text-brand">
+                <Sparkles className="size-3.5" aria-hidden />
+                Trust pill
+              </span>
+              <p className="mt-4 text-headline">
+                Brand <span className="text-gradient-brand">gradient text</span>
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Aurora background + dotted grid, used at the top of hero and CTA sections.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-8">
+            <div className="flex items-center gap-3">
+              <span className="brand-mark" aria-hidden>
+                R
+              </span>
+              <div>
+                <p className="text-label">Brand mark</p>
+                <p className="text-caption">Gradient tile with monogram · ring-1 · shadow-soft</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="brand-mark !size-11 !text-base" aria-hidden>
+                1
+              </span>
+              <div>
+                <p className="text-label">Numbered brand tile</p>
+                <p className="text-caption">Step / order indicator</p>
+              </div>
+            </div>
+            <ul className="trust-row !justify-start">
+              <li>
+                <ShieldCheck className="size-3.5 text-success" aria-hidden />
+                <span>Encrypted</span>
+              </li>
+              <li>
+                <Lock className="size-3.5 text-brand" aria-hidden />
+                <span>Stripe-secured</span>
+              </li>
+              <li>
+                <Sparkles className="size-3.5 text-foreground/70" aria-hidden />
+                <span>No subscription</span>
+              </li>
+            </ul>
+          </div>
+        </div>
       </PageContainer>
 
       <PageContainer className="space-y-6">
@@ -57,7 +121,7 @@ export default function StyleGuidePage() {
           title="Typography"
           description="Utility classes scale from comfortable phone reading to crisp desktop headlines."
         />
-        <div className="grid gap-6 rounded-xl border border-border bg-card p-6 sm:p-8">
+        <div className="grid gap-6 rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-8">
           <p className="text-display">Display — hero headline</p>
           <p className="text-headline">Section headline</p>
           <p className="text-subhead">Subhead for emphasis</p>
@@ -69,31 +133,57 @@ export default function StyleGuidePage() {
           </p>
           <p className="text-caption">Caption / helper text</p>
           <p className="text-label">Form label style</p>
+          <p className="text-eyebrow">Eyebrow label</p>
         </div>
       </PageContainer>
 
       <PageContainer className="space-y-6">
         <SectionHeader
           title="Color tokens"
-          description="Neutral base with subtle blue-gray cast for professionalism. Semantic success, warning, and info sit beside destructive."
+          description="Neutral base with a restrained indigo brand accent for trust moments. Semantic success, warning, info, and destructive stay distinct."
         />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
+            { label: "Brand", className: "bg-brand text-brand-foreground" },
+            { label: "Brand muted", className: "bg-brand-muted text-brand ring-1 ring-brand/20" },
             { label: "Primary", className: "bg-primary text-primary-foreground" },
             { label: "Muted", className: "bg-muted text-muted-foreground" },
             { label: "Success", className: "bg-success text-success-foreground" },
+            { label: "Warning", className: "bg-warning text-warning-foreground" },
+            { label: "Info", className: "bg-info text-info-foreground" },
             { label: "Destructive", className: "bg-destructive text-white" },
           ].map((swatch) => (
             <div
               key={swatch.label}
               className={cn(
-                "flex min-h-[5rem] items-end rounded-lg p-4 text-sm font-medium",
+                "flex min-h-[5rem] items-end rounded-xl p-4 text-sm font-semibold shadow-soft",
                 swatch.className,
               )}
             >
               {swatch.label}
             </div>
           ))}
+        </div>
+      </PageContainer>
+
+      <PageContainer className="space-y-6">
+        <SectionHeader
+          title="Elevation"
+          description="Two shared shadow recipes — apply via shadow-soft (default surfaces) and shadow-elevated (emphasis / hover lift)."
+        />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-border/70 bg-card p-6">
+            <p className="text-label">No shadow</p>
+            <p className="text-caption mt-2">Hairline only — passive surface.</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-card p-6 shadow-soft">
+            <p className="text-label">shadow-soft</p>
+            <p className="text-caption mt-2">Default for cards, panels.</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-card p-6 shadow-elevated">
+            <p className="text-label">shadow-elevated</p>
+            <p className="text-caption mt-2">Pricing highlight, hover state.</p>
+          </div>
         </div>
       </PageContainer>
 
@@ -176,16 +266,19 @@ export default function StyleGuidePage() {
       </PageContainer>
 
       <PageContainer className="space-y-6">
-        <SectionHeader title="Cards" />
-        <div className="grid gap-6 md:grid-cols-2">
+        <SectionHeader
+          title="Cards"
+          description="Default cards use a hairline border + shadow-soft. Pass interactive to opt into hover-lift and brand-tinted border for list items."
+        />
+        <div className="grid gap-6 md:grid-cols-3">
           <Card>
             <CardHeader>
-              <CardTitle>Resume draft</CardTitle>
-              <CardDescription>Last edited just now</CardDescription>
+              <CardTitle>Default</CardTitle>
+              <CardDescription>Static surface</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-body-muted text-pretty">
-                Cards use quiet borders and soft backgrounds — no heavy shadows or gradients.
+                Hairline border, soft elevation, no hover affordance.
               </p>
             </CardContent>
             <CardFooter>
@@ -194,9 +287,28 @@ export default function StyleGuidePage() {
               </Button>
             </CardFooter>
           </Card>
+          <Card interactive>
+            <CardHeader>
+              <CardTitle>Interactive</CardTitle>
+              <CardDescription>Hover lifts + brand border</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-body-muted text-pretty">
+                Use for grid items that link to another view (templates, projects, quick links).
+              </p>
+            </CardContent>
+            <CardFooter>
+              <Button
+                type="button"
+                className="w-full bg-brand text-brand-foreground hover:bg-brand/90 sm:w-auto"
+              >
+                Open
+              </Button>
+            </CardFooter>
+          </Card>
           <Card size="sm">
             <CardHeader>
-              <CardTitle>Compact card</CardTitle>
+              <CardTitle>Compact</CardTitle>
               <CardDescription>Smaller padding for dense layouts</CardDescription>
             </CardHeader>
             <CardContent>

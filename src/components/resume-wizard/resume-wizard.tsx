@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  CloudAlert,
+  CloudCheck,
+  Eye,
+  Loader2,
+} from "lucide-react";
 
 import { WIZARD_STEPS } from "@/lib/resume-wizard/steps";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
@@ -93,32 +102,47 @@ export function ResumeWizard({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="space-y-4 border-b border-border/80 pb-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="space-y-5 border-b border-border/70 pb-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <Link
               href={ROUTES.app.project(projectId)}
-              className="inline-flex min-h-11 items-center text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:min-h-0"
+              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline sm:min-h-0"
             >
-              ← Back to project
+              <ArrowLeft className="size-4" aria-hidden />
+              Back to project
             </Link>
             <Link
               href={ROUTES.app.projectPreview(projectId)}
-              className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-4 hover:underline sm:min-h-0"
+              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand underline-offset-4 transition-colors hover:underline sm:min-h-0"
             >
+              <Eye className="size-4" aria-hidden />
               Preview
             </Link>
           </div>
           <SaveStatusLabel status={saveStatus} onRetry={retry} />
         </div>
         <div>
-          <h1 className="text-headline text-foreground">{projectTitle}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Resume builder</p>
+          <p className="text-eyebrow">Resume builder</p>
+          <h1 className="mt-2 text-headline text-foreground">{projectTitle}</h1>
         </div>
-        <StepIndicator steps={stepItems} currentStepId={current.id} />
-        <p className="text-sm text-muted-foreground">
-          Step {stepIndex + 1} of {WIZARD_STEPS.length} · {current.label}
-        </p>
+        <div className="rounded-xl border border-border/70 bg-card p-4 shadow-soft sm:p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Progress
+            </p>
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-muted px-2.5 py-0.5 text-[0.7rem] font-semibold text-brand ring-1 ring-brand/15">
+              Step{" "}
+              <span className="tabular-nums">
+                {stepIndex + 1}/{WIZARD_STEPS.length}
+              </span>
+            </span>
+          </div>
+          <div className="mt-3">
+            <StepIndicator steps={stepItems} currentStepId={current.id} />
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">{current.label}</p>
+        </div>
       </div>
 
       {lastError ? (
@@ -171,7 +195,7 @@ export function ResumeWizard({
       {/* Sticky controls: above mobile bottom nav */}
       <div
         className={cn(
-          "fixed inset-x-0 z-40 border-t border-border bg-background/95 px-4 pt-3 shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)] backdrop-blur-md",
+          "fixed inset-x-0 z-40 border-t border-border/70 bg-background/85 px-4 pt-3 shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)] backdrop-blur-md supports-[backdrop-filter]:bg-background/75",
           "bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:bottom-0",
           "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] md:pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]",
         )}
@@ -193,7 +217,7 @@ export function ResumeWizard({
               <Button
                 type="button"
                 size="touch"
-                className="min-w-[44%] flex-1 sm:min-w-[10rem] sm:flex-none"
+                className="min-w-[44%] flex-1 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:min-w-[10rem] sm:flex-none"
                 onClick={goNext}
               >
                 Next
@@ -203,7 +227,7 @@ export function ResumeWizard({
               <Button
                 type="button"
                 size="touch"
-                className="min-w-[44%] flex-1 sm:flex-none"
+                className="min-w-[44%] flex-1 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:flex-none"
                 onClick={() => void flushSave()}
               >
                 Save now
@@ -223,22 +247,48 @@ function SaveStatusLabel({
   status: "idle" | "saving" | "saved" | "error";
   onRetry: () => void;
 }) {
+  const baseChip =
+    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset";
+
   if (status === "saving") {
-    return <span className="text-sm text-muted-foreground">Saving…</span>;
+    return (
+      <span
+        className={cn(baseChip, "bg-muted/60 text-muted-foreground ring-border")}
+      >
+        <Loader2 className="size-3.5 animate-spin" aria-hidden />
+        Saving…
+      </span>
+    );
   }
   if (status === "saved") {
-    return <span className="text-sm text-success">Saved</span>;
+    return (
+      <span className={cn(baseChip, "bg-success/12 text-success ring-success/25")}>
+        <CheckCircle2 className="size-3.5" aria-hidden />
+        Saved
+      </span>
+    );
   }
   if (status === "error") {
     return (
       <button
         type="button"
         onClick={onRetry}
-        className="min-h-11 rounded-md px-1 text-sm font-medium text-destructive underline-offset-4 hover:underline sm:min-h-0"
+        className={cn(
+          baseChip,
+          "min-h-11 bg-destructive/12 text-destructive ring-destructive/25 transition-colors hover:bg-destructive/20 sm:min-h-0",
+        )}
       >
+        <CloudAlert className="size-3.5" aria-hidden />
         Save failed — retry
       </button>
     );
   }
-  return <span className="text-sm text-muted-foreground">Autosave on</span>;
+  return (
+    <span
+      className={cn(baseChip, "bg-brand-muted text-brand ring-brand/15")}
+    >
+      <CloudCheck className="size-3.5" aria-hidden />
+      Autosave on
+    </span>
+  );
 }
