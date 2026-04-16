@@ -50,22 +50,44 @@ export function Field({
         </p>
       ) : null}
       <div className="flex flex-col gap-1.5">
-        {React.isValidElement(children)
-          ? React.cloneElement(
+        {(() => {
+          const describedBy =
+            [descriptionId, errorId, successId].filter(Boolean).join(" ") ||
+            undefined;
+          const injected = {
+            id,
+            "aria-invalid": error ? true : undefined,
+            "aria-describedby": describedBy,
+          } as const;
+          // Single child: inject directly (preserves original behavior).
+          if (React.isValidElement(children)) {
+            return React.cloneElement(
               children as React.ReactElement<{
                 id?: string;
                 "aria-invalid"?: boolean;
                 "aria-describedby"?: string;
               }>,
-              {
-                id,
-                "aria-invalid": error ? true : undefined,
-                "aria-describedby":
-                  [descriptionId, errorId, successId].filter(Boolean).join(" ") ||
-                  undefined,
-              },
-            )
-          : children}
+              injected,
+            );
+          }
+          // Multiple children: inject onto the first valid element only
+          // (useful when pairing an input with a helper like PasswordStrength).
+          let hasInjected = false;
+          return React.Children.map(children, (child) => {
+            if (!hasInjected && React.isValidElement(child)) {
+              hasInjected = true;
+              return React.cloneElement(
+                child as React.ReactElement<{
+                  id?: string;
+                  "aria-invalid"?: boolean;
+                  "aria-describedby"?: string;
+                }>,
+                injected,
+              );
+            }
+            return child;
+          });
+        })()}
         {error ? (
           <p
             id={errorId}

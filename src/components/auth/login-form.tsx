@@ -2,10 +2,13 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { Mail } from "lucide-react";
 
 import { SubmitButton } from "@/components/auth/submit-button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ROUTES } from "@/lib/constants";
 import { loginAction, type AuthActionState } from "@/services/auth/actions";
@@ -31,41 +34,62 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       ) : null}
 
       <Field id="login-email" label="Email" required>
-        <Input
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-        />
+        <InputWithIcon leading={<Mail />}>
+          <Input
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+          />
+        </InputWithIcon>
       </Field>
 
-      <Field id="login-password" label="Password" required>
-        <Input
-          name="password"
-          type="password"
-          autoComplete="current-password"
-        />
-      </Field>
-
-      <div className="flex flex-col gap-4">
-        <SubmitButton pendingLabel="Signing in…">Sign in</SubmitButton>
-        <div className="flex flex-col gap-1 text-center text-sm text-muted-foreground">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <label
+            htmlFor="login-password"
+            className="text-label flex items-center gap-0"
+          >
+            Password
+            <span className="ml-0.5 text-destructive" aria-hidden>
+              *
+            </span>
+          </label>
           <Link
             href={ROUTES.auth.forgotPassword}
-            className="inline-flex min-h-11 items-center justify-center font-medium text-foreground underline-offset-4 hover:underline"
+            className="text-xs font-medium text-brand underline-offset-4 hover:underline"
           >
-            Forgot password?
+            Forgot?
           </Link>
-          <p className="inline-flex min-h-11 flex-wrap items-center justify-center gap-1">
-            <span>No account?</span>
-            <Link
-              href={ROUTES.auth.signup}
-              className="font-medium text-foreground underline-offset-4 hover:underline"
-            >
-              Create one
-            </Link>
-          </p>
         </div>
+        <PasswordInput
+          id="login-password"
+          name="password"
+          autoComplete="current-password"
+          required
+        />
+      </div>
+
+      <div className="flex flex-col gap-5">
+        <SubmitButton pendingLabel="Signing in…">Sign in</SubmitButton>
+        <div
+          className="relative flex items-center justify-center"
+          aria-hidden
+        >
+          <span className="h-px w-full bg-border" />
+          <span className="absolute bg-card px-3 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            or
+          </span>
+        </div>
+        <p className="flex min-h-11 flex-wrap items-center justify-center gap-1.5 text-center text-sm text-muted-foreground">
+          <span>New here?</span>
+          <Link
+            href={ROUTES.auth.signup}
+            className="font-semibold text-brand underline-offset-4 hover:underline"
+          >
+            Create a free account
+          </Link>
+        </p>
       </div>
     </form>
   );
