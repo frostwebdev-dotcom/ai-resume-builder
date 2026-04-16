@@ -37,5 +37,7 @@ export const ROUTES = {
     forgotPassword: "/forgot-password",
     resetPassword: "/auth/reset-password",
     callback: "/auth/callback",
+    /** Session exists but no `profiles` row (e.g. trigger not applied). */
+    incomplete: "/auth/incomplete",
   },
 } as const;

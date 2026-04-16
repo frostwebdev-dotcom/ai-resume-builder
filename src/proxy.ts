@@ -18,12 +18,27 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  const pathname = request.nextUrl.pathname;
+
+  /**
+   * `getUser()` calls Supabase Auth to validate/refresh the JWT (~100–400ms+). Only run it when
+   * we need session data for redirects or protected routes — not on every marketing page load.
+   */
+  const needsSession =
+    !isPublicPath(pathname) ||
+    pathname.startsWith(ROUTES.admin.root) ||
+    pathname === ROUTES.auth.login ||
+    pathname === ROUTES.auth.signup ||
+    pathname === ROUTES.auth.forgotPassword;
+
+  if (!needsSession) {
+    return response;
+  }
+
   const supabase = createSupabaseMiddlewareClient(request, response);
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
 
   if (!isPublicPath(pathname)) {
     if (!user) {
@@ -54,7 +69,17 @@ export async function proxy(request: NextRequest) {
       pathname === ROUTES.auth.signup ||
       pathname === ROUTES.auth.forgotPassword)
   ) {
-    return NextResponse.redirect(new URL(ROUTES.app.root, request.url));
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile) {
+      return NextResponse.redirect(new URL(ROUTES.app.root, request.url));
+    }
+
+    return NextResponse.redirect(new URL(ROUTES.auth.incomplete, request.url));
   }
 
   return response;

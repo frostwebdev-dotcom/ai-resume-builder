@@ -12,11 +12,17 @@ import type { AuthContext } from "@/lib/auth/session";
  */
 export async function requireUser(options?: { nextPath?: string }): Promise<AuthContext> {
   const ctx = await getAuthContext();
-  if (!ctx) {
-    const next = options?.nextPath ? `?next=${encodeURIComponent(options.nextPath)}` : "";
-    redirect(`${ROUTES.auth.login}${next}`);
+  if (ctx) {
+    return ctx;
   }
-  return ctx;
+
+  const user = await getSessionUser();
+  if (user) {
+    redirect(ROUTES.auth.incomplete);
+  }
+
+  const next = options?.nextPath ? `?next=${encodeURIComponent(options.nextPath)}` : "";
+  redirect(`${ROUTES.auth.login}${next}`);
 }
 
 /**

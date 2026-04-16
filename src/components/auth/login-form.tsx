@@ -1,6 +1,5 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
 import { Mail } from "lucide-react";
 
@@ -9,29 +8,20 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { PasswordInput } from "@/components/ui/password-input";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ROUTES } from "@/lib/constants";
-import { loginAction, type AuthActionState } from "@/services/auth/actions";
-
-const initial: AuthActionState = {};
 
 type LoginFormProps = {
   nextPath: string;
 };
 
+/**
+ * Posts to a Route Handler so Supabase session cookies are written onto the redirect response.
+ * (Server Action cookie writes are often dropped in this Next.js + Supabase SSR setup.)
+ */
 export function LoginForm({ nextPath }: LoginFormProps) {
-  const [state, formAction] = useActionState(loginAction, initial);
-
   return (
-    <form action={formAction} className="flex flex-col gap-6">
+    <form action="/api/auth/sign-in" method="post" className="flex flex-col gap-6">
       <input type="hidden" name="next" value={nextPath} />
-
-      {state.error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Could not sign in</AlertTitle>
-          <AlertDescription>{state.error}</AlertDescription>
-        </Alert>
-      ) : null}
 
       <Field id="login-email" label="Email" required>
         <InputWithIcon leading={<Mail />}>

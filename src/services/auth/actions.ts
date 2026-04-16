@@ -13,7 +13,6 @@ import { logSuspicious } from "@/lib/security/abuse-log";
 import { getClientIp } from "@/lib/security/client-ip";
 import {
   enforceAuthForgotLimit,
-  enforceAuthLoginLimit,
   enforceAuthPasswordResetLimit,
   enforceAuthSignupLimit,
 } from "@/lib/security/rate-limit-enforcement";
@@ -22,7 +21,6 @@ import { trySendWelcomeEmail } from "@/services/email/welcome";
 import { sendPasswordUpdatedEmail } from "@/services/email/password-updated";
 import {
   forgotPasswordSchema,
-  loginSchema,
   resetPasswordSchema,
   signupSchema,
 } from "@/validation/auth";
@@ -36,60 +34,6 @@ function authCallbackUrl(nextPath: string): string {
   const base = clientEnv.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   const next = encodeURIComponent(sanitizeNextPath(nextPath));
   return `${base}${ROUTES.auth.callback}?next=${next}`;
-}
-
-export async function loginAction(
-  _prev: AuthActionState,
-  formData: FormData,
-): Promise<AuthActionState> {
-  const parsed = loginSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
-  if (!parsed.success) {
-    const err = parsed.error.flatten();
-    return {
-      error:
-        err.fieldErrors.email?.[0] ??
-        err.fieldErrors.password?.[0] ??
-        "Check your email and password.",
-    };
-  }
-
-  const ip = await getClientIp();
-  const rl = await enforceAuthLoginLimit(ip);
-  if (!rl.ok) {
-    return { error: rl.message };
-  }
-
-  const allowed = await abuseHooks.allowLoginAttempt({
-    ip,
-    email: parsed.data.email,
-  });
-  if (!allowed) {
-    logSuspicious("auth_hook_denied", { flow: "login", ip: ip.slice(0, 24) });
-    return { error: "Something went wrong. Please try again later." };
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
-    password: parsed.data.password,
-  });
-
-  if (error) {
-    if (
-      error.message.toLowerCase().includes("invalid login") ||
-      error.message.toLowerCase().includes("invalid credentials")
-    ) {
-      return { error: "Invalid email or password." };
-    }
-    return { error: error.message };
-  }
-
-  const next = sanitizeNextPath(formData.get("next")?.toString() ?? null);
-  revalidatePath("/", "layout");
-  redirect(next);
 }
 
 export async function signupAction(
