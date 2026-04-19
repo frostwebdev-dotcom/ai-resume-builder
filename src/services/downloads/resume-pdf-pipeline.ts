@@ -12,6 +12,8 @@ import { trySendDownloadReadyEmail } from "@/services/email/download-ready";
 
 const BUCKET = "resume-pdfs";
 const SIGNED_URL_TTL_SEC = 60;
+/** Stored file row retention hint for future storage GC / cron (not the signed URL TTL). */
+const DOWNLOAD_RECORD_RETENTION_DAYS = 30;
 
 function safePdfFileName(projectTitle: string): string {
   const base = projectTitle
@@ -90,6 +92,10 @@ export async function generateResumePdfAndSignedUrl(params: {
     };
   }
 
+  const expiresAt = new Date(
+    Date.now() + DOWNLOAD_RECORD_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
   const { error: dlErr } = await service.from("downloads").insert({
     user_id: params.userId,
     project_id: params.projectId,
@@ -98,6 +104,7 @@ export async function generateResumePdfAndSignedUrl(params: {
     file_name: fileName,
     mime_type: "application/pdf",
     bytes: buffer.length,
+    expires_at: expiresAt,
   });
 
   if (dlErr) {

@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { ROUTES } from "@/lib/constants";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import * as ResumeAi from "@/services/ai/resume-ai";
-import { checkAiUsageAllowed } from "@/services/ai/usage-limits";
 import type { AiResult } from "@/types/ai";
 import {
   additionalTextInput,
@@ -26,15 +25,6 @@ async function getSessionUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
-type AiBlocked = { ok: false; error: string; code: "RATE_LIMIT" };
-
-/** Redis-backed AI burst control; returns an error result when limited. */
-async function withAiGate(userId: string): Promise<AiBlocked | null> {
-  const g = await checkAiUsageAllowed(userId);
-  if (g.allowed) return null;
-  return { ok: false, error: g.reason, code: "RATE_LIMIT" };
-}
-
 function revalidateProject(projectId: string) {
   revalidatePath(ROUTES.app.projectBuild(projectId));
   revalidatePath(ROUTES.app.project(projectId));
@@ -45,8 +35,6 @@ export async function aiGenerateSummaryAction(
 ): Promise<AiResult<{ headline: string; summary: string }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = summaryGenerateInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Check your inputs and try again.", code: "VALIDATION" };
@@ -61,8 +49,6 @@ export async function aiTailorSummaryAction(
 ): Promise<AiResult<{ headline: string; summary: string }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = summaryTailorInput.safeParse(raw);
   if (!parsed.success) {
     const msg = parsed.error.flatten().fieldErrors.targetRole?.[0];
@@ -82,8 +68,6 @@ export async function aiShortenSummaryAction(
 ): Promise<AiResult<{ headline: string; summary: string }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = summaryTextOpInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
@@ -98,8 +82,6 @@ export async function aiExpandSummaryAction(
 ): Promise<AiResult<{ headline: string; summary: string }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = summaryTextOpInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
@@ -114,8 +96,6 @@ export async function aiGrammarSummaryAction(
 ): Promise<AiResult<{ headline: string; summary: string }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = summaryTextOpInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
@@ -130,8 +110,6 @@ export async function aiRewriteExperienceBulletsAction(
 ): Promise<AiResult<{ bullets: string[] }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
@@ -146,8 +124,6 @@ export async function aiStrengthenExperienceBulletsAction(
 ): Promise<AiResult<{ bullets: string[] }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
@@ -162,8 +138,6 @@ export async function aiShortenExperienceBulletsAction(
 ): Promise<AiResult<{ bullets: string[] }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
@@ -178,8 +152,6 @@ export async function aiExpandExperienceBulletsAction(
 ): Promise<AiResult<{ bullets: string[] }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
@@ -194,8 +166,6 @@ export async function aiRephraseSkillsAction(
 ): Promise<AiResult<{ lines: string }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = skillsTextInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid skills text.", code: "VALIDATION" };
@@ -210,8 +180,6 @@ export async function aiShortenSkillsAction(
 ): Promise<AiResult<{ lines: string }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = skillsTextInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid skills text.", code: "VALIDATION" };
@@ -226,8 +194,6 @@ export async function aiGrammarAdditionalAction(
 ): Promise<AiResult<{ text: string }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
-  const limited = await withAiGate(userId);
-  if (limited) return limited;
   const parsed = additionalTextInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid text.", code: "VALIDATION" };

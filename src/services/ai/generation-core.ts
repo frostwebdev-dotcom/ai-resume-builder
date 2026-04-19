@@ -67,7 +67,7 @@ export async function runStructuredGeneration<T>(opts: {
 }): Promise<GenerationSuccess<T> | GenerationFailure> {
   const quota = await checkAiUsageAllowed(opts.userId);
   if (!quota.allowed) {
-    return { ok: false, error: quota.reason, code: "QUOTA" };
+    return { ok: false, error: quota.reason, code: "RATE_LIMIT" };
   }
 
   if (!serverEnv.OPENAI_API_KEY) {

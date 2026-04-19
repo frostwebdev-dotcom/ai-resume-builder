@@ -8,6 +8,8 @@ import {
   createSupabaseMiddlewareClient,
 } from "@/lib/supabase/middleware";
 
+const isDev = process.env.NODE_ENV === "development";
+
 /**
  * Refreshes Supabase session cookies and enforces auth boundaries for `/app` and `/admin`.
  */
@@ -41,20 +43,26 @@ export async function proxy(request: NextRequest) {
 
   const { supabase, getResponse } = createSupabaseMiddlewareClient(request);
 
-  const authCookies = filterCookiesForSupabaseProject(request.cookies.getAll(), url).filter((c) =>
-    c.name.startsWith("sb-"),
-  );
-  console.log(`[proxy] ${pathname} | auth cookies: ${authCookies.length > 0 ? authCookies.map((c) => c.name).join(", ") : "(none)"}`);
+  if (isDev) {
+    const authCookies = filterCookiesForSupabaseProject(request.cookies.getAll(), url).filter((c) =>
+      c.name.startsWith("sb-"),
+    );
+    console.log(
+      `[proxy] ${pathname} | auth cookies: ${authCookies.length > 0 ? authCookies.map((c) => c.name).join(", ") : "(none)"}`,
+    );
+  }
 
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError) {
-    console.log(`[proxy] ${pathname} | getUser error: ${userError.message}`);
+  if (isDev) {
+    if (userError) {
+      console.log(`[proxy] ${pathname} | getUser error: ${userError.message}`);
+    }
+    console.log(`[proxy] ${pathname} | user: ${user ? user.id : "null"}`);
   }
-  console.log(`[proxy] ${pathname} | user: ${user ? user.id : "null"}`);
 
   if (!isPublicPath(pathname)) {
     if (!user) {

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { serverEnv } from "@/lib/env";
 import {
   getAiGenerationRateLimiter,
   getAuthForgotPasswordRateLimiter,
@@ -15,6 +16,8 @@ import { logSuspicious } from "./abuse-log";
 
 const MSG_AI =
   "You're using AI faster than our limit allows. Please wait a short moment and try again.";
+const MSG_AI_REDIS_REQUIRED =
+  "AI is temporarily unavailable. Please try again in a few minutes.";
 const MSG_AUTH_IP =
   "Too many attempts from this network. Please wait before trying again.";
 const MSG_CHECKOUT =
@@ -31,9 +34,22 @@ function retryAfterSecFromReset(resetMs: number): number {
 export type RateLimitOk = { ok: true };
 export type RateLimitDenied = { ok: false; message: string; retryAfterSec?: number };
 
+let warnedAiRedisMissingProduction = false;
+
 export async function enforceAiGenerationLimit(userId: string): Promise<RateLimitOk | RateLimitDenied> {
   const limiter = getAiGenerationRateLimiter();
-  if (!limiter) return { ok: true };
+  if (!limiter) {
+    if (serverEnv.NODE_ENV === "production") {
+      if (!warnedAiRedisMissingProduction) {
+        warnedAiRedisMissingProduction = true;
+        console.error(
+          "[ai-rate-limit] Production requires UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN for AI abuse protection.",
+        );
+      }
+      return { ok: false, message: MSG_AI_REDIS_REQUIRED };
+    }
+    return { ok: true };
+  }
   const { success, reset } = await limiter.limit(userId);
   if (success) return { ok: true };
   logSuspicious("rate_limit_ai", { userId, reset });

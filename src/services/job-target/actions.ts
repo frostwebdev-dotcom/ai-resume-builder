@@ -8,7 +8,6 @@ import { clearTailoringSection, mergeTailoringCompare, parseTailoringCompare } f
 import type { TailoringCompareV1 } from "@/lib/job-target/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import * as ResumeAi from "@/services/ai/resume-ai";
-import { checkAiUsageAllowed } from "@/services/ai/usage-limits";
 import { updateProjectWizardState } from "@/services/resume-wizard/persist-wizard";
 import type { JobTarget, Json } from "@/types/database";
 import {
@@ -150,11 +149,6 @@ export async function tailorSummaryToJobAction(
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
 
-  const quota = await checkAiUsageAllowed(userId);
-  if (!quota.allowed) {
-    return { ok: false, error: quota.reason, code: "RATE_LIMIT" };
-  }
-
   const parsed = tailorSummaryJobActionInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
@@ -221,11 +215,6 @@ export async function tailorSkillsToJobAction(
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
 
-  const quota = await checkAiUsageAllowed(userId);
-  if (!quota.allowed) {
-    return { ok: false, error: quota.reason, code: "RATE_LIMIT" };
-  }
-
   const parsed = tailorSkillsJobActionInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid skills fields.", code: "VALIDATION" };
@@ -290,11 +279,6 @@ export async function tailorExperienceToJobAction(
 ): Promise<ActionResult<{ tailoringCompare: TailoringCompareV1 | null }>> {
   const userId = await getSessionUserId();
   if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
-
-  const quota = await checkAiUsageAllowed(userId);
-  if (!quota.allowed) {
-    return { ok: false, error: quota.reason, code: "RATE_LIMIT" };
-  }
 
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
