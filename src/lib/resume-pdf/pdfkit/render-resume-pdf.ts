@@ -10,6 +10,8 @@ const BODY_COLOR = "#1a1a1a";
 const META_COLOR = "#555555";
 const FAINT_COLOR = "#6b7280";
 const NAME_COLOR = "#0a0a0a";
+const BANNER_TEXT_COLOR = "#ffffff";
+const BANNER_META_COLOR = "#e5e7eb";
 
 function contentWidth(doc: Pdf, layout: PdfLayout): number {
   return doc.page.width - layout.pageMargin * 2;
@@ -38,15 +40,13 @@ function normaliseUrl(raw: string): string | null {
 }
 
 function formatContactLabel(line: ResumeContactLine): string {
-  const v = line.value.trim();
-  if (!v) return "";
-  return v;
+  return line.value.trim();
 }
 
 function writeSectionTitle(doc: Pdf, layout: PdfLayout, title: string): void {
   ensureSpace(doc, layout, 26);
   doc
-    .font("Helvetica-Bold")
+    .font(layout.fonts.bold)
     .fontSize(layout.sectionTitleSize)
     .fillColor(layout.accentStrong)
     .text(title.toUpperCase(), layout.pageMargin, doc.y, {
@@ -92,7 +92,7 @@ function writeSectionTitle(doc: Pdf, layout: PdfLayout, title: string): void {
 function writeParagraph(doc: Pdf, layout: PdfLayout, text: string): void {
   if (!text.trim()) return;
   ensureSpace(doc, layout, 40);
-  doc.font("Helvetica").fontSize(layout.bodySize).fillColor(BODY_COLOR);
+  doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
   doc.text(text, layout.pageMargin, doc.y, {
     width: contentWidth(doc, layout),
     align: "left",
@@ -111,10 +111,10 @@ function writeBullets(doc: Pdf, layout: PdfLayout, items: string[]): void {
     const textWidth = contentWidth(doc, layout) - indent;
     const startY = doc.y;
 
-    doc.font("Helvetica-Bold").fontSize(layout.bodySize).fillColor(layout.accent);
+    doc.font(layout.fonts.bold).fontSize(layout.bodySize).fillColor(layout.accent);
     doc.text("•", xBullet, startY, { width: indent, lineGap: 2 });
 
-    doc.font("Helvetica").fontSize(layout.bodySize).fillColor(BODY_COLOR);
+    doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
     doc.text(item.trim(), xText, startY, {
       width: textWidth,
       align: "left",
@@ -132,15 +132,75 @@ function renderContactLine(
   y: number,
   width: number,
   align: "left" | "right" | "center",
+  color: string = META_COLOR,
 ): number {
   const parts = lines.map(formatContactLabel).filter(Boolean);
   if (parts.length === 0) return y;
 
   const sep = "  ·  ";
   const combined = parts.join(sep);
-  doc.font("Helvetica").fontSize(layout.smallSize).fillColor(META_COLOR);
+  doc.font(layout.fonts.regular).fontSize(layout.smallSize).fillColor(color);
   doc.text(combined, x, y, { width, align, lineGap: 1 });
   return doc.y;
+}
+
+function renderHeaderBanner(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument): void {
+  const name = docData.identity.fullName.trim() || "Your name";
+  const headline = docData.identity.headline.trim();
+  const lines = docData.contact.lines.filter((l) => l.value.trim());
+  const w = contentWidth(doc, layout);
+
+  const bannerTopPad = 24;
+  const bannerBottomPad = 18;
+  const approxLines = (headline ? 1 : 0) + (lines.length ? 1 : 0);
+  const bannerHeight =
+    bannerTopPad + layout.nameSize + approxLines * (layout.smallSize + 6) + bannerBottomPad;
+
+  doc.save();
+  doc.rect(0, 0, doc.page.width, bannerHeight).fill(layout.accentStrong);
+  doc.restore();
+
+  doc
+    .font(layout.fonts.bold)
+    .fontSize(layout.nameSize)
+    .fillColor(BANNER_TEXT_COLOR)
+    .text(name, layout.pageMargin, bannerTopPad, {
+      width: w,
+      align: "left",
+      characterSpacing: 0.4,
+    });
+
+  let cursor = doc.y;
+  if (headline) {
+    doc
+      .font(layout.fonts.regular)
+      .fontSize(layout.headlineSize)
+      .fillColor(BANNER_META_COLOR)
+      .text(headline, layout.pageMargin, cursor + 2, { width: w, align: "left" });
+    cursor = doc.y;
+  }
+  if (lines.length) {
+    cursor = renderContactLine(
+      doc,
+      layout,
+      lines,
+      layout.pageMargin,
+      cursor + 4,
+      w,
+      "left",
+      BANNER_META_COLOR,
+    );
+  }
+
+  const ruleY = cursor + 6;
+  doc
+    .strokeColor(layout.accent)
+    .lineWidth(2)
+    .moveTo(layout.pageMargin, ruleY)
+    .lineTo(layout.pageMargin + 60, ruleY)
+    .stroke();
+
+  doc.y = Math.max(bannerHeight, ruleY + 6) + 10;
 }
 
 function renderHeader(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument): void {
@@ -149,11 +209,16 @@ function renderHeader(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocumen
   const headline = docData.identity.headline.trim();
   const lines = docData.contact.lines.filter((l) => l.value.trim());
 
+  if (layout.headerStyle === "banner") {
+    renderHeaderBanner(doc, layout, docData);
+    return;
+  }
+
   doc.y = layout.pageMargin;
 
   if (layout.headerStyle === "centered") {
     doc
-      .font("Helvetica-Bold")
+      .font(layout.fonts.bold)
       .fontSize(layout.nameSize)
       .fillColor(NAME_COLOR)
       .text(name, layout.pageMargin, doc.y, {
@@ -165,7 +230,7 @@ function renderHeader(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocumen
 
     if (headline) {
       doc
-        .font("Helvetica")
+        .font(layout.fonts.regular)
         .fontSize(layout.headlineSize)
         .fillColor(layout.accentStrong)
         .text(headline, layout.pageMargin, doc.y, { width: w, align: "center" });
@@ -194,7 +259,7 @@ function renderHeader(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocumen
     const rightX = layout.pageMargin + w - rightW;
     const startY = layout.pageMargin;
 
-    doc.font("Helvetica-Bold").fontSize(layout.nameSize).fillColor(NAME_COLOR);
+    doc.font(layout.fonts.bold).fontSize(layout.nameSize).fillColor(NAME_COLOR);
     doc.text(name, layout.pageMargin, startY, {
       width: leftW,
       align: "left",
@@ -204,7 +269,7 @@ function renderHeader(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocumen
 
     if (headline) {
       doc
-        .font("Helvetica")
+        .font(layout.fonts.regular)
         .fontSize(layout.headlineSize)
         .fillColor(layout.accentStrong)
         .text(headline, layout.pageMargin, doc.y + 2, { width: leftW, align: "left" });
@@ -234,12 +299,12 @@ function renderHeader(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocumen
   }
 
   /* compact */
-  doc.font("Helvetica-Bold").fontSize(layout.nameSize).fillColor(NAME_COLOR);
+  doc.font(layout.fonts.bold).fontSize(layout.nameSize).fillColor(NAME_COLOR);
   doc.text(name, layout.pageMargin, doc.y, { width: w, align: "left" });
   doc.moveDown(0.2);
   if (headline) {
     doc
-      .font("Helvetica")
+      .font(layout.fonts.regular)
       .fontSize(layout.headlineSize)
       .fillColor(layout.accentStrong)
       .text(headline, layout.pageMargin, doc.y, { width: w, align: "left" });
@@ -282,7 +347,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
         .filter(Boolean)
         .join(" ");
 
-      doc.font("Helvetica-Bold").fontSize(layout.bodySize + 0.5).fillColor(NAME_COLOR);
+      doc.font(layout.fonts.bold).fontSize(layout.bodySize + 0.5).fillColor(NAME_COLOR);
       const dateText = ex.dateRange?.trim() ?? "";
       const dateWidth = dateText ? 150 : 0;
       const titleWidth = w - (dateText ? dateWidth + 8 : 0);
@@ -290,7 +355,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
 
       if (dateText) {
         doc
-          .font("Helvetica")
+          .font(layout.fonts.regular)
           .fontSize(layout.smallSize)
           .fillColor(META_COLOR)
           .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
@@ -299,12 +364,11 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
           });
       }
 
-      /* move cursor below the taller of the two */
       doc.y = Math.max(doc.y, startY + layout.bodySize + 2);
 
       if (ex.location?.trim()) {
         doc
-          .font("Helvetica-Oblique")
+          .font(layout.fonts.italic)
           .fontSize(layout.smallSize)
           .fillColor(FAINT_COLOR)
           .text(ex.location, layout.pageMargin, doc.y, { width: w });
@@ -335,14 +399,14 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
       const titleWidth = w - (dateText ? dateWidth + 8 : 0);
 
       doc
-        .font("Helvetica-Bold")
+        .font(layout.fonts.bold)
         .fontSize(layout.bodySize + 0.5)
         .fillColor(NAME_COLOR)
         .text(line, layout.pageMargin, startY, { width: titleWidth });
 
       if (dateText) {
         doc
-          .font("Helvetica")
+          .font(layout.fonts.regular)
           .fontSize(layout.smallSize)
           .fillColor(META_COLOR)
           .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
@@ -354,7 +418,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
       doc.y = Math.max(doc.y, startY + layout.bodySize + 2);
 
       if (ed.details?.trim()) {
-        doc.font("Helvetica").fontSize(layout.bodySize).fillColor(BODY_COLOR);
+        doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
         doc.text(ed.details.trim(), layout.pageMargin, doc.y, { width: w });
         doc.moveDown(0.2);
       }
@@ -380,13 +444,13 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
       const dateWidth = dateText ? 130 : 0;
       const titleWidth = w - (dateText ? dateWidth + 8 : 0);
       doc
-        .font("Helvetica")
+        .font(layout.fonts.regular)
         .fontSize(layout.bodySize)
         .fillColor(BODY_COLOR)
         .text(left, layout.pageMargin, startY, { width: titleWidth });
       if (dateText) {
         doc
-          .font("Helvetica")
+          .font(layout.fonts.regular)
           .fontSize(layout.smallSize)
           .fillColor(META_COLOR)
           .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
@@ -408,7 +472,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
 
       const w = contentWidth(doc, layout);
       doc
-        .font("Helvetica-Bold")
+        .font(layout.fonts.bold)
         .fontSize(layout.bodySize + 0.5)
         .fillColor(NAME_COLOR)
         .text(p.name || "Project", layout.pageMargin, doc.y, { width: w });
@@ -416,7 +480,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
 
       if (p.url) {
         const href = normaliseUrl(p.url);
-        doc.font("Helvetica").fontSize(layout.smallSize);
+        doc.font(layout.fonts.regular).fontSize(layout.smallSize);
         if (href) {
           doc
             .fillColor(layout.accent)
@@ -429,7 +493,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
 
       if (p.description?.trim()) {
         doc
-          .font("Helvetica")
+          .font(layout.fonts.regular)
           .fontSize(layout.bodySize)
           .fillColor(BODY_COLOR)
           .text(p.description.trim(), layout.pageMargin, doc.y, { width: w });
@@ -438,7 +502,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
 
       if (p.technologies?.trim()) {
         doc
-          .font("Helvetica-Oblique")
+          .font(layout.fonts.italic)
           .fontSize(layout.smallSize)
           .fillColor(FAINT_COLOR)
           .text(`Stack: ${p.technologies.trim()}`, layout.pageMargin, doc.y, { width: w });

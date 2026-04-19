@@ -17,11 +17,13 @@ import { PreviewViewedTracker } from "@/components/analytics/preview-viewed-trac
 import { IncompletePreviewNote } from "@/components/resume-preview/incomplete-preview-note";
 import { PreviewViewport } from "@/components/resume-preview/preview-viewport";
 import { ResumePreviewRenderer } from "@/components/resume-preview/resume-preview-renderer";
+import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
 import { buttonVariants } from "@/components/ui/button";
 import { ROUTES } from "@/lib/constants";
 import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
-import { DEFAULT_TEMPLATE_ID } from "@/lib/resume-preview/template-ids";
+import { DEFAULT_TEMPLATE_ID, isTemplateSlug } from "@/lib/resume-preview/template-ids";
+import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import { setProjectTemplateAction } from "@/services/projects/actions";
 import type { TemplateOption } from "@/services/templates/queries";
 import type { ResumeDownloadAccess } from "@/services/downloads/queries";
@@ -174,27 +176,40 @@ export function ProjectPreviewClient({
             Template
           </h2>
         </div>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Choose a layout. Previews use the same structure we intend for PDF export — simple columns,
-          clear headings, no graphics that confuse ATS tools.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Choose a layout. Every template is single-column and ATS-linear — colors and type
+            change, the parseable structure stays the same.
+          </p>
+          <span className="inline-flex items-center rounded-full bg-muted/60 px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border">
+            {templates.length} designs
+          </span>
+        </div>
         {error ? (
           <p className="text-sm font-medium text-destructive" role="alert">
             {error}
           </p>
         ) : null}
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          role="radiogroup"
+          aria-label="Resume template"
+        >
           {templates.map((t) => {
             const active = t.id === effectiveId;
+            const slug = isTemplateSlug(t.slug) ? t.slug : "athena";
+            const theme = getTemplateTheme(slug);
             return (
               <button
                 key={t.id}
                 type="button"
+                role="radio"
                 disabled={pending}
                 onClick={() => selectTemplate(t.id)}
-                aria-pressed={active}
+                aria-checked={active}
+                aria-label={`${t.name} — ${theme.pickerTagline}`}
                 className={cn(
-                  "group/tmpl relative overflow-hidden rounded-xl border bg-card p-4 text-left text-sm shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-elevated disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
+                  "group/tmpl relative flex flex-col overflow-hidden rounded-xl border bg-card p-3 text-left text-sm shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-elevated disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
                   active
                     ? "border-brand/40 ring-2 ring-brand/25"
                     : "border-border/70 hover:border-brand/30",
@@ -202,13 +217,29 @@ export function ProjectPreviewClient({
               >
                 {active ? (
                   <span
-                    className="absolute right-2.5 top-2.5 inline-flex size-5 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-soft"
+                    className="absolute right-2.5 top-2.5 z-10 inline-flex size-5 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-soft"
                     aria-hidden
                   >
                     <CheckCircle2 className="size-3.5" strokeWidth={2.5} />
                   </span>
                 ) : null}
-                <div className="flex items-center gap-2">
+                <div
+                  className="mb-3 overflow-hidden rounded-md ring-1 ring-border/60"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,1) 100%)",
+                  }}
+                >
+                  <div className="p-2">
+                    <TemplateThumbnail slug={t.slug} />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className="inline-block size-2.5 rounded-full ring-1 ring-black/5"
+                    style={{ backgroundColor: theme.accent }}
+                    aria-hidden
+                  />
                   <span className="font-semibold text-foreground">{t.name}</span>
                   {t.isPremium ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-warning-foreground ring-1 ring-warning/25">
@@ -217,11 +248,12 @@ export function ProjectPreviewClient({
                     </span>
                   ) : null}
                 </div>
-                {t.description ? (
-                  <p className="mt-2 text-caption leading-relaxed text-muted-foreground">
-                    {t.description}
-                  </p>
-                ) : null}
+                <p className="mt-1.5 text-caption leading-relaxed text-muted-foreground">
+                  {theme.pickerTagline}
+                </p>
+                <p className="mt-1 text-[0.7rem] leading-relaxed text-muted-foreground/80">
+                  {theme.bestFor}
+                </p>
               </button>
             );
           })}

@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
-import { ResumePreviewMock } from "@/components/marketing/resume-preview-mock";
+import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -14,30 +14,13 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
+import { ALL_TEMPLATE_THEMES } from "@/lib/resume-preview/template-theme";
 
 export const metadata: Metadata = {
   title: "Resume templates",
   description:
-    "ATS-friendly resume templates with clean previews. Optimized for mobile editing and desktop PDF export.",
+    "Eight ATS-friendly resume templates with clean previews. Pick a layout that matches your industry and goals.",
 };
-
-const templates = [
-  {
-    name: "Classic",
-    description: "Single-column layout, strong hierarchy, safe for most ATS parsers.",
-    variant: "classic" as const,
-  },
-  {
-    name: "Modern",
-    description: "Subtle emphasis blocks for tech and product roles — still parser-friendly.",
-    variant: "modern" as const,
-  },
-  {
-    name: "Compact",
-    description: "Tighter spacing for dense careers — best reviewed on desktop before export.",
-    variant: "classic" as const,
-  },
-] as const;
 
 export default function TemplatesPage() {
   return (
@@ -47,27 +30,47 @@ export default function TemplatesPage() {
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-eyebrow justify-center">Templates</p>
             <h1 className="mt-3 text-display text-balance">
-              Clean layouts that <span className="text-gradient-brand">read well everywhere</span>
+              Eight clean layouts that <span className="text-gradient-brand">read well everywhere</span>
             </h1>
             <p className="mt-4 text-body-muted">
               Every layout prioritizes readable structure over decoration — so both humans and ATS
-              tools can scan your experience quickly.
+              tools can scan your experience quickly. Switch between them at any time from your project preview.
             </p>
           </div>
 
-          <ul className="mx-auto mt-14 grid max-w-5xl gap-6 md:grid-cols-3">
-            {templates.map((t) => (
-              <li key={t.name}>
-                <Card interactive className="overflow-hidden">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{t.name}</CardTitle>
-                    <CardDescription className="text-sm leading-relaxed">
-                      {t.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <ResumePreviewMock variant={t.variant} />
+          <ul className="mx-auto mt-14 grid max-w-6xl gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {ALL_TEMPLATE_THEMES.map((theme) => (
+              <li key={theme.slug}>
+                <Card interactive className="h-full overflow-hidden">
+                  <CardContent className="pt-5">
+                    <div
+                      className="overflow-hidden rounded-md ring-1 ring-border/60"
+                      style={{
+                        background:
+                          "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,1) 100%)",
+                      }}
+                    >
+                      <div className="p-2">
+                        <TemplateThumbnail slug={theme.slug} />
+                      </div>
+                    </div>
                   </CardContent>
+                  <CardHeader className="pt-2">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <span
+                        className="inline-block size-2.5 rounded-full ring-1 ring-black/5"
+                        style={{ backgroundColor: theme.accent }}
+                        aria-hidden
+                      />
+                      {theme.name}
+                    </CardTitle>
+                    <CardDescription className="text-sm leading-relaxed">
+                      {theme.pickerTagline}
+                    </CardDescription>
+                    <p className="mt-1 text-caption text-muted-foreground/80">
+                      {theme.bestFor}
+                    </p>
+                  </CardHeader>
                 </Card>
               </li>
             ))}

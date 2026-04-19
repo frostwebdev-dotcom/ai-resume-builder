@@ -5,6 +5,12 @@ import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
  * PDF-side layout for a given template slug. Derived from the shared
  * template theme so preview and export stay in visual lockstep.
  */
+export type PdfFontSet = {
+  regular: string;
+  bold: string;
+  italic: string;
+};
+
 export type PdfLayout = {
   pageMargin: number;
   nameSize: number;
@@ -16,10 +22,23 @@ export type PdfLayout = {
   paragraphGap: number;
   bulletIndent: number;
   entryGap: number;
-  headerStyle: "centered" | "split" | "compact";
+  headerStyle: "centered" | "split" | "compact" | "banner";
   sectionTitleStyle: "underline" | "rule" | "accent-rule";
   accent: string;
   accentStrong: string;
+  fonts: PdfFontSet;
+};
+
+const SANS_FONTS: PdfFontSet = {
+  regular: "Helvetica",
+  bold: "Helvetica-Bold",
+  italic: "Helvetica-Oblique",
+};
+
+const SERIF_FONTS: PdfFontSet = {
+  regular: "Times-Roman",
+  bold: "Times-Bold",
+  italic: "Times-Italic",
 };
 
 export function getPdfLayout(slug: TemplateSlug): PdfLayout {
@@ -39,5 +58,6 @@ export function getPdfLayout(slug: TemplateSlug): PdfLayout {
     sectionTitleStyle: t.sectionTitleStyle,
     accent: t.accent,
     accentStrong: t.accentStrong,
+    fonts: t.fontFamily === "serif" ? SERIF_FONTS : SANS_FONTS,
   };
 }

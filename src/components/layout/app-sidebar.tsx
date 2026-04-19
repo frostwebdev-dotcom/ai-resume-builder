@@ -22,7 +22,16 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-[15.5rem] shrink-0 flex-col border-r border-border/70 bg-card/60 supports-[backdrop-filter]:backdrop-blur-sm lg:w-60 lg:shrink-0 md:flex">
+    <aside
+      className={cn(
+        "hidden md:flex",
+        "sticky top-0 z-20 self-start h-screen max-h-screen",
+        "w-[15.5rem] shrink-0 flex-col overflow-y-auto",
+        "border-r border-border/70 bg-card/80 backdrop-blur-sm supports-[backdrop-filter]:bg-card/60",
+        "[scrollbar-gutter:stable] lg:w-60",
+      )}
+      aria-label="Primary navigation"
+    >
       <div className="flex h-14 items-center border-b border-border/70 px-4">
         <Link
           href={ROUTES.app.root}

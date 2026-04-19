@@ -1,6 +1,7 @@
 import "server-only";
 
-import { TEMPLATE_IDS } from "@/lib/resume-preview/template-ids";
+import { TEMPLATE_IDS, type TemplateSlug } from "@/lib/resume-preview/template-ids";
+import { ALL_TEMPLATE_THEMES } from "@/lib/resume-preview/template-theme";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type TemplateOption = {
@@ -12,7 +13,8 @@ export type TemplateOption = {
 };
 
 /**
- * Active templates from Supabase. Falls back to static registry when the DB is not seeded yet.
+ * Active templates from Supabase. Falls back to the static theme registry
+ * when the DB is not seeded yet (e.g. local dev or a fresh CI run).
  */
 export async function listTemplatesForUi(): Promise<TemplateOption[]> {
   const supabase = await createSupabaseServerClient();
@@ -23,43 +25,29 @@ export async function listTemplatesForUi(): Promise<TemplateOption[]> {
     .order("slug", { ascending: true });
 
   if (!error && data && data.length > 0) {
-    return data.map((t) => ({
+    const known = new Set<string>(data.map((r) => r.slug));
+    const merged = data.map((t) => ({
       id: t.id,
       slug: t.slug,
       name: t.name,
       description: t.description,
       isPremium: t.is_premium,
     }));
+    for (const extra of staticTemplateFallback()) {
+      if (!known.has(extra.slug)) merged.push(extra);
+    }
+    return merged;
   }
 
   return staticTemplateFallback();
 }
 
 function staticTemplateFallback(): TemplateOption[] {
-  return [
-    {
-      id: TEMPLATE_IDS.athena,
-      slug: "athena",
-      name: "Athena",
-      description:
-        "Single column, strong hierarchy. Reliable for most roles and ATS parsers.",
-      isPremium: false,
-    },
-    {
-      id: TEMPLATE_IDS.meridian,
-      slug: "meridian",
-      name: "Meridian",
-      description:
-        "Structured header and section rhythm — clear without decorative noise.",
-      isPremium: false,
-    },
-    {
-      id: TEMPLATE_IDS.nova,
-      slug: "nova",
-      name: "Nova",
-      description:
-        "Compact spacing for dense careers. Best checked on a larger screen before export.",
-      isPremium: false,
-    },
-  ];
+  return ALL_TEMPLATE_THEMES.map((theme) => ({
+    id: TEMPLATE_IDS[theme.slug as TemplateSlug],
+    slug: theme.slug,
+    name: theme.name,
+    description: `${theme.pickerTagline} ${theme.bestFor}`,
+    isPremium: false,
+  }));
 }
