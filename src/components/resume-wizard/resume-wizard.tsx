@@ -170,7 +170,7 @@ export function ResumeWizard({
         </div>
       ) : null}
 
-      <div className="mt-6 flex-1 pb-44 md:pb-10">
+      <div className="mt-6 flex-1 pb-44 md:pb-6">
         <div key={current.id} className="animate-wizard-step space-y-6">
           <JobTargetPanel
             key={projectId}
@@ -192,12 +192,19 @@ export function ResumeWizard({
         </div>
       </div>
 
-      {/* Sticky controls: above mobile bottom nav */}
+      {/*
+        Wizard action bar.
+        - Mobile: fixed edge-to-edge, sitting above the bottom nav.
+        - Desktop: sticky inside the content column so it respects the sidebar,
+          never hides the last form field, and stays pinned while scrolling.
+      */}
       <div
         className={cn(
-          "fixed inset-x-0 z-40 border-t border-border/70 bg-background/85 px-4 pt-3 shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)] backdrop-blur-md supports-[backdrop-filter]:bg-background/75",
-          "bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:bottom-0",
-          "pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] md:pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]",
+          "z-40 border-t border-border/70 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/80",
+          "px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]",
+          "fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)]",
+          "md:sticky md:inset-x-auto md:bottom-0 md:shadow-[0_-2px_12px_-8px_rgba(0,0,0,0.08)]",
+          "md:-mx-4 md:rounded-t-xl md:px-4 lg:-mx-6 lg:px-6",
         )}
       >
         <div className="mx-auto flex max-w-3xl items-stretch justify-between gap-3">

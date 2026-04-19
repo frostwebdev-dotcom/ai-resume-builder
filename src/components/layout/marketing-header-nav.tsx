@@ -97,8 +97,9 @@ export function MarketingAuthLinks({ isAuthed }: AuthLinksProps) {
           buttonVariants({ size: "sm" }),
           "relative bg-brand text-brand-foreground hover:bg-brand/90",
         )}
+        aria-label="Go to your resumes"
       >
-        Open app
+        My resumes
         <PendingBar active={false} />
       </Link>
     );

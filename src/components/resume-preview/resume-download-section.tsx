@@ -2,41 +2,58 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Download, Lock, Loader2 } from "lucide-react";
+import { Download, Info, Lock, Loader2 } from "lucide-react";
 
 import { BILLING_PRODUCTS } from "@/lib/billing/catalog";
 import { formatUsdFromCents } from "@/lib/billing/format-money";
-import { buttonVariants, Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ROUTES } from "@/lib/constants";
 import { requestResumeDownloadAction } from "@/services/downloads/actions";
 import { startCheckoutAction } from "@/services/billing/actions";
 import { cn } from "@/lib/utils";
+
+const CONFIG_CHECKOUT_MESSAGE =
+  "Payments are not set up on this environment yet. PDF unlock requires Stripe to be configured on the server. If you are the site owner, add your Stripe keys; otherwise contact support or use the production site.";
 
 type Props = {
   projectId: string;
   /** From server — never trust client-only flags for access */
   canDownload: boolean;
   hasDownloadHistory: boolean;
+  /** Server-only: Stripe Checkout is available (avoids a dead “Unlock” CTA). */
+  checkoutEnabled: boolean;
 };
 
 export function ResumeDownloadSection({
   projectId,
   canDownload,
   hasDownloadHistory,
+  checkoutEnabled,
 }: Props) {
   const [pending, start] = useTransition();
   const [checkoutPending, startCheckout] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [checkoutConfigError, setCheckoutConfigError] = useState(false);
 
   const goToCheckout = () => {
-    setError(null);
+    setDownloadError(null);
+    setCheckoutError(null);
+    setCheckoutConfigError(false);
     startCheckout(async () => {
       const res = await startCheckoutAction({
         projectId,
         productSku: "resume_pdf_v1",
       });
       if (!res.ok) {
-        setError(res.error);
+        if (res.code === "CONFIG") {
+          setCheckoutConfigError(true);
+          setCheckoutError(null);
+        } else {
+          setCheckoutConfigError(false);
+          setCheckoutError(res.error);
+        }
         return;
       }
       window.location.assign(res.url);
@@ -44,11 +61,11 @@ export function ResumeDownloadSection({
   };
 
   const startDownload = () => {
-    setError(null);
+    setDownloadError(null);
     start(async () => {
       const res = await requestResumeDownloadAction({ projectId });
       if (!res.ok) {
-        setError(res.error);
+        setDownloadError(res.error);
         return;
       }
       window.location.assign(res.signedUrl);
@@ -74,35 +91,71 @@ export function ResumeDownloadSection({
               </p>
             </div>
           </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
-            <Button
-              type="button"
-              size="touch"
-              className="w-full justify-center sm:min-w-[12rem]"
-              disabled={checkoutPending}
-              onClick={goToCheckout}
-            >
-              {checkoutPending ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Redirecting…
-                </>
-              ) : (
-                <>Unlock PDF — {formatUsdFromCents(BILLING_PRODUCTS.resume_pdf_v1.amountCents)}</>
-              )}
-            </Button>
-            <Link
-              href={ROUTES.pricing}
-              className="text-center text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:text-right"
-            >
-              Compare plans
-            </Link>
-          </div>
+          {checkoutEnabled ? (
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+              <Button
+                type="button"
+                size="touch"
+                className="w-full justify-center sm:min-w-[12rem]"
+                disabled={checkoutPending}
+                onClick={goToCheckout}
+              >
+                {checkoutPending ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    Redirecting…
+                  </>
+                ) : (
+                  <>Unlock PDF — {formatUsdFromCents(BILLING_PRODUCTS.resume_pdf_v1.amountCents)}</>
+                )}
+              </Button>
+              <Link
+                href={ROUTES.pricing}
+                className="text-center text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:text-right"
+              >
+                Compare plans
+              </Link>
+            </div>
+          ) : null}
         </div>
-        <p className="mt-3 text-caption text-muted-foreground">
-          After payment, Stripe notifies our servers — then your download unlocks here (not from the success page
-          alone).
-        </p>
+
+        {!checkoutEnabled ? (
+          <Alert variant="info" className="mt-4">
+            <Info aria-hidden />
+            <AlertTitle>Checkout unavailable in this environment</AlertTitle>
+            <AlertDescription className="space-y-2">
+              <p>{CONFIG_CHECKOUT_MESSAGE}</p>
+              <p>
+                <Link
+                  href={ROUTES.contact}
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                >
+                  Contact support
+                </Link>{" "}
+                if you need help.
+              </p>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <p className="mt-3 text-caption text-muted-foreground">
+            After payment, Stripe notifies our servers — then your download unlocks here (not from the success page
+            alone).
+          </p>
+        )}
+
+        {checkoutEnabled && checkoutConfigError ? (
+          <Alert variant="info" className="mt-4">
+            <Info aria-hidden />
+            <AlertTitle>Payments not configured</AlertTitle>
+            <AlertDescription>{CONFIG_CHECKOUT_MESSAGE}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {checkoutEnabled && checkoutError ? (
+          <p className="mt-3 text-sm font-medium text-destructive" role="alert">
+            {checkoutError}
+          </p>
+        ) : null}
       </section>
     );
   }
@@ -146,9 +199,9 @@ export function ResumeDownloadSection({
           )}
         </Button>
       </div>
-      {error ? (
+      {downloadError ? (
         <p className="mt-3 text-sm font-medium text-destructive" role="alert">
-          {error}
+          {downloadError}
         </p>
       ) : null}
     </section>

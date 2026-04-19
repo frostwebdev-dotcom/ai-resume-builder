@@ -9,6 +9,7 @@ import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-p
 import { getProjectDetailForUser } from "@/services/projects/queries";
 import { fetchWizardStateForProject } from "@/services/resume-wizard/actions";
 import { listTemplatesForUi } from "@/services/templates/queries";
+import { isStripeCheckoutConfigured } from "@/lib/billing/checkout-config";
 import { getResumeDownloadAccess } from "@/services/downloads/queries";
 
 export const maxDuration = 60;
@@ -58,6 +59,7 @@ export default async function ProjectPreviewPage({ params, searchParams }: PageP
   }
 
   const document = mapWizardToPreviewDocument(wizard);
+  const checkoutEnabled = isStripeCheckoutConfigured();
 
   return (
     <section className="min-h-0 flex-1 py-4 sm:py-8">
@@ -69,6 +71,7 @@ export default async function ProjectPreviewPage({ params, searchParams }: PageP
           templates={templates}
           selectedTemplateId={detail.project.template_id}
           downloadAccess={downloadAccess}
+          checkoutEnabled={checkoutEnabled}
           checkoutNotice={checkoutNotice}
         />
       </PageContainer>

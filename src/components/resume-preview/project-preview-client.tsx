@@ -39,6 +39,8 @@ type Props = {
   templates: TemplateOption[];
   selectedTemplateId: string | null;
   downloadAccess: ResumeDownloadAccess;
+  /** Server truth: Stripe secret configured — hide dead checkout CTAs when false. */
+  checkoutEnabled: boolean;
   /** Non-authoritative UI hint from URL; entitlement still comes from the server. */
   checkoutNotice?: "success" | "failed" | "cancelled" | null;
 };
@@ -50,6 +52,7 @@ export function ProjectPreviewClient({
   templates,
   selectedTemplateId,
   downloadAccess,
+  checkoutEnabled,
   checkoutNotice = null,
 }: Props) {
   const router = useRouter();
@@ -162,6 +165,7 @@ export function ProjectPreviewClient({
         projectId={projectId}
         canDownload={downloadAccess.canDownload}
         hasDownloadHistory={downloadAccess.hasDownloadHistory}
+        checkoutEnabled={checkoutEnabled}
       />
 
       <section className="space-y-4" aria-labelledby="template-heading">

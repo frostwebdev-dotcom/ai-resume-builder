@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { renameProjectAction, type ProjectActionState } from "@/services/projects/actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -33,13 +33,19 @@ export function RenameProjectDialog({
     renameProjectAction,
     {} as ProjectActionState,
   );
+  const [name, setName] = useState(title);
+
+  const handleOpenChange = (next: boolean) => {
+    if (next) setName(title);
+    onOpenChange(next);
+  };
 
   useEffect(() => {
     if (state.success) onOpenChange(false);
   }, [state.success, onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent showCloseButton>
         <DialogHeader>
           <DialogTitle>Rename resume</DialogTitle>
@@ -54,8 +60,8 @@ export function RenameProjectDialog({
             <Input
               id={`rename-${projectId}`}
               name="title"
-              key={open ? "open" : "closed"}
-              defaultValue={title}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               maxLength={120}
               required
               disabled={pending}

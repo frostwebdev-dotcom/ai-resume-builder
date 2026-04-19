@@ -19,7 +19,7 @@ export function emailConfirmationHandoffResponse(destination: URL): NextResponse
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex,nofollow" />
-  <title>Continue to app</title>
+  <title>Continue to your resumes</title>
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; max-width: 22rem; margin: 0 auto; padding: 2.5rem 1.25rem; line-height: 1.5; color: #0a0a0a; }
     h1 { font-size: 1.125rem; font-weight: 600; margin: 0 0 0.5rem; }
@@ -34,7 +34,7 @@ export function emailConfirmationHandoffResponse(destination: URL): NextResponse
 <body>
   <h1>Continue to your account</h1>
   <p>Your email is confirmed. If the app doesn’t open on its own, tap the button — some email apps block automatic redirects.</p>
-  <a id="go" href="${escapeHtmlAttribute(dest)}">Open app</a>
+  <a id="go" href="${escapeHtmlAttribute(dest)}">Continue</a>
   <script>
     (function () {
       var d = ${safeJson};
