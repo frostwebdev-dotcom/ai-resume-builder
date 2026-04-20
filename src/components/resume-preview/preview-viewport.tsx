@@ -31,11 +31,12 @@ export function PreviewViewport({
 }: Props) {
   if (presentation === "document") {
     return (
-      <div className={cn("w-full", className)}>
+      <div className="w-full">
         <div
           className={cn(
             "mx-auto w-full max-w-[210mm] touch-pan-x overflow-hidden rounded-sm",
             "bg-white shadow-[0_12px_40px_-12px_rgba(15,23,42,0.22)] ring-1 ring-slate-300/55",
+            className,
           )}
         >
           <div

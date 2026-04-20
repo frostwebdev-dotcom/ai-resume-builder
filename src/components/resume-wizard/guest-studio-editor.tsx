@@ -165,6 +165,8 @@ export function GuestStudioEditor({
   /** Fit-to-panel (no inner scroll) until user clicks the preview, then 1:1 + scroll. */
   const [previewZoomed, setPreviewZoomed] = useState(false);
   const [fitScale, setFitScale] = useState(1);
+  /** Unscaled content size — used to clip + center the scaled preview in fit mode. */
+  const [fitContentSize, setFitContentSize] = useState({ w: 0, h: 0 });
   const previewFitBodyRef = useRef<HTMLDivElement | null>(null);
   const previewMeasureRef = useRef<HTMLDivElement | null>(null);
 
@@ -208,10 +210,11 @@ export function GuestStudioEditor({
     const measure = () => {
       const cw = container.clientWidth;
       const ch = container.clientHeight;
-      const mw = content.offsetWidth;
-      const mh = content.offsetHeight;
+      const mw = Math.max(content.scrollWidth, content.offsetWidth);
+      const mh = Math.max(content.scrollHeight, content.offsetHeight);
       if (mw <= 0 || mh <= 0 || cw <= 0 || ch <= 0) return;
       const s = Math.min(cw / mw, ch / mh, 1);
+      setFitContentSize({ w: mw, h: mh });
       setFitScale((prev) => (Math.abs(prev - s) > 0.001 ? s : prev));
     };
 
@@ -310,14 +313,14 @@ export function GuestStudioEditor({
           </div>
 
           <div className="mx-auto flex min-h-0 w-full max-w-[min(780px,100%)] flex-1 flex-col">
-            {/* Fit = no scroll; zoomed = scroll inside this region only */}
+            {/* Fit: scaled sheet centered H+V, fully visible, no scroll. Zoomed: 1:1 + scroll. */}
             <div
               ref={previewFitBodyRef}
               className={cn(
-                "relative min-h-0 flex-1",
+                "relative min-h-0 w-full flex-1",
                 previewZoomed
                   ? "cursor-default overflow-y-auto overflow-x-auto px-1 pt-10 sm:px-2"
-                  : "cursor-zoom-in overflow-hidden px-1 pt-10 sm:px-2",
+                  : "cursor-zoom-in overflow-hidden",
               )}
               onClick={(e) => {
                 if (previewZoomed) return;
@@ -342,29 +345,63 @@ export function GuestStudioEditor({
               tabIndex={previewZoomed ? undefined : 0}
               aria-label={previewZoomed ? undefined : "Zoom preview — click to enlarge and scroll"}
             >
-              <div
-                ref={previewMeasureRef}
-                style={
-                  !previewZoomed
-                    ? {
+              {previewZoomed ? (
+                <div ref={previewMeasureRef} className="inline-block min-w-0 max-w-full pb-2 pt-1 sm:px-1">
+                  <PreviewViewport presentation="document" clipCanvas={false}>
+                    <ResumePreviewRenderer
+                      document={previewDocument}
+                      templateSlug={templateSlug}
+                      resumeStyle={resumeStyle}
+                    />
+                  </PreviewViewport>
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-2 pt-11 sm:p-3 sm:pt-12">
+                  {fitContentSize.w > 0 && fitContentSize.h > 0 ? (
+                    <div
+                      className="overflow-hidden rounded-[2px]"
+                      style={{
+                        width: fitContentSize.w * fitScale,
+                        height: fitContentSize.h * fitScale,
+                      }}
+                    >
+                      <div
+                        ref={previewMeasureRef}
+                        className="inline-block min-w-0 origin-top-left will-change-transform"
+                        style={{
+                          transform: `scale(${fitScale})`,
+                          transformOrigin: "top left",
+                        }}
+                      >
+                        <PreviewViewport presentation="document" clipCanvas>
+                          <ResumePreviewRenderer
+                            document={previewDocument}
+                            templateSlug={templateSlug}
+                            resumeStyle={resumeStyle}
+                          />
+                        </PreviewViewport>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      ref={previewMeasureRef}
+                      className="inline-block min-w-0 max-w-full origin-center will-change-transform"
+                      style={{
                         transform: `scale(${fitScale})`,
-                        transformOrigin: "top center",
-                      }
-                    : undefined
-                }
-                className={cn("inline-block min-w-0 max-w-full", !previewZoomed && "will-change-transform")}
-              >
-                <PreviewViewport
-                  presentation="document"
-                  clipCanvas={!previewZoomed}
-                >
-                  <ResumePreviewRenderer
-                    document={previewDocument}
-                    templateSlug={templateSlug}
-                    resumeStyle={resumeStyle}
-                  />
-                </PreviewViewport>
-              </div>
+                        transformOrigin: "center center",
+                      }}
+                    >
+                      <PreviewViewport presentation="document" clipCanvas>
+                        <ResumePreviewRenderer
+                          document={previewDocument}
+                          templateSlug={templateSlug}
+                          resumeStyle={resumeStyle}
+                        />
+                      </PreviewViewport>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
