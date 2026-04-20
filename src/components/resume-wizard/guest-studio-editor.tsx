@@ -148,6 +148,10 @@ export function GuestStudioEditor({
     setOpenSection((cur) => (cur === id ? null : id));
   }, []);
 
+  // Mobile-only: editor is shown by default; preview is reachable via a toggle
+  // so the entire screen never needs to scroll beyond the viewport.
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+
   // Bottom preview toolbar state.
   const [fontOpen, setFontOpen] = useState(false);
   const [sizeOpen, setSizeOpen] = useState(false);
@@ -185,12 +189,15 @@ export function GuestStudioEditor({
   }, [fontOpen, sizeOpen, spacingOpen, colorOpen, templatesOpen]);
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
       {/* Left: editor */}
       <div
         className={cn(
           "min-h-0 overflow-y-auto border-border/70 bg-white lg:border-r",
-          focusMode && "hidden lg:hidden",
+          // On mobile the preview is a separate toggle-able pane — show
+          // the editor full height by default so there's no outer scroll.
+          focusMode ? "hidden" : "block",
+          mobilePreviewOpen ? "hidden lg:block" : "",
         )}
       >
         <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-5 sm:px-6 sm:py-6">
@@ -228,6 +235,8 @@ export function GuestStudioEditor({
         className={cn(
           "relative flex min-h-0 flex-col bg-slate-100/70",
           focusMode ? "col-span-full" : "",
+          // On mobile, show only when the user taps the preview toggle.
+          !mobilePreviewOpen && !focusMode ? "hidden lg:flex" : "flex",
         )}
       >
         <div className="flex-1 overflow-y-auto px-4 py-5 pb-28 sm:px-6">
@@ -579,6 +588,22 @@ export function GuestStudioEditor({
           </div>
         </div>
       </div>
+
+      {/* Mobile-only floating toggle: swap between the editor and the preview
+          without spawning any outer page scroll. Hidden on lg+ where the split
+          layout shows both at once. */}
+      <button
+        type="button"
+        onClick={() => setMobilePreviewOpen((v) => !v)}
+        aria-pressed={mobilePreviewOpen}
+        aria-label={mobilePreviewOpen ? "Show editor" : "Show preview"}
+        className={cn(
+          "fixed bottom-4 right-4 z-40 inline-flex h-11 items-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-semibold text-white shadow-lg ring-1 ring-black/10 transition-transform hover:-translate-y-0.5 active:translate-y-0",
+          "lg:hidden",
+        )}
+      >
+        {mobilePreviewOpen ? "Edit" : "Preview"}
+      </button>
     </div>
   );
 }

@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function CreateResumePage() {
   return (
-    <section className="flex min-h-screen flex-1 flex-col bg-slate-50 p-2 sm:p-3">
+    <section className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-slate-50 p-0">
       <GuestCreateDynamic />
     </section>
   );

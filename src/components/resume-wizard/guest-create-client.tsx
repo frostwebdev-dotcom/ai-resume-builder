@@ -157,7 +157,7 @@ export function GuestCreateClient() {
   );
 
   return (
-    <div className="flex min-h-[calc(100dvh-1.25rem)] flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-white">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
       <TopBar
         title={presentation.title}
         onTitleCommit={(next) => updatePresentation((p) => ({ ...p, title: next }))}
@@ -202,7 +202,8 @@ function TopBar({
   // The title input is uncontrolled (defaultValue + remount on external change)
   // so typing stays buttery without a sync-from-props effect.
   return (
-    <header className="flex h-12 items-center justify-between gap-2 border-b border-black/30 bg-[#17191d] px-2 text-white sm:h-14 sm:px-3">
+    <header className="shrink-0 border-b border-black/30 bg-[#17191d] pt-[env(safe-area-inset-top,0px)] text-white">
+      <div className="flex h-12 items-center justify-between gap-2 px-2 sm:h-14 sm:px-3">
       <div className="flex min-w-0 items-center gap-1">
         <Link
           href={ROUTES.home}
@@ -288,6 +289,7 @@ function TopBar({
           <Download className="size-3.5" aria-hidden />
           Download
         </Link>
+      </div>
       </div>
     </header>
   );
