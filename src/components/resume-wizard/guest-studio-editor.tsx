@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -21,6 +22,7 @@ import {
   Minus,
   Plus,
   Trash2,
+  ZoomOut,
 } from "lucide-react";
 
 import { Field } from "@/components/ui/field";
@@ -160,6 +162,12 @@ export function GuestStudioEditor({
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
 
+  /** Fit-to-panel (no inner scroll) until user clicks the preview, then 1:1 + scroll. */
+  const [previewZoomed, setPreviewZoomed] = useState(false);
+  const [fitScale, setFitScale] = useState(1);
+  const previewFitBodyRef = useRef<HTMLDivElement | null>(null);
+  const previewMeasureRef = useRef<HTMLDivElement | null>(null);
+
   const currentSize =
     SIZE_PRESETS.find((p) => Math.abs((resumeStyle.lineHeight ?? 1.45) - p.lineHeight) < 0.02) ??
     SIZE_PRESETS[1];
@@ -187,6 +195,34 @@ export function GuestStudioEditor({
     document.addEventListener("mousedown", handleDown);
     return () => document.removeEventListener("mousedown", handleDown);
   }, [fontOpen, sizeOpen, spacingOpen, colorOpen, templatesOpen]);
+
+  useLayoutEffect(() => {
+    if (previewZoomed) {
+      setFitScale(1);
+      return;
+    }
+    const container = previewFitBodyRef.current;
+    const content = previewMeasureRef.current;
+    if (!container || !content) return;
+
+    const measure = () => {
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      const mw = content.offsetWidth;
+      const mh = content.offsetHeight;
+      if (mw <= 0 || mh <= 0 || cw <= 0 || ch <= 0) return;
+      const s = Math.min(cw / mw, ch / mh, 1);
+      setFitScale((prev) => (Math.abs(prev - s) > 0.001 ? s : prev));
+    };
+
+    measure();
+    const ro = new ResizeObserver(() => {
+      measure();
+    });
+    ro.observe(container);
+    ro.observe(content);
+    return () => ro.disconnect();
+  }, [previewZoomed, previewDocument, templateSlug, resumeStyle]);
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
@@ -239,30 +275,96 @@ export function GuestStudioEditor({
           !mobilePreviewOpen && !focusMode ? "hidden lg:flex" : "flex",
         )}
       >
-        <div className="flex-1 overflow-y-auto px-4 py-5 pb-28 sm:px-6">
-          <div className="mx-auto w-full max-w-[780px] overflow-hidden rounded-xl border border-border/80 bg-white shadow-sm">
-            <div className="flex items-center justify-between gap-2 bg-[#2a2d33] px-4 py-2.5 text-sm font-semibold text-white">
-              <span>Resume</span>
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-28 pt-3 sm:px-5 sm:pt-4">
+          {/* Floating controls — not part of the template; keeps the canvas = one real sheet */}
+          <div className="pointer-events-none absolute right-4 top-4 z-20 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 sm:right-6 sm:top-5">
+            <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-1.5 rounded-full border border-border/70 bg-white/95 px-2.5 py-1 text-[0.7rem] font-medium text-muted-foreground shadow-md backdrop-blur-sm dark:bg-zinc-900/95 dark:text-zinc-200">
+              {previewZoomed ? (
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoomed(false)}
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-foreground hover:bg-muted/80"
+                  aria-label="Shrink preview to fit panel"
+                >
+                  <ZoomOut className="size-3.5 shrink-0" aria-hidden />
+                  <span className="hidden sm:inline">Fit to panel</span>
+                  <span className="sm:hidden">Fit</span>
+                </button>
+              ) : (
+                <span className="hidden px-1 text-[0.65rem] uppercase tracking-wide text-muted-foreground sm:inline">
+                  Click sheet to zoom
+                </span>
+              )}
               {focusMode ? (
                 <button
                   type="button"
                   onClick={() => setFocusMode(false)}
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-slate-200 hover:bg-white/10 hover:text-white"
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-foreground hover:bg-muted/80"
                   aria-label="Exit focus mode"
                 >
-                  <Minimize2 className="size-3.5" aria-hidden />
+                  <Minimize2 className="size-3.5 shrink-0" aria-hidden />
                   Exit focus
                 </button>
               ) : null}
             </div>
-            <div className="bg-slate-50 p-3 sm:p-5">
-              <PreviewViewport compactFrame>
-                <ResumePreviewRenderer
-                  document={previewDocument}
-                  templateSlug={templateSlug}
-                  resumeStyle={resumeStyle}
-                />
-              </PreviewViewport>
+          </div>
+
+          <div className="mx-auto flex min-h-0 w-full max-w-[min(780px,100%)] flex-1 flex-col">
+            {/* Fit = no scroll; zoomed = scroll inside this region only */}
+            <div
+              ref={previewFitBodyRef}
+              className={cn(
+                "relative min-h-0 flex-1",
+                previewZoomed
+                  ? "cursor-default overflow-y-auto overflow-x-auto px-1 pt-10 sm:px-2"
+                  : "cursor-zoom-in overflow-hidden px-1 pt-10 sm:px-2",
+              )}
+              onClick={(e) => {
+                if (previewZoomed) return;
+                const t = e.target as HTMLElement;
+                if (
+                  t.closest(
+                    "button,a,input,select,textarea,[role='dialog'],[role='link'],[data-prevent-zoom]",
+                  )
+                ) {
+                  return;
+                }
+                setPreviewZoomed(true);
+              }}
+              onKeyDown={(e) => {
+                if (previewZoomed) return;
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setPreviewZoomed(true);
+                }
+              }}
+              role={previewZoomed ? undefined : "button"}
+              tabIndex={previewZoomed ? undefined : 0}
+              aria-label={previewZoomed ? undefined : "Zoom preview — click to enlarge and scroll"}
+            >
+              <div
+                ref={previewMeasureRef}
+                style={
+                  !previewZoomed
+                    ? {
+                        transform: `scale(${fitScale})`,
+                        transformOrigin: "top center",
+                      }
+                    : undefined
+                }
+                className={cn("inline-block min-w-0 max-w-full", !previewZoomed && "will-change-transform")}
+              >
+                <PreviewViewport
+                  presentation="document"
+                  clipCanvas={!previewZoomed}
+                >
+                  <ResumePreviewRenderer
+                    document={previewDocument}
+                    templateSlug={templateSlug}
+                    resumeStyle={resumeStyle}
+                  />
+                </PreviewViewport>
+              </div>
             </div>
           </div>
         </div>

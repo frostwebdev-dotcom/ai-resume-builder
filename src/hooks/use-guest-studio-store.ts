@@ -6,12 +6,7 @@ import {
   DEFAULT_RESUME_STYLE_V1,
   type ResumeStyleV1,
 } from "@/lib/resume-preview/resume-style";
-import {
-  DEFAULT_TEMPLATE_ID,
-  type TemplateSlug,
-  isTemplateSlug,
-} from "@/lib/resume-preview/template-ids";
-import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
+import { type TemplateSlug, isTemplateSlug } from "@/lib/resume-preview/template-ids";
 
 /**
  * Persisted presentation state for the guest studio editor:
@@ -28,9 +23,12 @@ export type GuestStudioPresentation = {
 
 const STORAGE_KEY = "resume-real-andy:guest-studio-presentation:v1";
 
+/** Sidebar layout — reads as one polished product template in the studio preview. */
+const DEFAULT_GUEST_TEMPLATE: TemplateSlug = "denali";
+
 export const DEFAULT_GUEST_PRESENTATION: GuestStudioPresentation = {
   v: 1,
-  templateSlug: templateIdToSlug(DEFAULT_TEMPLATE_ID),
+  templateSlug: DEFAULT_GUEST_TEMPLATE,
   style: DEFAULT_RESUME_STYLE_V1,
   title: "Untitled resume",
 };
