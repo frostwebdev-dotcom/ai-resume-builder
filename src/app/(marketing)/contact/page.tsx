@@ -90,7 +90,7 @@ export default function ContactPage() {
             <p className="text-sm text-muted-foreground">
               Prefer to start right away?{" "}
               <Link
-                href={ROUTES.auth.signup}
+                href={ROUTES.auth.login}
                 className="font-medium text-brand underline-offset-4 hover:underline"
               >
                 Create a free account

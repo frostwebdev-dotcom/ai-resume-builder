@@ -76,7 +76,7 @@ export default function HowItWorksPage() {
 
         <div className="mx-auto mt-14 flex max-w-3xl flex-col items-stretch justify-center gap-3 sm:flex-row sm:justify-start">
           <Link
-            href={ROUTES.auth.signup}
+            href={ROUTES.auth.login}
             className={cn(
               buttonVariants({ size: "touch" }),
               "bg-brand text-brand-foreground hover:bg-brand/90",

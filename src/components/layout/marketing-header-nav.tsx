@@ -105,36 +105,22 @@ export function MarketingAuthLinks({ isAuthed }: AuthLinksProps) {
     );
   }
 
+  // Single auth entry: `/login` serves both new and returning users (magic link auto-creates
+  // accounts on first click), so we expose one obvious CTA in the header.
   const loginActive = isActive(pathname, ROUTES.auth.login);
-  const signupActive = isActive(pathname, ROUTES.auth.signup);
 
   return (
-    <>
-      <Link
-        href={ROUTES.auth.login}
-        aria-current={loginActive ? "page" : undefined}
-        data-active={loginActive || undefined}
-        className={cn(
-          buttonVariants({ variant: "ghost", size: "sm" }),
-          "relative",
-          loginActive && "text-foreground",
-        )}
-      >
-        Log in
-        <PendingBar active={loginActive} />
-      </Link>
-      <Link
-        href={ROUTES.auth.signup}
-        aria-current={signupActive ? "page" : undefined}
-        data-active={signupActive || undefined}
-        className={cn(
-          buttonVariants({ size: "sm" }),
-          "relative bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
-        )}
-      >
-        Sign up free
-        <PendingBar active={signupActive} />
-      </Link>
-    </>
+    <Link
+      href={ROUTES.auth.login}
+      aria-current={loginActive ? "page" : undefined}
+      data-active={loginActive || undefined}
+      className={cn(
+        buttonVariants({ size: "sm" }),
+        "relative bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
+      )}
+    >
+      Sign in
+      <PendingBar active={loginActive} />
+    </Link>
   );
 }

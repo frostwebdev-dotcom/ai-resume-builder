@@ -307,14 +307,8 @@ export function LoginForm({ nextPath }: LoginFormProps) {
           </p>
         </div>
 
-        <p className="flex min-h-11 flex-wrap items-center justify-center gap-1.5 text-center text-sm text-muted-foreground">
-          <span>Prefer the full sign-up form?</span>
-          <Link
-            href={ROUTES.auth.signup}
-            className="font-semibold text-brand underline-offset-4 hover:underline"
-          >
-            Create an account
-          </Link>
+        <p className="min-h-11 text-center text-sm text-muted-foreground">
+          New here? Just enter your email above — we&apos;ll set up your account automatically.
         </p>
       </div>
     </form>

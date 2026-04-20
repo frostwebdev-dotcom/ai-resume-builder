@@ -95,7 +95,7 @@ export default function TemplatesPage() {
             </div>
             <div className="md:col-span-2">
               <Link
-                href={ROUTES.auth.signup}
+                href={ROUTES.auth.login}
                 className={cn(
                   buttonVariants({ size: "touch" }),
                   "w-full bg-brand text-brand-foreground hover:bg-brand/90 sm:w-auto",

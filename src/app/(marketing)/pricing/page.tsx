@@ -29,7 +29,7 @@ const plans = [
     description: "Export your finalized resume as a polished PDF when you are ready.",
     bullets: ["Build & preview free", "ATS-friendly layout", "Secure download"],
     cta: "Start free",
-    href: ROUTES.auth.signup,
+    href: ROUTES.auth.login,
     featured: true,
     footnote: "Final price shown at checkout. No subscription.",
   },

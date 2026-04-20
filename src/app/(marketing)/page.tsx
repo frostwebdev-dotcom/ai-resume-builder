@@ -104,7 +104,7 @@ export default function MarketingHomePage() {
             </p>
             <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               <TrackedLink
-                href={ROUTES.auth.signup}
+                href={ROUTES.auth.login}
                 cta="start_free"
                 className={cn(
                   buttonVariants({ size: "touch" }),
@@ -234,7 +234,7 @@ export default function MarketingHomePage() {
               </ul>
               <div className="mt-8">
                 <TrackedLink
-                  href={ROUTES.auth.signup}
+                  href={ROUTES.auth.login}
                   cta="hero_secondary"
                   className={cn(
                     buttonVariants({ size: "touch" }),
@@ -342,7 +342,7 @@ export default function MarketingHomePage() {
             </p>
             <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               <TrackedLink
-                href={ROUTES.auth.signup}
+                href={ROUTES.auth.login}
                 cta="footer_signup"
                 className={cn(
                   buttonVariants({ size: "touch" }),

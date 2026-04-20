@@ -85,7 +85,7 @@ export default function FaqPage() {
 
         <div className="mt-10 flex justify-center">
           <Link
-            href={ROUTES.auth.signup}
+            href={ROUTES.auth.login}
             className={cn(
               buttonVariants({ size: "touch" }),
               "bg-brand text-brand-foreground hover:bg-brand/90",
