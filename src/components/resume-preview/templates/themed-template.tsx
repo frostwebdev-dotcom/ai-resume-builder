@@ -53,7 +53,7 @@ export function ThemedTemplate({ doc, slug, resumeStyle = null, className }: Pro
   const isBanner = theme.headerStyle === "banner";
 
   const paperClasses = cn(
-    "resume-paper relative box-border w-full max-w-[210mm] overflow-hidden bg-white text-neutral-900 print:min-h-0 print:w-[210mm] print:shadow-none",
+    "resume-paper relative box-border w-[210mm] max-w-full overflow-hidden bg-white text-neutral-900 print:min-h-0 print:w-[210mm] print:shadow-none",
     /* A4 preview frame for all densities: standard on-screen page even with little content. */
     "min-h-[297mm] h-auto",
     density === "compact"

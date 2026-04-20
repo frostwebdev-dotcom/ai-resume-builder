@@ -5,7 +5,7 @@ export function ResumePreviewSkeleton({ className }: { className?: string }) {
     <div
       className={cn(
         "animate-pulse rounded-xl border border-border/60 bg-card p-[clamp(10mm,3vw,14mm)] shadow-sm ring-1 ring-foreground/5",
-        "mx-auto w-full max-w-[210mm] min-h-[320px]",
+        "mx-auto w-[210mm] max-w-full min-h-[297mm]",
         className,
       )}
       aria-hidden

@@ -34,7 +34,7 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
   const isSerif = effective.fontFamily === "serif";
 
   const paper = cn(
-    "resume-paper relative box-border w-full max-w-[210mm] overflow-hidden bg-white text-neutral-900",
+    "resume-paper relative box-border w-[210mm] max-w-full overflow-hidden bg-white text-neutral-900",
     /* A4 preview frame: always show standard page size in the browser; grows when content exceeds one page. */
     "min-h-[297mm] h-auto text-[10.5px] leading-relaxed",
     isSerif ? "font-serif" : "font-sans",

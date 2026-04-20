@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileUp,
+  LayoutGrid,
   Maximize2,
   Minimize2,
   Minus,
@@ -160,6 +161,8 @@ export function GuestStudioEditor({
   const [spacingOpen, setSpacingOpen] = useState(false);
   const [colorOpen, setColorOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  /** While hovering a template in the strip, preview uses this slug without committing. */
+  const [templateHoverSlug, setTemplateHoverSlug] = useState<TemplateSlug | null>(null);
   const [focusMode, setFocusMode] = useState(false);
 
   /** Fit-to-panel (no inner scroll) until user clicks the preview, then 1:1 + scroll. */
@@ -179,7 +182,9 @@ export function GuestStudioEditor({
   const currentFont = FONT_PRESETS.find((p) => p.id === (resumeStyle.fontFamily ?? "sans"))
     ?? FONT_PRESETS[0];
   const currentColor = resumeStyle.accent ?? COLOR_SWATCHES[0];
-  const templateName = getTemplateTheme(templateSlug).name;
+  const previewTemplateSlug = templateHoverSlug ?? templateSlug;
+  const previewTheme = getTemplateTheme(previewTemplateSlug);
+  const templateName = previewTheme.name;
 
   // Close any open popover when clicking elsewhere.
   const toolbarRef = useRef<HTMLDivElement | null>(null);
@@ -193,6 +198,7 @@ export function GuestStudioEditor({
       setSpacingOpen(false);
       setColorOpen(false);
       setTemplatesOpen(false);
+      setTemplateHoverSlug(null);
     }
     document.addEventListener("mousedown", handleDown);
     return () => document.removeEventListener("mousedown", handleDown);
@@ -208,6 +214,8 @@ export function GuestStudioEditor({
     if (!container || !content) return;
 
     const measure = () => {
+      // While hovering templates, content height can change — keep scale stable.
+      if (templateHoverSlug) return;
       const cw = container.clientWidth;
       const ch = container.clientHeight;
       const mw = Math.max(content.scrollWidth, content.offsetWidth);
@@ -225,7 +233,7 @@ export function GuestStudioEditor({
     ro.observe(container);
     ro.observe(content);
     return () => ro.disconnect();
-  }, [previewZoomed, previewDocument, templateSlug, resumeStyle]);
+  }, [previewZoomed, previewDocument, templateSlug, resumeStyle, templateHoverSlug]);
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
@@ -272,15 +280,18 @@ export function GuestStudioEditor({
       {/* Right: preview */}
       <div
         className={cn(
-          "relative flex min-h-0 flex-col bg-slate-100/70",
+          "relative flex min-h-0 flex-col transition-[background-color] duration-300 ease-out",
           focusMode ? "col-span-full" : "",
           // On mobile, show only when the user taps the preview toggle.
           !mobilePreviewOpen && !focusMode ? "hidden lg:flex" : "flex",
         )}
+        style={{
+          backgroundColor: `color-mix(in srgb, ${previewTheme.accent} 10%, rgb(241 245 249))`,
+        }}
       >
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-28 pt-3 sm:px-5 sm:pt-4">
           {/* Floating controls — not part of the template; keeps the canvas = one real sheet */}
-          <div className="pointer-events-none absolute right-4 top-4 z-20 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 sm:right-6 sm:top-5">
+          <div className="pointer-events-none absolute right-4 top-4 z-50 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 sm:right-6 sm:top-5">
             <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-1.5 rounded-full border border-border/70 bg-white/95 px-2.5 py-1 text-[0.7rem] font-medium text-muted-foreground shadow-md backdrop-blur-sm dark:bg-zinc-900/95 dark:text-zinc-200">
               {previewZoomed ? (
                 <button
@@ -350,7 +361,7 @@ export function GuestStudioEditor({
                   <PreviewViewport presentation="document" clipCanvas={false}>
                     <ResumePreviewRenderer
                       document={previewDocument}
-                      templateSlug={templateSlug}
+                      templateSlug={previewTemplateSlug}
                       resumeStyle={resumeStyle}
                     />
                   </PreviewViewport>
@@ -376,7 +387,7 @@ export function GuestStudioEditor({
                         <PreviewViewport presentation="document" clipCanvas>
                           <ResumePreviewRenderer
                             document={previewDocument}
-                            templateSlug={templateSlug}
+                            templateSlug={previewTemplateSlug}
                             resumeStyle={resumeStyle}
                           />
                         </PreviewViewport>
@@ -394,7 +405,7 @@ export function GuestStudioEditor({
                       <PreviewViewport presentation="document" clipCanvas>
                         <ResumePreviewRenderer
                           document={previewDocument}
-                          templateSlug={templateSlug}
+                          templateSlug={previewTemplateSlug}
                           resumeStyle={resumeStyle}
                         />
                       </PreviewViewport>
@@ -406,17 +417,96 @@ export function GuestStudioEditor({
           </div>
         </div>
 
-        {/* Bottom preview toolbar */}
+        {/* Bottom preview toolbar — template strip is absolutely positioned so it does not shrink the preview column */}
         <div
           ref={toolbarRef}
-          className="sticky bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-white/95 px-2 py-2 backdrop-blur-md sm:px-4"
+          className="sticky bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-white/95 backdrop-blur-md"
         >
-          <div className="mx-auto flex max-w-[780px] items-center justify-between gap-2">
+          <div className="relative mx-auto max-w-[780px] px-2 py-2 sm:px-4">
+            {templatesOpen ? (
+              <div
+                className="absolute bottom-full left-0 right-0 z-40 mb-2 px-2 sm:px-4"
+                onMouseLeave={() => setTemplateHoverSlug(null)}
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                    setTemplateHoverSlug(null);
+                  }
+                }}
+              >
+                <div className="mx-auto max-w-[780px] rounded-lg border border-border/80 bg-white px-2 py-2.5 shadow-sm sm:px-3">
+                  <div
+                    className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth pb-1 [scrollbar-width:thin]"
+                  >
+                    <div className="flex w-max min-w-full flex-nowrap justify-center gap-3 px-0.5 sm:gap-4">
+                    {TEMPLATE_SLUG_ORDER.map((slug) => {
+                      const theme = getTemplateTheme(slug);
+                      const selected = slug === templateSlug;
+                      const hovered = templateHoverSlug === slug;
+                      return (
+                        <button
+                          key={slug}
+                          type="button"
+                          onMouseEnter={() => setTemplateHoverSlug(slug)}
+                          onFocus={() => setTemplateHoverSlug(slug)}
+                          onClick={() => {
+                            onTemplateChange(slug);
+                            setTemplatesOpen(false);
+                            setTemplateHoverSlug(null);
+                          }}
+                          style={{
+                            backgroundColor: hovered
+                              ? `color-mix(in srgb, ${theme.accent} 18%, white)`
+                              : undefined,
+                          }}
+                          className={cn(
+                            "flex shrink-0 flex-col items-center gap-1.5 rounded-lg p-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#2268d7]/40",
+                            !hovered && "hover:bg-slate-50",
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "w-[5rem] overflow-hidden rounded bg-white sm:w-[5.5rem] aspect-[210/297]",
+                              selected
+                                ? "border-2 border-[#2268d7]"
+                                : "border border-slate-200/90",
+                            )}
+                            style={{ borderLeft: `3px solid ${theme.accent}` }}
+                          >
+                            <div className="flex h-full w-full flex-col gap-0.5 p-1">
+                              <span
+                                className="h-1 w-2/3 shrink-0 rounded"
+                                style={{ background: theme.accent }}
+                              />
+                              <span className="h-0.5 w-full shrink-0 rounded bg-slate-200" />
+                              <span className="h-0.5 w-4/5 shrink-0 rounded bg-slate-200" />
+                              <span className="h-0.5 w-full shrink-0 rounded bg-slate-200" />
+                              <span className="h-0.5 w-3/5 shrink-0 rounded bg-slate-100" />
+                              <span className="mt-auto h-2 w-2 shrink-0 rounded-full bg-slate-200" />
+                            </div>
+                          </div>
+                          <span className="max-w-[5.5rem] text-center text-[0.65rem] font-semibold leading-tight whitespace-normal break-words text-slate-800 sm:text-xs">
+                            {theme.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex items-center justify-between gap-2">
             {/* Templates */}
             <ToolbarButton
+              variant="templates"
               active={templatesOpen}
               onClick={() => {
-                setTemplatesOpen((v) => !v);
+                setTemplatesOpen((open) => {
+                  const next = !open;
+                  if (!next) setTemplateHoverSlug(null);
+                  return next;
+                });
                 setFontOpen(false);
                 setSizeOpen(false);
                 setSpacingOpen(false);
@@ -424,11 +514,13 @@ export function GuestStudioEditor({
               }}
               ariaLabel="Pick a template"
             >
-              <span className="inline-flex size-4 items-center justify-center rounded-sm border border-current/70">
-                <span className="size-2 rounded-[1px] bg-current/70" />
-              </span>
+              <LayoutGrid className="size-4 shrink-0" aria-hidden />
               <span className="hidden sm:inline">Templates</span>
-              <ChevronUp className={cn("size-3.5 transition-transform", templatesOpen && "rotate-180")} aria-hidden />
+              {templatesOpen ? (
+                <ChevronUp className="size-3.5 shrink-0" aria-hidden />
+              ) : (
+                <ChevronDown className="size-3.5 shrink-0" aria-hidden />
+              )}
             </ToolbarButton>
 
             <div className="flex items-center gap-1">
@@ -441,6 +533,7 @@ export function GuestStudioEditor({
                   setSpacingOpen(false);
                   setColorOpen(false);
                   setTemplatesOpen(false);
+                  setTemplateHoverSlug(null);
                 }}
                 ariaLabel="Change font family"
               >
@@ -458,6 +551,7 @@ export function GuestStudioEditor({
                   setSpacingOpen(false);
                   setColorOpen(false);
                   setTemplatesOpen(false);
+                  setTemplateHoverSlug(null);
                 }}
                 ariaLabel="Change text size"
               >
@@ -475,6 +569,7 @@ export function GuestStudioEditor({
                   setSizeOpen(false);
                   setColorOpen(false);
                   setTemplatesOpen(false);
+                  setTemplateHoverSlug(null);
                 }}
                 ariaLabel="Change spacing"
               >
@@ -497,6 +592,7 @@ export function GuestStudioEditor({
                   setSizeOpen(false);
                   setSpacingOpen(false);
                   setTemplatesOpen(false);
+                  setTemplateHoverSlug(null);
                 }}
                 ariaLabel="Change accent color"
               >
@@ -523,53 +619,10 @@ export function GuestStudioEditor({
                 )}
               </button>
             </div>
+            </div>
           </div>
 
           {/* Popovers */}
-          {templatesOpen ? (
-            <Popover title="Templates" onClose={() => setTemplatesOpen(false)} align="start">
-              <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto p-1 sm:grid-cols-3">
-                {TEMPLATE_SLUG_ORDER.map((slug) => {
-                  const theme = getTemplateTheme(slug);
-                  const selected = slug === templateSlug;
-                  return (
-                    <button
-                      key={slug}
-                      type="button"
-                      onClick={() => {
-                        onTemplateChange(slug);
-                        setTemplatesOpen(false);
-                      }}
-                      className={cn(
-                        "group flex flex-col items-start gap-1 rounded-lg border bg-white p-2 text-left transition-colors",
-                        selected
-                          ? "border-brand ring-2 ring-brand/30"
-                          : "border-border/70 hover:border-brand/60",
-                      )}
-                    >
-                      <div
-                        className="flex h-16 w-full flex-col gap-1 rounded bg-slate-50 p-1.5"
-                        style={{ borderLeft: `3px solid ${theme.accent}` }}
-                      >
-                        <span
-                          className="h-1.5 w-2/3 rounded"
-                          style={{ background: theme.accent }}
-                        />
-                        <span className="h-1 w-5/6 rounded bg-slate-300" />
-                        <span className="h-1 w-4/6 rounded bg-slate-200" />
-                        <span className="h-1 w-3/4 rounded bg-slate-200" />
-                      </div>
-                      <span className="flex w-full items-center justify-between text-xs font-semibold text-foreground">
-                        <span className="truncate capitalize">{theme.name}</span>
-                        {selected ? <Check className="size-3.5 text-brand" aria-hidden /> : null}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </Popover>
-          ) : null}
-
           {fontOpen ? (
             <Popover title="Font family" onClose={() => setFontOpen(false)} align="end">
               <div className="flex flex-col gap-1 p-1">
@@ -790,11 +843,13 @@ function ToolbarButton({
   onClick,
   children,
   ariaLabel,
+  variant = "default",
 }: {
   active: boolean;
   onClick: () => void;
   children: ReactNode;
   ariaLabel: string;
+  variant?: "default" | "templates";
 }) {
   return (
     <button
@@ -803,10 +858,17 @@ function ToolbarButton({
       aria-label={ariaLabel}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors sm:text-sm",
-        active
-          ? "bg-slate-900/5 text-slate-900"
-          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
+        "inline-flex h-9 items-center gap-1.5 px-2.5 text-xs font-medium transition-colors sm:text-sm",
+        variant === "templates"
+          ? "rounded-full border"
+          : "rounded-md",
+        variant === "templates"
+          ? active
+            ? "border-[#2268d7] bg-[#2268d7]/10 text-slate-900 shadow-sm"
+            : "border-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-900"
+          : active
+            ? "bg-slate-900/5 text-slate-900"
+            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
       )}
     >
       {children}
