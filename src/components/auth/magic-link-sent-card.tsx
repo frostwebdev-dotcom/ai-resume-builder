@@ -1,0 +1,74 @@
+"use client";
+
+import Link from "next/link";
+import { CheckCircle2, Inbox } from "lucide-react";
+
+import { Button, buttonVariants } from "@/components/ui/button";
+import { ROUTES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+
+type MagicLinkSentCardProps = {
+  email: string;
+  /** Called when the user wants to try a different email. */
+  onReset: () => void;
+  /** Copy variants — mostly cosmetic. */
+  mode?: "signIn" | "signUp";
+};
+
+/**
+ * Shared "Check your inbox" confirmation shown after `signInWithOtp` succeeds.
+ * Used by both the login and signup forms so the passwordless experience is consistent.
+ */
+export function MagicLinkSentCard({ email, onReset, mode = "signIn" }: MagicLinkSentCardProps) {
+  const headline = mode === "signUp" ? "Almost there — check your inbox" : "Check your inbox";
+  const lead =
+    mode === "signUp"
+      ? "We sent a secure link to finish creating your account."
+      : "We sent a secure sign-in link to your inbox.";
+
+  return (
+    <div className="space-y-5 text-center">
+      <span
+        className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-brand-muted text-brand ring-1 ring-brand/20"
+        aria-hidden
+      >
+        <Inbox className="size-7" />
+      </span>
+      <div className="space-y-2">
+        <h2 className="text-headline text-foreground">{headline}</h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {lead}{" "}
+          <span className="font-semibold text-foreground">{email}</span>. Open it on this device to
+          finish signing in.
+        </p>
+      </div>
+      <ul className="mx-auto max-w-xs space-y-2 text-left text-sm text-muted-foreground">
+        <li className="flex items-start gap-2">
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+          The link expires in about an hour and can be used once.
+        </li>
+        <li className="flex items-start gap-2">
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+          Not seeing it? Check spam, then request a new link.
+        </li>
+      </ul>
+      <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="touch"
+          className="w-full"
+          onClick={onReset}
+        >
+          Use a different email
+        </Button>
+        <Link
+          href={ROUTES.auth.login}
+          className={cn(buttonVariants({ variant: "ghost", size: "touch" }), "w-full")}
+        >
+          Back to sign in
+        </Link>
+      </div>
+    </div>
+  );
+}

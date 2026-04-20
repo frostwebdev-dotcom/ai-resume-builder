@@ -26,6 +26,10 @@ export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
 
+export const magicLinkSchema = z.object({
+  email: emailSchema,
+});
+
 export const resetPasswordSchema = z
   .object({
     password: passwordField,
@@ -38,3 +42,4 @@ export const resetPasswordSchema = z
 
 export type LoginFormValues = z.infer<typeof loginSchema>;
 export type SignupFormValues = z.infer<typeof signupSchema>;
+export type MagicLinkFormValues = z.infer<typeof magicLinkSchema>;

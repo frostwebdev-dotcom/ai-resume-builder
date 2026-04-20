@@ -6,7 +6,7 @@ export default function SignupPage() {
   return (
     <AuthCard
       title="Create your account"
-      description="Start building your resume. You can confirm your email if required by your workspace."
+      description="Pick a password — or skip it entirely and use a one-time link sent to your email."
     >
       <SignupStartedTracker />
       <SignupForm />

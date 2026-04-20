@@ -97,7 +97,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <AuthCard
       title="Sign in"
-      description="Use your email and password to continue to your resumes."
+      description="Use your password — or request a one-time sign-in link sent to your email."
     >
       <div className="flex flex-col gap-6">
         {loginErrorAlert(firstParam(sp.error))}

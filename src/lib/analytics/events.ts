@@ -6,6 +6,7 @@ export const ANALYTICS_EVENTS = {
   LANDING_CTA_CLICK: "landing_cta_click",
   SIGNUP_STARTED: "signup_started",
   SIGNUP_COMPLETED: "signup_completed",
+  MAGIC_LINK_REQUESTED: "magic_link_requested",
   PROJECT_CREATED: "project_created",
   WIZARD_STEP_COMPLETED: "wizard_step_completed",
   AI_GENERATION_USED: "ai_generation_used",

@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Inbox, Loader2, Mail } from "lucide-react";
+import { CheckCircle2, Inbox, Loader2, Mail, Send } from "lucide-react";
 
+import { MagicLinkSentCard } from "@/components/auth/magic-link-sent-card";
 import { PasswordStrength } from "@/components/auth/password-strength";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -15,18 +16,29 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { trackClientEvent } from "@/lib/analytics/client";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { getBrowserOrigin } from "@/lib/app/browser-origin";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { signupSchema } from "@/validation/auth";
+import { magicLinkSchema, signupSchema } from "@/validation/auth";
+
+type PendingAction = "none" | "password" | "magic";
+
+function focusEmailInput() {
+  if (typeof document === "undefined") return;
+  const el = document.getElementById("signup-email");
+  if (el instanceof HTMLInputElement) el.focus();
+}
 
 export function SignupForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [magicSentTo, setMagicSentTo] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingAction>("none");
 
   const confirmMismatch =
     confirm.length > 0 && password.length > 0 && confirm !== password;
@@ -52,7 +64,7 @@ export function SignupForm() {
       return;
     }
 
-    setPending(true);
+    setPending("password");
     try {
       const supabase = createSupabaseBrowserClient();
       const origin = getBrowserOrigin();
@@ -70,7 +82,7 @@ export function SignupForm() {
         } else {
           setError(signUpError.message);
         }
-        setPending(false);
+        setPending("none");
         return;
       }
 
@@ -83,11 +95,74 @@ export function SignupForm() {
       setSuccess(
         "Check your email for a confirmation link. After confirming, you can sign in.",
       );
-      setPending(false);
+      setPending("none");
     } catch {
       setError("Something went wrong. Check your connection and try again.");
-      setPending(false);
+      setPending("none");
     }
+  }
+
+  async function handleMagicLink(e: React.MouseEvent<HTMLButtonElement>) {
+    // Needed because the button lives inside the <form> — a plain click would submit it.
+    e.preventDefault();
+    setError(null);
+
+    const form = e.currentTarget.closest("form");
+    const raw = form ? new FormData(form).get("email") : null;
+    const parsed = magicLinkSchema.safeParse({
+      email: typeof raw === "string" ? raw : "",
+    });
+    if (!parsed.success) {
+      setError("Enter your email first, then tap “Email me a sign-in link” again.");
+      focusEmailInput();
+      return;
+    }
+
+    setPending("magic");
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const origin = getBrowserOrigin();
+      const emailRedirectTo = `${origin}${ROUTES.auth.callback}?next=${encodeURIComponent(ROUTES.app.root)}`;
+
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: parsed.data.email,
+        options: {
+          emailRedirectTo,
+          shouldCreateUser: true,
+        },
+      });
+
+      if (otpError) {
+        const m = otpError.message.toLowerCase();
+        if (m.includes("rate") || m.includes("too many")) {
+          setError("Too many requests. Please wait a minute before trying again.");
+        } else {
+          setError(otpError.message);
+        }
+        setPending("none");
+        return;
+      }
+
+      trackClientEvent(ANALYTICS_EVENTS.MAGIC_LINK_REQUESTED);
+      setMagicSentTo(parsed.data.email);
+      setPending("none");
+    } catch {
+      setError("Something went wrong. Check your connection and try again.");
+      setPending("none");
+    }
+  }
+
+  if (magicSentTo) {
+    return (
+      <MagicLinkSentCard
+        email={magicSentTo}
+        mode="signUp"
+        onReset={() => {
+          setMagicSentTo(null);
+          setError(null);
+        }}
+      />
+    );
   }
 
   if (success) {
@@ -134,6 +209,8 @@ export function SignupForm() {
     );
   }
 
+  const busy = pending !== "none";
+
   return (
     <form method="post" action="#" onSubmit={handleSubmit} className="flex flex-col gap-6">
       {error ? (
@@ -146,6 +223,7 @@ export function SignupForm() {
       <Field id="signup-email" label="Email" required>
         <InputWithIcon leading={<Mail />}>
           <Input
+            id="signup-email"
             name="email"
             type="email"
             autoComplete="email"
@@ -158,7 +236,7 @@ export function SignupForm() {
       <Field
         id="signup-password"
         label="Password"
-        description="At least 8 characters; longer and mixed is stronger."
+        description="At least 8 characters; longer and mixed is stronger. Or skip it and use a sign-in link below."
         required
       >
         <PasswordInput
@@ -187,41 +265,71 @@ export function SignupForm() {
         />
       </Field>
 
-      <Button
-        type="submit"
-        size="touch"
-        disabled={pending}
-        aria-busy={pending}
-        className={cn(
-          "w-full gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
-        )}
-      >
-        {pending ? (
-          <>
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-            Creating account…
-          </>
-        ) : (
-          "Create account"
-        )}
-      </Button>
-
-      <div className="relative flex items-center justify-center" aria-hidden>
-        <span className="h-px w-full bg-border" />
-        <span className="absolute bg-card px-3 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          or
-        </span>
-      </div>
-
-      <p className="flex min-h-11 flex-wrap items-center justify-center gap-1.5 text-center text-sm text-muted-foreground">
-        <span>Already have an account?</span>
-        <Link
-          href={ROUTES.auth.login}
-          className="font-semibold text-brand underline-offset-4 hover:underline"
+      <div className="flex flex-col gap-5">
+        <Button
+          type="submit"
+          size="touch"
+          disabled={busy}
+          aria-busy={pending === "password"}
+          className={cn(
+            "w-full gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
+          )}
         >
-          Sign in
-        </Link>
-      </p>
+          {pending === "password" ? (
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Creating account…
+            </>
+          ) : (
+            "Create account"
+          )}
+        </Button>
+
+        <div className="relative flex items-center justify-center" aria-hidden>
+          <span className="h-px w-full bg-border" />
+          <span className="absolute bg-card px-3 text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            or
+          </span>
+        </div>
+
+        <div className="space-y-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="touch"
+            disabled={busy}
+            aria-busy={pending === "magic"}
+            onClick={handleMagicLink}
+            className="w-full gap-2"
+          >
+            {pending === "magic" ? (
+              <>
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Sending link…
+              </>
+            ) : (
+              <>
+                <Send className="size-4" aria-hidden />
+                Email me a sign-in link
+              </>
+            )}
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Skip the password — we&apos;ll email you a one-time link that creates your account on
+            first use.
+          </p>
+        </div>
+
+        <p className="flex min-h-11 flex-wrap items-center justify-center gap-1.5 text-center text-sm text-muted-foreground">
+          <span>Already have an account?</span>
+          <Link
+            href={ROUTES.auth.login}
+            className="font-semibold text-brand underline-offset-4 hover:underline"
+          >
+            Sign in
+          </Link>
+        </p>
+      </div>
     </form>
   );
 }
