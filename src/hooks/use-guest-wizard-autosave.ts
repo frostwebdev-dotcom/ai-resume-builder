@@ -3,27 +3,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
-import { saveWizardDraftAction } from "@/services/resume-wizard/actions";
 
-export type SaveStatus = "idle" | "saving" | "saved" | "error";
+import type { SaveStatus } from "@/hooks/use-wizard-autosave";
 
-type UseWizardAutosaveOptions = {
-  projectId: string;
+const STORAGE_KEY = "resume-real-andy:guest-wizard-draft:v1";
+
+type Options = {
   state: WizardStateV1;
   debounceMs?: number;
-  /** When false, skips all network/local persistence (use alongside guest localStorage hook). */
   enabled?: boolean;
 };
 
 /**
- * Debounced autosave: compares against last successful server snapshot (no ref reads during render).
+ * Mirrors `useWizardAutosave` but persists to `localStorage` instead of Supabase.
+ * Used on the public `/create` route so visitors can build without an account.
  */
-export function useWizardAutosave({
-  projectId,
+export function useGuestWizardAutosave({
   state,
   debounceMs = 900,
   enabled = true,
-}: UseWizardAutosaveOptions) {
+}: Options) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastOkJson, setLastOkJson] = useState(() => JSON.stringify(state));
@@ -35,21 +34,32 @@ export function useWizardAutosave({
     stateRef.current = state;
   });
 
+  const persist = useCallback((json: string) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, json);
+    } catch (e) {
+      console.warn("[guest-wizard] localStorage write failed", e);
+      throw e;
+    }
+  }, []);
+
   const flushSave = useCallback(async () => {
     if (!enabled) return;
     const current = stateRef.current;
     const snapshot = JSON.stringify(current);
     setSaveStatus("saving");
     setLastError(null);
-    const result = await saveWizardDraftAction(projectId, current);
-    if (result.ok) {
+    try {
+      persist(snapshot);
       setLastOkJson(snapshot);
       setSaveStatus("saved");
-    } else {
+    } catch {
       setSaveStatus("error");
-      setLastError(result.error);
+      setLastError(
+        "Could not save on this device (storage may be full, blocked, or private mode is on).",
+      );
     }
-  }, [projectId, enabled]);
+  }, [enabled, persist]);
 
   const isDirty = enabled ? JSON.stringify(state) !== lastOkJson : false;
 
@@ -78,4 +88,24 @@ export function useWizardAutosave({
   }, [flushSave]);
 
   return { saveStatus, lastError, retry, flushSave, isDirty };
+}
+
+export function loadGuestWizardDraftFromStorage(): WizardStateV1 | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as unknown;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "v" in parsed &&
+      (parsed as { v: unknown }).v === 1
+    ) {
+      return parsed as WizardStateV1;
+    }
+  } catch {
+    /* ignore corrupt drafts */
+  }
+  return null;
 }

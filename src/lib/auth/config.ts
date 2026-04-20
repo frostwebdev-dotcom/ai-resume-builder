@@ -8,6 +8,7 @@ export function isPublicPath(pathname: string): boolean {
     return true;
   }
   if (pathname === "/") return true;
+  if (pathname.startsWith("/create")) return true;
   if (
     pathname.startsWith("/pricing") ||
     pathname.startsWith("/how-it-works") ||

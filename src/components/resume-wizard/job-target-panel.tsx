@@ -14,6 +14,8 @@ import { JobTailorDisclaimer } from "@/components/resume-wizard/job-tailor-secti
 
 type JobTargetPanelProps = {
   projectId: string;
+  /** Skip server save — keep job text in memory for tailoring (public guest builder). */
+  guestMode?: boolean;
   initialTitle: string | null;
   initialCompany: string | null;
   initialJobDescription: string | null;
@@ -28,6 +30,7 @@ type JobTargetPanelProps = {
 
 export function JobTargetPanel({
   projectId,
+  guestMode = false,
   initialTitle,
   initialCompany,
   initialJobDescription,
@@ -44,6 +47,16 @@ export function JobTargetPanel({
   const save = () => {
     setError(null);
     setMessage(null);
+    if (guestMode) {
+      if (!hasText) return;
+      onSaved?.({
+        title: title.trim() || null,
+        company: company.trim() || null,
+        jobDescription: jobDescription.trim(),
+      });
+      setMessage("Saved on this device. Sign in to sync with your account.");
+      return;
+    }
     start(() => {
       void (async () => {
         const res = await saveJobTargetAction({

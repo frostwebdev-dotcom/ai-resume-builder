@@ -17,6 +17,7 @@ import {
 import { WIZARD_STEPS } from "@/lib/resume-wizard/steps";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 import { validateStepForNavigation } from "@/lib/resume-wizard/validate-step";
+import { useGuestWizardAutosave } from "@/hooks/use-guest-wizard-autosave";
 import { useUnsavedWarning } from "@/hooks/use-unsaved-warning";
 import { useWizardAutosave } from "@/hooks/use-wizard-autosave";
 import { JobTargetPanel } from "@/components/resume-wizard/job-target-panel";
@@ -30,6 +31,7 @@ import type { JobTargetClientView } from "@/lib/job-target/client-types";
 import type { TailoringCompareV1 } from "@/lib/job-target/types";
 import { trackClientEvent } from "@/lib/analytics/client";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ROUTES } from "@/lib/constants";
 import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-preview";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
@@ -37,6 +39,11 @@ import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { cn } from "@/lib/utils";
 
 type ResumeWizardProps = {
+  /**
+   * Browser-only draft on `/create` — no Supabase project until the user signs in
+   * and creates a saved resume from the dashboard.
+   */
+  guestMode?: boolean;
   projectId: string;
   projectTitle: string;
   initialState: WizardStateV1;
@@ -50,6 +57,7 @@ type ResumeWizardProps = {
 };
 
 export function ResumeWizard({
+  guestMode = false,
   projectId,
   projectTitle,
   initialState,
@@ -83,10 +91,18 @@ export function ResumeWizard({
 
   const hasSavedJobTarget = (jobSnapshot.jobDescription?.trim().length ?? 0) > 0;
 
-  const { saveStatus, lastError, retry, flushSave, isDirty } = useWizardAutosave({
+  const serverAutosave = useWizardAutosave({
     projectId,
     state,
+    enabled: !guestMode,
   });
+  const guestAutosave = useGuestWizardAutosave({
+    state,
+    enabled: guestMode,
+  });
+  const { saveStatus, lastError, retry, flushSave, isDirty } = guestMode
+    ? guestAutosave
+    : serverAutosave;
 
   useUnsavedWarning(isDirty);
 
@@ -127,27 +143,65 @@ export function ResumeWizard({
   // still gets the full width. On xl+ it's always side-by-side and sticky.
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
 
+  const loginWithCreateReturn = `${ROUTES.auth.login}?next=${encodeURIComponent(ROUTES.create)}`;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {guestMode ? (
+        <Alert className="mb-5 border-brand/25 bg-brand-muted/40">
+          <AlertTitle>Local draft</AlertTitle>
+          <AlertDescription>
+            You&apos;re building without an account. Progress saves on this device.{" "}
+            <Link
+              href={loginWithCreateReturn}
+              className="font-semibold text-brand underline-offset-4 hover:underline"
+            >
+              Sign in
+            </Link>{" "}
+            when you&apos;re ready to store resumes in the cloud and export PDFs.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="space-y-5 border-b border-border/70 pb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <Link
-              href={ROUTES.app.project(projectId)}
-              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline sm:min-h-0"
-            >
-              <ArrowLeft className="size-4" aria-hidden />
-              Back to project
-            </Link>
-            <Link
-              href={ROUTES.app.projectPreview(projectId)}
-              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand underline-offset-4 transition-colors hover:underline sm:min-h-0"
-            >
-              <Eye className="size-4" aria-hidden />
-              Full preview &amp; export
-            </Link>
+            {guestMode ? (
+              <>
+                <Link
+                  href={ROUTES.home}
+                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline sm:min-h-0"
+                >
+                  <ArrowLeft className="size-4" aria-hidden />
+                  Back to home
+                </Link>
+                <Link
+                  href={loginWithCreateReturn}
+                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand underline-offset-4 transition-colors hover:underline sm:min-h-0"
+                >
+                  Sign in to save &amp; export
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={ROUTES.app.project(projectId)}
+                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline sm:min-h-0"
+                >
+                  <ArrowLeft className="size-4" aria-hidden />
+                  Back to project
+                </Link>
+                <Link
+                  href={ROUTES.app.projectPreview(projectId)}
+                  className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand underline-offset-4 transition-colors hover:underline sm:min-h-0"
+                >
+                  <Eye className="size-4" aria-hidden />
+                  Full preview &amp; export
+                </Link>
+              </>
+            )}
           </div>
-          <SaveStatusLabel status={saveStatus} onRetry={retry} />
+          <SaveStatusLabel guestMode={guestMode} status={saveStatus} onRetry={retry} />
         </div>
         <div>
           <p className="text-eyebrow">Resume builder</p>
@@ -210,6 +264,7 @@ export function ResumeWizard({
             <JobTargetPanel
               key={projectId}
               projectId={projectId}
+              guestMode={guestMode}
               initialTitle={jobSnapshot.title}
               initialCompany={jobSnapshot.company}
               initialJobDescription={jobSnapshot.jobDescription}
@@ -352,9 +407,11 @@ export function ResumeWizard({
 }
 
 function SaveStatusLabel({
+  guestMode: isGuest,
   status,
   onRetry,
 }: {
+  guestMode?: boolean;
   status: "idle" | "saving" | "saved" | "error";
   onRetry: () => void;
 }) {
@@ -367,7 +424,7 @@ function SaveStatusLabel({
         className={cn(baseChip, "bg-muted/60 text-muted-foreground ring-border")}
       >
         <Loader2 className="size-3.5 animate-spin" aria-hidden />
-        Saving…
+        {isGuest ? "Saving locally…" : "Saving…"}
       </span>
     );
   }
@@ -375,7 +432,7 @@ function SaveStatusLabel({
     return (
       <span className={cn(baseChip, "bg-success/12 text-success ring-success/25")}>
         <CheckCircle2 className="size-3.5" aria-hidden />
-        Saved
+        {isGuest ? "Saved on this device" : "Saved"}
       </span>
     );
   }
@@ -399,7 +456,7 @@ function SaveStatusLabel({
       className={cn(baseChip, "bg-brand-muted text-brand ring-brand/15")}
     >
       <CloudCheck className="size-3.5" aria-hidden />
-      Autosave on
+      {isGuest ? "Local draft" : "Autosave on"}
     </span>
   );
 }

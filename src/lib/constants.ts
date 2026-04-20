@@ -1,8 +1,13 @@
 /** Application-wide constants (no secrets). */
 export const APP_NAME = "AI Resume Builder";
 
+/** Sentinel `projectId` for the browser-only guest builder — never sent to the server. */
+export const GUEST_RESUME_PROJECT_ID = "__guest__" as const;
+
 export const ROUTES = {
   home: "/",
+  /** Public resume builder (local draft; sign in to save to your account). */
+  create: "/create",
   pricing: "/pricing",
   howItWorks: "/how-it-works",
   templates: "/templates",

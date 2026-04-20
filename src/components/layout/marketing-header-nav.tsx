@@ -89,18 +89,21 @@ type AuthLinksProps = {
 
 /**
  * "Create Resume" CTA — appears in the header for both authed and unauthed users.
- * Destination is always `/app`: authed users land on the dashboard's quick-create form;
- * unauthed users are caught by the `requireUser` guard and redirected to `/login?next=/app`,
- * which means after the magic link / password step they arrive straight at the creation screen.
- *
- * Label collapses to "Create" on narrow screens so the header stays on one row on small phones;
- * the full "Create Resume" text is always in the accessible name.
+ * - Signed out → `/create` (public builder; draft in localStorage, no account).
+ * - Signed in → `/app` (dashboard quick-create + saved projects).
  */
-function CreateResumeButton({ className }: { className?: string }) {
+function CreateResumeButton({ isAuthed, className }: { isAuthed: boolean; className?: string }) {
+  const pathname = usePathname();
+  const href = isAuthed ? ROUTES.app.root : ROUTES.create;
+  const active = isAuthed
+    ? isActive(pathname, ROUTES.app.root)
+    : isActive(pathname, ROUTES.create);
+
   return (
     <Link
-      href={ROUTES.app.root}
-      aria-label="Create a new resume"
+      href={href}
+      aria-label={isAuthed ? "Create a new resume in your account" : "Create a resume without signing in"}
+      data-active={active || undefined}
       className={cn(
         buttonVariants({ size: "sm" }),
         "relative gap-1.5 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
@@ -110,7 +113,7 @@ function CreateResumeButton({ className }: { className?: string }) {
       <Plus className="size-4" aria-hidden />
       <span className="sm:hidden">Create</span>
       <span className="hidden sm:inline">Create Resume</span>
-      <PendingBar active={false} />
+      <PendingBar active={active} />
     </Link>
   );
 }
@@ -133,14 +136,12 @@ export function MarketingAuthLinks({ isAuthed }: AuthLinksProps) {
           My resumes
           <PendingBar active={false} />
         </Link>
-        <CreateResumeButton />
+        <CreateResumeButton isAuthed />
       </>
     );
   }
 
-  // Unauthed: Log In (ghost) + Create Resume (primary brand CTA).
-  // `/login` is the single auth entry for new and returning users; clicking "Create Resume"
-  // lands on `/login?next=/app` via the app guard, so the CTA doubles as the acquisition funnel.
+  // Unauthed: Log In (ghost) + Create Resume (primary → public `/create`).
   const loginActive = isActive(pathname, ROUTES.auth.login);
 
   return (
@@ -158,7 +159,7 @@ export function MarketingAuthLinks({ isAuthed }: AuthLinksProps) {
         Log In
         <PendingBar active={loginActive} />
       </Link>
-      <CreateResumeButton />
+      <CreateResumeButton isAuthed={false} />
     </>
   );
 }
