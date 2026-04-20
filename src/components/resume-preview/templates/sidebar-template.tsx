@@ -35,7 +35,8 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
 
   const paper = cn(
     "resume-paper relative box-border w-full max-w-[210mm] overflow-hidden bg-white text-neutral-900",
-    "min-h-[min(280mm,80vh)] text-[10.5px] leading-relaxed",
+    /* A4 preview frame: always show standard page size in the browser; grows when content exceeds one page. */
+    "min-h-[297mm] h-auto text-[10.5px] leading-relaxed",
     isSerif ? "font-serif" : "font-sans",
     "print:min-h-0 print:w-[210mm] print:shadow-none",
     className,
@@ -52,7 +53,7 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
 
   return (
     <article className={paper} data-template={slug} data-layout-family="sidebar">
-      <div className="grid min-h-full grid-cols-[34%_1fr]">
+      <div className="grid min-h-full grid-cols-[minmax(0,34%)_minmax(0,1fr)] items-stretch">
         {/* ───── Left rail ───── */}
         <aside className="relative flex flex-col gap-5 p-[clamp(8mm,2.4vw,12mm)] text-white" style={sidebarStyle}>
           {avatarUrl ? (
