@@ -2,6 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
+import { Plus } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -86,41 +87,78 @@ type AuthLinksProps = {
   isAuthed: boolean;
 };
 
+/**
+ * "Create Resume" CTA — appears in the header for both authed and unauthed users.
+ * Destination is always `/app`: authed users land on the dashboard's quick-create form;
+ * unauthed users are caught by the `requireUser` guard and redirected to `/login?next=/app`,
+ * which means after the magic link / password step they arrive straight at the creation screen.
+ *
+ * Label collapses to "Create" on narrow screens so the header stays on one row on small phones;
+ * the full "Create Resume" text is always in the accessible name.
+ */
+function CreateResumeButton({ className }: { className?: string }) {
+  return (
+    <Link
+      href={ROUTES.app.root}
+      aria-label="Create a new resume"
+      className={cn(
+        buttonVariants({ size: "sm" }),
+        "relative gap-1.5 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
+        className,
+      )}
+    >
+      <Plus className="size-4" aria-hidden />
+      <span className="sm:hidden">Create</span>
+      <span className="hidden sm:inline">Create Resume</span>
+      <PendingBar active={false} />
+    </Link>
+  );
+}
+
 export function MarketingAuthLinks({ isAuthed }: AuthLinksProps) {
   const pathname = usePathname();
 
   if (isAuthed) {
+    // Authed users: "My resumes" (secondary) + "Create Resume" (primary brand CTA).
     return (
-      <Link
-        href={ROUTES.app.root}
-        className={cn(
-          buttonVariants({ size: "sm" }),
-          "relative bg-brand text-brand-foreground hover:bg-brand/90",
-        )}
-        aria-label="Go to your resumes"
-      >
-        My resumes
-        <PendingBar active={false} />
-      </Link>
+      <>
+        <Link
+          href={ROUTES.app.root}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "relative hidden sm:inline-flex",
+          )}
+          aria-label="Go to your resumes"
+        >
+          My resumes
+          <PendingBar active={false} />
+        </Link>
+        <CreateResumeButton />
+      </>
     );
   }
 
-  // Single auth entry: `/login` serves both new and returning users (magic link auto-creates
-  // accounts on first click), so we expose one obvious CTA in the header.
+  // Unauthed: Log In (ghost) + Create Resume (primary brand CTA).
+  // `/login` is the single auth entry for new and returning users; clicking "Create Resume"
+  // lands on `/login?next=/app` via the app guard, so the CTA doubles as the acquisition funnel.
   const loginActive = isActive(pathname, ROUTES.auth.login);
 
   return (
-    <Link
-      href={ROUTES.auth.login}
-      aria-current={loginActive ? "page" : undefined}
-      data-active={loginActive || undefined}
-      className={cn(
-        buttonVariants({ size: "sm" }),
-        "relative bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
-      )}
-    >
-      Sign in
-      <PendingBar active={loginActive} />
-    </Link>
+    <>
+      <Link
+        href={ROUTES.auth.login}
+        aria-current={loginActive ? "page" : undefined}
+        data-active={loginActive || undefined}
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "sm" }),
+          "relative",
+          loginActive && "text-foreground",
+        )}
+      >
+        Log In
+        <PendingBar active={loginActive} />
+      </Link>
+      <CreateResumeButton />
+    </>
   );
 }
