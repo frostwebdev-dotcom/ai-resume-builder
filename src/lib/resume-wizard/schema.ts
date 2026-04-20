@@ -1,22 +1,66 @@
 import { z } from "zod";
 
+/**
+ * URL validation for wizard fields is intentionally forgiving.
+ *
+ * - Users routinely paste `www.example.com` or `linkedin.com/in/foo`
+ *   without a scheme; blocking "Next" on that was a common source of
+ *   friction. We accept bare domains here and let the downstream PDF
+ *   renderer (`normaliseUrl` in render-resume-pdf.ts) prepend `https://`
+ *   when emitting clickable links.
+ * - We still reject obvious junk (single words, whitespace-only input,
+ *   entries without a TLD) so typos don't silently land in the export.
+ */
+function isLikelyUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return true;
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    return false;
+  }
+  // Host must have at least one dot ("example.com") to avoid accepting
+  // inputs like "notaurl" or "localhost".
+  return (
+    (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+    parsed.hostname.length >= 3 &&
+    parsed.hostname.includes(".")
+  );
+}
+
+function isLikelyLinkedInUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return true;
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    return false;
+  }
+  // Accept linkedin.com, www.linkedin.com, and any regional subdomain
+  // (uk.linkedin.com, de.linkedin.com, cn.linkedin.com, …). The pathname
+  // must point at a real profile/page, not just the domain root.
+  const host = parsed.hostname.toLowerCase();
+  return /(^|\.)linkedin\.com$/i.test(host) && parsed.pathname.length > 1;
+}
+
 const optionalUrl = z
   .string()
   .trim()
   .refine(
-    (s) => s.length === 0 || /^https?:\/\/.+/i.test(s),
-    "Use a full URL starting with http:// or https://",
+    isLikelyUrl,
+    "Enter a web address (example.com or https://example.com).",
   );
 
 const optionalLinkedIn = z
   .string()
   .trim()
   .refine(
-    (s) =>
-      s.length === 0 ||
-      /^https?:\/\/(www\.)?linkedin\.com\/.+/i.test(s) ||
-      /^linkedin\.com\/.+/i.test(s),
-    "Use a full LinkedIn profile URL.",
+    isLikelyLinkedInUrl,
+    "Enter a LinkedIn profile URL (e.g. linkedin.com/in/your-name).",
   );
 
 export const workExperienceEntrySchema = z.object({

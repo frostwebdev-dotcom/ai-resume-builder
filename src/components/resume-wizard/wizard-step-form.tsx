@@ -175,7 +175,11 @@ function PersonalStep({
           placeholder="Berlin, DE · Remote"
         />
       </Field>
-      <Field id="linkedIn" label="LinkedIn" description="Full profile URL, if you use LinkedIn.">
+      <Field
+        id="linkedIn"
+        label="LinkedIn"
+        description="Profile URL, with or without https://. Regional domains like uk.linkedin.com are fine."
+      >
         <Input
           name="linkedIn"
           value={p.linkedIn}
@@ -187,10 +191,14 @@ function PersonalStep({
           }
           inputMode="url"
           className="min-h-11 text-base sm:min-h-10 sm:text-sm"
-          placeholder="https://www.linkedin.com/in/yourprofile"
+          placeholder="linkedin.com/in/your-name"
         />
       </Field>
-      <Field id="website" label="Website / portfolio" description="Optional personal site or GitHub profile.">
+      <Field
+        id="website"
+        label="Website / portfolio"
+        description="Personal site, GitHub, or portfolio. https:// is added automatically if you leave it out."
+      >
         <Input
           name="website"
           value={p.website}
@@ -202,7 +210,7 @@ function PersonalStep({
           }
           inputMode="url"
           className="min-h-11 text-base sm:min-h-10 sm:text-sm"
-          placeholder="https://"
+          placeholder="example.com"
         />
       </Field>
     </div>
