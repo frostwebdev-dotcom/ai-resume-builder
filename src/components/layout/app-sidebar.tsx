@@ -6,6 +6,10 @@ import { LayoutDashboard, UserRound } from "lucide-react";
 
 import { UserMenu } from "@/components/auth/user-menu";
 import type { AppShellUser } from "@/components/layout/app-shell";
+import {
+  SidebarToggleButton,
+  useSidebarVisibility,
+} from "@/components/layout/sidebar-visibility";
 import { cn } from "@/lib/utils";
 import { APP_NAME, ROUTES } from "@/lib/constants";
 
@@ -20,31 +24,42 @@ type AppSidebarProps = {
 
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
+  const { collapsed: isCollapsed } = useSidebarVisibility();
 
   return (
     <aside
       className={cn(
         "hidden md:flex",
         "sticky top-0 z-20 self-start h-screen max-h-screen",
-        "w-[15.5rem] shrink-0 flex-col overflow-y-auto",
+        "shrink-0 flex-col overflow-hidden",
         "border-r border-border/70 bg-card/80 backdrop-blur-sm supports-[backdrop-filter]:bg-card/60",
-        "[scrollbar-gutter:stable] lg:w-60",
+        "[scrollbar-gutter:stable]",
+        // Animated width collapse: 15.5rem → 0. The overflow-hidden on the
+        // aside keeps the children from leaking while the width transitions.
+        "transition-[width] duration-200 ease-out",
+        isCollapsed ? "w-0 border-r-0" : "w-[15.5rem] lg:w-60",
       )}
       aria-label="Primary navigation"
+      aria-hidden={isCollapsed}
+      inert={isCollapsed || undefined}
     >
-      <div className="flex h-14 items-center border-b border-border/70 px-4">
+      {/* Inner panel has a fixed width so the width-animation on the aside
+          clips (via overflow-hidden) instead of squeezing the nav items. */}
+      <div className="flex h-full w-[15.5rem] flex-col lg:w-60">
+      <div className="flex h-14 items-center justify-between gap-2 border-b border-border/70 pl-4 pr-2">
         <Link
           href={ROUTES.app.root}
           aria-label={`${APP_NAME} — dashboard`}
-          className="group flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand-ring"
+          className="group flex min-w-0 items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand-ring"
         >
           <span className="brand-mark" aria-hidden>
             R
           </span>
-          <span className="text-sm font-semibold tracking-tight text-foreground">
+          <span className="truncate text-sm font-semibold tracking-tight text-foreground">
             {APP_NAME}
           </span>
         </Link>
+        <SidebarToggleButton />
       </div>
       <p className="px-4 pt-4 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
         Workspace
@@ -88,6 +103,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
       </nav>
       <div className="border-t border-border/70 p-3">
         <UserMenu email={user.email} isAdmin={user.isAdmin} />
+      </div>
       </div>
     </aside>
   );

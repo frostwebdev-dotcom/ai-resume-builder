@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,6 +10,7 @@ import {
   CloudAlert,
   CloudCheck,
   Eye,
+  EyeOff,
   Loader2,
 } from "lucide-react";
 
@@ -20,6 +21,8 @@ import { useUnsavedWarning } from "@/hooks/use-unsaved-warning";
 import { useWizardAutosave } from "@/hooks/use-wizard-autosave";
 import { JobTargetPanel } from "@/components/resume-wizard/job-target-panel";
 import { WizardStepForm } from "@/components/resume-wizard/wizard-step-form";
+import { PreviewViewport } from "@/components/resume-preview/preview-viewport";
+import { ResumePreviewRenderer } from "@/components/resume-preview/resume-preview-renderer";
 import { Button } from "@/components/ui/button";
 import { FeedbackBanner } from "@/components/ui/feedback-banner";
 import { StepIndicator } from "@/components/ui/step-indicator";
@@ -28,6 +31,9 @@ import type { TailoringCompareV1 } from "@/lib/job-target/types";
 import { trackClientEvent } from "@/lib/analytics/client";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { ROUTES } from "@/lib/constants";
+import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-preview";
+import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
+import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { cn } from "@/lib/utils";
 
 type ResumeWizardProps = {
@@ -35,6 +41,12 @@ type ResumeWizardProps = {
   projectTitle: string;
   initialState: WizardStateV1;
   initialJobTarget: JobTargetClientView | null;
+  /** Template selected on the project — drives the live preview layout. */
+  templateSlug: TemplateSlug;
+  /** Persisted style overrides (colors, type, spacing). */
+  initialResumeStyle: ResumeStyleV1;
+  /** Signed URL for the project avatar, or null if none uploaded. */
+  avatarSignedUrl: string | null;
 };
 
 export function ResumeWizard({
@@ -42,6 +54,9 @@ export function ResumeWizard({
   projectTitle,
   initialState,
   initialJobTarget,
+  templateSlug,
+  initialResumeStyle,
+  avatarSignedUrl,
 }: ResumeWizardProps) {
   const [state, setState] = useState<WizardStateV1>(initialState);
   const [stepIndex, setStepIndex] = useState(0);
@@ -100,6 +115,18 @@ export function ResumeWizard({
 
   const stepItems = WIZARD_STEPS.map((s) => ({ id: s.id, label: s.short }));
 
+  // Local preview is derived purely from the wizard state — no network, no
+  // autosave coupling. Every keystroke flows into this document, so the
+  // sticky live preview updates in lockstep with what the user is typing.
+  const previewDocument = useMemo(
+    () => mapWizardToPreviewDocument(state, { avatarUrl: avatarSignedUrl }),
+    [state, avatarSignedUrl],
+  );
+
+  // On small screens the live preview is a toggleable drawer so the wizard
+  // still gets the full width. On xl+ it's always side-by-side and sticky.
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="space-y-5 border-b border-border/70 pb-6">
@@ -117,7 +144,7 @@ export function ResumeWizard({
               className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand underline-offset-4 transition-colors hover:underline sm:min-h-0"
             >
               <Eye className="size-4" aria-hidden />
-              Preview
+              Full preview &amp; export
             </Link>
           </div>
           <SaveStatusLabel status={saveStatus} onRetry={retry} />
@@ -170,79 +197,156 @@ export function ResumeWizard({
         </div>
       ) : null}
 
-      <div className="mt-6 flex-1 pb-44 md:pb-6">
-        <div key={current.id} className="animate-wizard-step space-y-6">
-          <JobTargetPanel
-            key={projectId}
-            projectId={projectId}
-            initialTitle={jobSnapshot.title}
-            initialCompany={jobSnapshot.company}
-            initialJobDescription={jobSnapshot.jobDescription}
-            onSaved={(payload) => setJobSnapshot(payload)}
-          />
-          <WizardStepForm
-            projectId={projectId}
-            stepId={current.id}
-            state={state}
-            setState={setState}
-            hasSavedJobTarget={hasSavedJobTarget}
-            tailoringCompare={tailoringCompare}
-            setTailoringCompare={setTailoringCompare}
-          />
-        </div>
-      </div>
-
       {/*
-        Wizard action bar.
-        - Mobile: fixed edge-to-edge, sitting above the bottom nav.
-        - Desktop: sticky inside the content column so it respects the sidebar,
-          never hides the last form field, and stays pinned while scrolling.
+        Workshop layout.
+        - xl+: the wizard is on the left and the live preview is pinned to
+          the right so users can always see how each edit lands on the page.
+        - Below xl: single column. The preview is still reachable via a
+          toggleable drawer so phone/tablet users don't lose it.
       */}
-      <div
-        className={cn(
-          "z-40 border-t border-border/70 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/80",
-          "px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]",
-          "fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)]",
-          "md:sticky md:inset-x-auto md:bottom-0 md:shadow-[0_-2px_12px_-8px_rgba(0,0,0,0.08)]",
-          "md:-mx-4 md:rounded-t-xl md:px-4 lg:-mx-6 lg:px-6",
-        )}
-      >
-        <div className="mx-auto flex max-w-3xl items-stretch justify-between gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="touch"
-            className="min-w-[44%] sm:min-w-[8rem]"
-            disabled={isFirst}
-            onClick={goBack}
-          >
-            <ChevronLeft className="size-4" aria-hidden />
-            Back
-          </Button>
-          <div className="flex flex-1 justify-end gap-2">
-            {!isLast ? (
-              <Button
-                type="button"
-                size="touch"
-                className="min-w-[44%] flex-1 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:min-w-[10rem] sm:flex-none"
-                onClick={goNext}
-              >
-                Next
-                <ChevronRight className="size-4" aria-hidden />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                size="touch"
-                className="min-w-[44%] flex-1 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:flex-none"
-                onClick={() => void flushSave()}
-              >
-                Save now
-              </Button>
+      <div className="mt-6 grid flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(520px,min(46vw,780px))] xl:items-start">
+        <div className="flex min-w-0 flex-col pb-44 md:pb-6">
+          <div key={current.id} className="animate-wizard-step space-y-6">
+            <JobTargetPanel
+              key={projectId}
+              projectId={projectId}
+              initialTitle={jobSnapshot.title}
+              initialCompany={jobSnapshot.company}
+              initialJobDescription={jobSnapshot.jobDescription}
+              onSaved={(payload) => setJobSnapshot(payload)}
+            />
+            <WizardStepForm
+              projectId={projectId}
+              stepId={current.id}
+              state={state}
+              setState={setState}
+              hasSavedJobTarget={hasSavedJobTarget}
+              tailoringCompare={tailoringCompare}
+              setTailoringCompare={setTailoringCompare}
+            />
+          </div>
+
+          {/*
+            Wizard action bar.
+            - Mobile: fixed edge-to-edge, sitting above the bottom nav.
+            - Desktop: sticky inside the wizard column so it respects the
+              sidebar and the preview column, never hides the last form field,
+              and stays pinned while scrolling.
+          */}
+          <div
+            className={cn(
+              "z-40 mt-6 border-t border-border/70 bg-background/90 backdrop-blur-md supports-[backdrop-filter]:bg-background/80",
+              "px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]",
+              "fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_24px_-8px_rgba(0,0,0,0.12)]",
+              "md:sticky md:inset-x-auto md:bottom-0 md:shadow-[0_-2px_12px_-8px_rgba(0,0,0,0.08)]",
+              "md:-mx-4 md:rounded-t-xl md:px-4 lg:-mx-6 lg:px-6",
             )}
+          >
+            <div className="mx-auto flex max-w-3xl items-stretch justify-between gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="touch"
+                className="min-w-[44%] sm:min-w-[8rem]"
+                disabled={isFirst}
+                onClick={goBack}
+              >
+                <ChevronLeft className="size-4" aria-hidden />
+                Back
+              </Button>
+              <div className="flex flex-1 justify-end gap-2">
+                {!isLast ? (
+                  <Button
+                    type="button"
+                    size="touch"
+                    className="min-w-[44%] flex-1 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:min-w-[10rem] sm:flex-none"
+                    onClick={goNext}
+                  >
+                    Next
+                    <ChevronRight className="size-4" aria-hidden />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="touch"
+                    className="min-w-[44%] flex-1 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:flex-none"
+                    onClick={() => void flushSave()}
+                  >
+                    Save now
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/*
+          Sticky live preview aside: visible always on xl+, collapsible drawer
+          below xl. The aside has its own internal scroller so tall resumes
+          don't push the preview off-screen — users can always see where
+          their edits land.
+        */}
+        <aside
+          className={cn(
+            "min-w-0",
+            // xl+ visible, sticky, framed.
+            "xl:block xl:sticky xl:top-4 xl:self-start",
+            "xl:max-h-[calc(100dvh-2rem)] xl:overflow-y-auto xl:overscroll-contain",
+            "xl:rounded-2xl xl:border xl:border-border/60 xl:bg-card/60 xl:p-3 xl:shadow-soft",
+            "xl:[scrollbar-gutter:stable]",
+            // Below xl we let the user toggle visibility.
+            mobilePreviewOpen ? "block" : "hidden xl:block",
+          )}
+          aria-labelledby="wizard-live-heading"
+        >
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="wizard-live-heading" className="text-subhead text-foreground">
+              Live preview
+            </h2>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-success ring-1 ring-success/25">
+              Live
+            </span>
+          </div>
+          <p className="mb-2 text-caption text-muted-foreground xl:hidden">
+            Every change you make above appears here instantly. Your full export and template controls live on the preview page.
+          </p>
+          <PreviewViewport compactFrame>
+            <ResumePreviewRenderer
+              document={previewDocument}
+              templateSlug={templateSlug}
+              resumeStyle={initialResumeStyle}
+            />
+          </PreviewViewport>
+        </aside>
       </div>
+
+      {/* Mobile-only floating toggle: lets phone/tablet users peek at the
+          live preview without leaving the wizard. On xl+ the preview is
+          already visible so this button is hidden. */}
+      <button
+        type="button"
+        onClick={() => setMobilePreviewOpen((v) => !v)}
+        aria-pressed={mobilePreviewOpen}
+        aria-label={mobilePreviewOpen ? "Hide live preview" : "Show live preview"}
+        className={cn(
+          "fixed right-4 bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))] z-50",
+          "inline-flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-2 text-sm font-semibold text-brand-foreground shadow-elevated ring-1 ring-brand/40",
+          "transition-transform hover:-translate-y-0.5 active:translate-y-0",
+          "xl:hidden",
+        )}
+      >
+        {mobilePreviewOpen ? (
+          <>
+            <EyeOff className="size-4" aria-hidden />
+            Hide preview
+          </>
+        ) : (
+          <>
+            <Eye className="size-4" aria-hidden />
+            Show preview
+          </>
+        )}
+      </button>
     </div>
   );
 }

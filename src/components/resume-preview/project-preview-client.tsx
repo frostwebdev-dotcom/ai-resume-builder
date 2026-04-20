@@ -192,150 +192,177 @@ export function ProjectPreviewClient({
         filledCount={filledCount}
       />
 
-      <ResumeDownloadSection
-        projectId={projectId}
-        canDownload={downloadAccess.canDownload}
-        hasDownloadHistory={downloadAccess.hasDownloadHistory}
-        checkoutEnabled={checkoutEnabled}
-      />
+      {/*
+        Workshop layout: on xl+ the controls flow naturally in the left column
+        while the preview stays pinned to the top of the viewport so users can
+        always see the current design as they adjust template, appearance, and
+        avatar. Below xl the stack collapses to a single column so narrow
+        viewports stay readable without horizontal scrolling.
+      */}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(520px,min(46vw,780px))] xl:items-start">
+        <div className="min-w-0 space-y-5">
+          <ResumeDownloadSection
+            projectId={projectId}
+            canDownload={downloadAccess.canDownload}
+            hasDownloadHistory={downloadAccess.hasDownloadHistory}
+            checkoutEnabled={checkoutEnabled}
+          />
 
-      <section className="space-y-4" aria-labelledby="template-heading">
-        <div className="flex items-center gap-2">
-          <span
-            className="flex size-8 items-center justify-center rounded-lg bg-brand-muted text-brand ring-1 ring-brand/15"
-            aria-hidden
+          <section
+            className="space-y-3 rounded-2xl border border-border/70 bg-card p-4 shadow-soft sm:p-5"
+            aria-labelledby="template-heading"
           >
-            <LayoutTemplate className="size-4" />
-          </span>
-          <h2 id="template-heading" className="text-subhead text-foreground">
-            Template
-          </h2>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Choose a layout. Every template is single-column and ATS-linear — colors and type
-            change, the parseable structure stays the same.
-          </p>
-          <span className="inline-flex items-center rounded-full bg-muted/60 px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border">
-            {templates.length} designs
-          </span>
-        </div>
-        {error ? (
-          <p className="text-sm font-medium text-destructive" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <div
-          className="max-h-[min(480px,55vh)] overflow-y-auto overscroll-contain rounded-xl border border-border/60 bg-muted/20 p-2 pr-1"
-          tabIndex={0}
-          aria-label="Template gallery"
-        >
-        <div
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          role="radiogroup"
-          aria-label="Resume template"
-        >
-          {templates.map((t) => {
-            const active = t.id === effectiveId;
-            const slug = isTemplateSlug(t.slug) ? t.slug : "athena";
-            const theme = getTemplateTheme(slug);
-            return (
-              <button
-                key={t.id}
-                type="button"
-                role="radio"
-                disabled={pending}
-                onClick={() => selectTemplate(t.id)}
-                aria-checked={active}
-                aria-label={`${t.name} — ${theme.pickerTagline}`}
-                className={cn(
-                  "group/tmpl relative flex flex-col overflow-hidden rounded-xl border bg-card p-3 text-left text-sm shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-elevated disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
-                  active
-                    ? "border-brand/40 ring-2 ring-brand/25"
-                    : "border-border/70 hover:border-brand/30",
-                )}
-              >
-                {active ? (
-                  <span
-                    className="absolute right-2.5 top-2.5 z-10 inline-flex size-5 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-soft"
-                    aria-hidden
-                  >
-                    <CheckCircle2 className="size-3.5" strokeWidth={2.5} />
-                  </span>
-                ) : null}
-                <div
-                  className="mb-3 overflow-hidden rounded-md ring-1 ring-border/60"
-                  style={{
-                    background:
-                      "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,1) 100%)",
-                  }}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span
+                  className="flex size-8 items-center justify-center rounded-lg bg-brand-muted text-brand ring-1 ring-brand/15"
+                  aria-hidden
                 >
-                  <div className="p-2">
-                    <TemplateThumbnail slug={t.slug} />
-                  </div>
+                  <LayoutTemplate className="size-4" />
+                </span>
+                <div>
+                  <h2 id="template-heading" className="text-subhead text-foreground">
+                    Template
+                  </h2>
+                  <p className="text-caption text-muted-foreground">
+                    ATS-linear structure — colors and type change, parseable order stays.
+                  </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className="inline-block size-2.5 rounded-full ring-1 ring-black/5"
-                    style={{ backgroundColor: theme.accent }}
-                    aria-hidden
-                  />
-                  <span className="font-semibold text-foreground">{t.name}</span>
-                  {t.isPremium ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-warning-foreground ring-1 ring-warning/25">
-                      <Sparkles className="size-3" aria-hidden />
-                      Premium
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-1.5 text-caption leading-relaxed text-muted-foreground">
-                  {theme.pickerTagline}
-                </p>
-                <p className="mt-1 text-[0.7rem] leading-relaxed text-muted-foreground/80">
-                  {theme.bestFor}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-        </div>
-      </section>
+              </div>
+              <span className="inline-flex items-center rounded-full bg-muted/60 px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border">
+                {templates.length} designs
+              </span>
+            </div>
+            {error ? (
+              <p className="text-sm font-medium text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <div
+              className="max-h-[min(420px,52vh)] overflow-y-auto overscroll-contain rounded-xl border border-border/60 bg-muted/20 p-2 pr-1"
+              tabIndex={0}
+              aria-label="Template gallery"
+            >
+              <div
+                className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3"
+                role="radiogroup"
+                aria-label="Resume template"
+              >
+                {templates.map((t) => {
+                  const active = t.id === effectiveId;
+                  const thumbSlug = isTemplateSlug(t.slug) ? t.slug : "athena";
+                  const theme = getTemplateTheme(thumbSlug);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      role="radio"
+                      disabled={pending}
+                      onClick={() => selectTemplate(t.id)}
+                      aria-checked={active}
+                      aria-label={`${t.name} — ${theme.pickerTagline}`}
+                      className={cn(
+                        "group/tmpl relative flex flex-col overflow-hidden rounded-xl border bg-card p-3 text-left text-sm shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-elevated disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
+                        active
+                          ? "border-brand/40 ring-2 ring-brand/25"
+                          : "border-border/70 hover:border-brand/30",
+                      )}
+                    >
+                      {active ? (
+                        <span
+                          className="absolute right-2.5 top-2.5 z-10 inline-flex size-5 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-soft"
+                          aria-hidden
+                        >
+                          <CheckCircle2 className="size-3.5" strokeWidth={2.5} />
+                        </span>
+                      ) : null}
+                      <div
+                        className="mb-3 overflow-hidden rounded-md ring-1 ring-border/60"
+                        style={{
+                          background:
+                            "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,1) 100%)",
+                        }}
+                      >
+                        <div className="p-2">
+                          <TemplateThumbnail slug={t.slug} />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className="inline-block size-2.5 rounded-full ring-1 ring-black/5"
+                          style={{ backgroundColor: theme.accent }}
+                          aria-hidden
+                        />
+                        <span className="font-semibold text-foreground">{t.name}</span>
+                        {t.isPremium ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-warning-foreground ring-1 ring-warning/25">
+                            <Sparkles className="size-3" aria-hidden />
+                            Premium
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-1.5 text-caption leading-relaxed text-muted-foreground">
+                        {theme.pickerTagline}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
 
-      <ResumeAppearancePanel
-        templateSlug={slug}
-        resumeStyle={resumeStyle}
-        onResumeStyleChange={handleResumeStyleChange}
-      />
-
-      <AvatarUploadPanel
-        projectId={projectId}
-        templateSlug={slug}
-        avatarSignedUrl={avatarSignedUrl}
-        resumeStyle={resumeStyle}
-        onResumeStyleChange={handleResumeStyleChange}
-        onAvatarChange={(next) => setAvatarSignedUrl(next.signedUrl)}
-      />
-
-      <section className="space-y-3" aria-labelledby="live-heading">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="live-heading" className="text-subhead text-foreground">
-            Live preview
-          </h2>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border">
-            Matches export
-          </span>
-        </div>
-        <p className="text-caption text-muted-foreground sm:hidden">
-          Scroll horizontally on small screens to see the full page width, or rotate for a roomier view.
-        </p>
-        <PreviewViewport compactFrame>
-          <ResumePreviewRenderer
-            document={liveDocument}
+          <ResumeAppearancePanel
             templateSlug={slug}
             resumeStyle={resumeStyle}
+            onResumeStyleChange={handleResumeStyleChange}
           />
-        </PreviewViewport>
-      </section>
+
+          <AvatarUploadPanel
+            projectId={projectId}
+            templateSlug={slug}
+            avatarSignedUrl={avatarSignedUrl}
+            resumeStyle={resumeStyle}
+            onResumeStyleChange={handleResumeStyleChange}
+            onAvatarChange={(next) => setAvatarSignedUrl(next.signedUrl)}
+          />
+        </div>
+
+        {/*
+          Sticky preview aside: pinned on xl+ so it never leaves the viewport
+          while the user edits. The aside itself scrolls internally when the
+          resume is taller than the available viewport, so tall resumes stay
+          fully reachable without losing the sticky behavior.
+        */}
+        <aside
+          className={cn(
+            "min-w-0",
+            "xl:sticky xl:top-4 xl:self-start",
+            "xl:max-h-[calc(100dvh-2rem)] xl:overflow-y-auto xl:overscroll-contain",
+            "xl:rounded-2xl xl:border xl:border-border/60 xl:bg-card/60 xl:p-3 xl:shadow-soft",
+            "xl:[scrollbar-gutter:stable]",
+          )}
+          aria-labelledby="live-heading"
+        >
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 id="live-heading" className="text-subhead text-foreground">
+              Live preview
+            </h2>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border">
+              Matches export
+            </span>
+          </div>
+          <p className="mb-2 text-caption text-muted-foreground xl:hidden">
+            Scroll horizontally on small screens to see the full page width, or rotate for a roomier view.
+          </p>
+          <PreviewViewport compactFrame>
+            <ResumePreviewRenderer
+              document={liveDocument}
+              templateSlug={slug}
+              resumeStyle={resumeStyle}
+            />
+          </PreviewViewport>
+        </aside>
+      </div>
     </div>
   );
 }
