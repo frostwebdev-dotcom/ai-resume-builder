@@ -24,5 +24,7 @@ describe("getPdfLayout font mapping", () => {
     const onyx = getPdfLayout("onyx");
     expect(onyx.headerStyle).toBe("banner");
     expect(onyx.sectionTitleStyle).toBe("accent-rule");
+    expect(onyx.bodyAlign).toBe("left");
+    expect(onyx.bodyLineGap).toBeGreaterThanOrEqual(0);
   });
 });

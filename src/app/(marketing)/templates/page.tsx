@@ -19,7 +19,7 @@ import { ALL_TEMPLATE_THEMES } from "@/lib/resume-preview/template-theme";
 export const metadata: Metadata = {
   title: "Resume templates",
   description:
-    "Eight ATS-friendly resume templates with clean previews. Pick a layout that matches your industry and goals.",
+    "Forty ATS-friendly resume templates with clean previews. Pick a layout that matches your industry and goals.",
 };
 
 export default function TemplatesPage() {
@@ -30,7 +30,7 @@ export default function TemplatesPage() {
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-eyebrow justify-center">Templates</p>
             <h1 className="mt-3 text-display text-balance">
-              Eight clean layouts that <span className="text-gradient-brand">read well everywhere</span>
+              Forty professional layouts that <span className="text-gradient-brand">read well everywhere</span>
             </h1>
             <p className="mt-4 text-body-muted">
               Every layout prioritizes readable structure over decoration — so both humans and ATS

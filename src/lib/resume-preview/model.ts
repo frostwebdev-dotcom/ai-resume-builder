@@ -44,6 +44,12 @@ export type ResumePreviewDocument = {
   identity: {
     fullName: string;
     headline: string;
+    /**
+     * Resolved avatar URL for preview rendering (short-lived signed URL)
+     * or null when no avatar is uploaded. Only consumed by templates whose
+     * `layoutFamily` supports a photo (sidebar / photo-banner).
+     */
+    avatarUrl?: string | null;
   };
   contact: {
     lines: ResumeContactLine[];

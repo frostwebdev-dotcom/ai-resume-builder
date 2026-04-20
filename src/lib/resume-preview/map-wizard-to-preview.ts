@@ -16,6 +16,7 @@ function splitSkills(lines: string): string[] {
 
 export function mapWizardToPreviewDocument(
   wizard: WizardStateV1,
+  options?: { avatarUrl?: string | null },
 ): ResumePreviewDocument {
   const p = wizard.personal;
   const fullName = p.fullName.trim();
@@ -88,6 +89,7 @@ export function mapWizardToPreviewDocument(
     identity: {
       fullName,
       headline,
+      avatarUrl: options?.avatarUrl ?? null,
     },
     contact: { lines: contactLines },
     summary,

@@ -1,25 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import { templateIdToSlug } from "./resolve-slug";
-import { TEMPLATE_IDS, DEFAULT_TEMPLATE_ID, isTemplateSlug } from "./template-ids";
+import { TEMPLATE_IDS, DEFAULT_TEMPLATE_ID, isTemplateSlug, TEMPLATE_SLUG_ORDER } from "./template-ids";
 import { ALL_TEMPLATE_THEMES, getTemplateTheme } from "./template-theme";
-
-const EXPECTED_SLUGS = [
-  "athena",
-  "meridian",
-  "nova",
-  "helios",
-  "vanta",
-  "lumen",
-  "onyx",
-  "clio",
-] as const;
 
 describe("templateIdToSlug", () => {
   it("maps each known template id to its slug", () => {
-    for (const slug of EXPECTED_SLUGS) {
+    for (const slug of TEMPLATE_SLUG_ORDER) {
       expect(templateIdToSlug(TEMPLATE_IDS[slug])).toBe(slug);
     }
+  });
+
+  it("maps the last template (forge) to forge", () => {
+    expect(templateIdToSlug(TEMPLATE_IDS.forge)).toBe("forge");
   });
 
   it("falls back to athena for unknown or missing ids", () => {
@@ -32,7 +25,7 @@ describe("templateIdToSlug", () => {
 
 describe("isTemplateSlug", () => {
   it("accepts every known slug", () => {
-    for (const slug of EXPECTED_SLUGS) {
+    for (const slug of TEMPLATE_SLUG_ORDER) {
       expect(isTemplateSlug(slug)).toBe(true);
     }
   });
@@ -45,7 +38,8 @@ describe("isTemplateSlug", () => {
 
 describe("template themes", () => {
   it("exposes a well-formed theme for every slug", () => {
-    expect(ALL_TEMPLATE_THEMES).toHaveLength(EXPECTED_SLUGS.length);
+    expect(ALL_TEMPLATE_THEMES).toHaveLength(TEMPLATE_SLUG_ORDER.length);
+    expect(TEMPLATE_SLUG_ORDER.length).toBe(40);
     for (const theme of ALL_TEMPLATE_THEMES) {
       expect(theme.accent).toMatch(/^#[0-9a-f]{6}$/i);
       expect(theme.accentStrong).toMatch(/^#[0-9a-f]{6}$/i);
@@ -59,7 +53,7 @@ describe("template themes", () => {
   });
 
   it("resolves a theme per slug with the matching .slug field", () => {
-    for (const slug of EXPECTED_SLUGS) {
+    for (const slug of TEMPLATE_SLUG_ORDER) {
       expect(getTemplateTheme(slug).slug).toBe(slug);
     }
   });

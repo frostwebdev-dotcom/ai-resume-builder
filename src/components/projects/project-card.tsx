@@ -34,6 +34,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
+import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +78,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const showMarkReady =
     !project.isArchived && project.displayStatus === "draft";
 
+  const slug = templateIdToSlug(project.templateId);
+  const theme = getTemplateTheme(slug);
+
   return (
     <>
       <Card
@@ -92,8 +97,17 @@ export function ProjectCard({ project }: ProjectCardProps) {
               >
                 <span className="line-clamp-2">{project.title}</span>
               </Link>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Updated {formatUpdated(project.updatedAt)}
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                <span
+                  aria-hidden
+                  className="inline-block size-2 rounded-full ring-1 ring-black/5"
+                  style={{ backgroundColor: theme.accentStrong }}
+                />
+                <span className="font-medium text-foreground/80">
+                  {theme.name}
+                </span>
+                <span className="opacity-60">•</span>
+                <span>Updated {formatUpdated(project.updatedAt)}</span>
               </p>
             </div>
             <DropdownMenu>

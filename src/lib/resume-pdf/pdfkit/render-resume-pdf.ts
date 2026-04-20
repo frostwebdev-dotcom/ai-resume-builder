@@ -1,8 +1,10 @@
 import PDFDocument from "pdfkit";
 
 import type { ResumeContactLine, ResumePreviewDocument } from "@/lib/resume-preview/model";
+import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getPdfLayout, type PdfLayout } from "@/lib/resume-pdf/pdfkit/layouts";
+import { renderSidebarPdf } from "@/lib/resume-pdf/pdfkit/render-sidebar-pdf";
 
 type Pdf = InstanceType<typeof PDFDocument>;
 
@@ -95,8 +97,8 @@ function writeParagraph(doc: Pdf, layout: PdfLayout, text: string): void {
   doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
   doc.text(text, layout.pageMargin, doc.y, {
     width: contentWidth(doc, layout),
-    align: "left",
-    lineGap: 2,
+    align: layout.bodyAlign,
+    lineGap: layout.bodyLineGap,
   });
   doc.moveDown(layout.paragraphGap / layout.bodySize);
 }
@@ -117,8 +119,8 @@ function writeBullets(doc: Pdf, layout: PdfLayout, items: string[]): void {
     doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
     doc.text(item.trim(), xText, startY, {
       width: textWidth,
-      align: "left",
-      lineGap: 2,
+      align: layout.bodyAlign,
+      lineGap: layout.bodyLineGap,
     });
     doc.moveDown(0.15);
   }
@@ -144,28 +146,60 @@ function renderContactLine(
   return doc.y;
 }
 
-function renderHeaderBanner(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument): void {
+function renderHeaderBanner(
+  doc: Pdf,
+  layout: PdfLayout,
+  docData: ResumePreviewDocument,
+  avatarPng: Buffer | null,
+): void {
   const name = docData.identity.fullName.trim() || "Your name";
   const headline = docData.identity.headline.trim();
   const lines = docData.contact.lines.filter((l) => l.value.trim());
   const w = contentWidth(doc, layout);
 
-  const bannerTopPad = 24;
+  const bannerTopPad = 22;
   const bannerBottomPad = 18;
+  const hasAvatar = Boolean(avatarPng) && layout.showAvatar;
+  const avatarSize = hasAvatar ? 66 : 0;
+  const avatarGap = hasAvatar ? 14 : 0;
+  const textX = layout.pageMargin + avatarSize + avatarGap;
+  const textW = w - avatarSize - avatarGap;
+
   const approxLines = (headline ? 1 : 0) + (lines.length ? 1 : 0);
-  const bannerHeight =
-    bannerTopPad + layout.nameSize + approxLines * (layout.smallSize + 6) + bannerBottomPad;
+  const bannerHeight = Math.max(
+    bannerTopPad + layout.nameSize + approxLines * (layout.smallSize + 6) + bannerBottomPad,
+    hasAvatar ? bannerTopPad + avatarSize + bannerBottomPad : 0,
+  );
 
   doc.save();
   doc.rect(0, 0, doc.page.width, bannerHeight).fill(layout.accentStrong);
   doc.restore();
 
+  if (hasAvatar && avatarPng) {
+    const cx = layout.pageMargin + avatarSize / 2;
+    const cy = bannerTopPad + avatarSize / 2;
+    doc.save();
+    doc.circle(cx, cy, avatarSize / 2).clip();
+    doc.image(avatarPng, cx - avatarSize / 2, cy - avatarSize / 2, {
+      width: avatarSize,
+      height: avatarSize,
+    });
+    doc.restore();
+    doc
+      .save()
+      .lineWidth(1.2)
+      .strokeColor("#ffffff")
+      .circle(cx, cy, avatarSize / 2)
+      .stroke()
+      .restore();
+  }
+
   doc
     .font(layout.fonts.bold)
     .fontSize(layout.nameSize)
     .fillColor(BANNER_TEXT_COLOR)
-    .text(name, layout.pageMargin, bannerTopPad, {
-      width: w,
+    .text(name, textX, bannerTopPad + (hasAvatar ? 6 : 0), {
+      width: textW,
       align: "left",
       characterSpacing: 0.4,
     });
@@ -176,7 +210,7 @@ function renderHeaderBanner(doc: Pdf, layout: PdfLayout, docData: ResumePreviewD
       .font(layout.fonts.regular)
       .fontSize(layout.headlineSize)
       .fillColor(BANNER_META_COLOR)
-      .text(headline, layout.pageMargin, cursor + 2, { width: w, align: "left" });
+      .text(headline, textX, cursor + 2, { width: textW, align: "left" });
     cursor = doc.y;
   }
   if (lines.length) {
@@ -184,15 +218,15 @@ function renderHeaderBanner(doc: Pdf, layout: PdfLayout, docData: ResumePreviewD
       doc,
       layout,
       lines,
-      layout.pageMargin,
+      textX,
       cursor + 4,
-      w,
+      textW,
       "left",
       BANNER_META_COLOR,
     );
   }
 
-  const ruleY = cursor + 6;
+  const ruleY = Math.max(cursor + 6, bannerTopPad + avatarSize + 6);
   doc
     .strokeColor(layout.accent)
     .lineWidth(2)
@@ -203,14 +237,19 @@ function renderHeaderBanner(doc: Pdf, layout: PdfLayout, docData: ResumePreviewD
   doc.y = Math.max(bannerHeight, ruleY + 6) + 10;
 }
 
-function renderHeader(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument): void {
+function renderHeader(
+  doc: Pdf,
+  layout: PdfLayout,
+  docData: ResumePreviewDocument,
+  avatarPng: Buffer | null,
+): void {
   const w = contentWidth(doc, layout);
   const name = docData.identity.fullName.trim() || "Your name";
   const headline = docData.identity.headline.trim();
   const lines = docData.contact.lines.filter((l) => l.value.trim());
 
   if (layout.headerStyle === "banner") {
-    renderHeaderBanner(doc, layout, docData);
+    renderHeaderBanner(doc, layout, docData, avatarPng);
     return;
   }
 
@@ -520,13 +559,22 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
 
 /**
  * Renders a print-oriented PDF matching the selected template's density
- * and layout family. Output is A4, single-column, ATS-linear reading order.
+ * and layout family. Output is A4.
+ *
+ * - Classic family: single-column, ATS-linear.
+ * - Sidebar family: two-column page 1 (rail + main), overflow pages go
+ *   full-width for long histories (still linear text stream).
+ * - Photo-banner family: classic layout with an embedded avatar in the
+ *   banner header (reading order unaffected).
  */
 export function renderResumePdfBuffer(
   docData: ResumePreviewDocument,
   templateSlug: TemplateSlug,
+  resumeStyle?: ResumeStyleV1 | null,
+  avatarPng?: Buffer | null,
 ): Promise<Buffer> {
-  const layout = getPdfLayout(templateSlug);
+  const layout = getPdfLayout(templateSlug, resumeStyle);
+  const useAvatar = layout.showAvatar ? avatarPng ?? null : null;
 
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -546,8 +594,12 @@ export function renderResumePdfBuffer(
     pdf.on("error", reject);
 
     try {
-      renderHeader(pdf, layout, docData);
-      renderBody(pdf, layout, docData);
+      if (layout.layoutFamily === "sidebar") {
+        renderSidebarPdf(pdf, layout, docData, useAvatar);
+      } else {
+        renderHeader(pdf, layout, docData, useAvatar);
+        renderBody(pdf, layout, docData);
+      }
     } catch (err) {
       reject(err instanceof Error ? err : new Error(String(err)));
       return;

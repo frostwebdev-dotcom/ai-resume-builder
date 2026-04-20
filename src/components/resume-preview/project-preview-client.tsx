@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -14,8 +14,10 @@ import {
 } from "lucide-react";
 
 import { PreviewViewedTracker } from "@/components/analytics/preview-viewed-tracker";
+import { AvatarUploadPanel } from "@/components/resume-preview/avatar-upload-panel";
 import { IncompletePreviewNote } from "@/components/resume-preview/incomplete-preview-note";
 import { PreviewViewport } from "@/components/resume-preview/preview-viewport";
+import { ResumeAppearancePanel } from "@/components/resume-preview/resume-appearance-panel";
 import { ResumePreviewRenderer } from "@/components/resume-preview/resume-preview-renderer";
 import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
 import { buttonVariants } from "@/components/ui/button";
@@ -23,8 +25,9 @@ import { ROUTES } from "@/lib/constants";
 import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
 import { DEFAULT_TEMPLATE_ID, isTemplateSlug } from "@/lib/resume-preview/template-ids";
+import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
-import { setProjectTemplateAction } from "@/services/projects/actions";
+import { setProjectTemplateAction, updateResumeStyleAction } from "@/services/projects/actions";
 import type { TemplateOption } from "@/services/templates/queries";
 import type { ResumeDownloadAccess } from "@/services/downloads/queries";
 import { ResumeDownloadSection } from "@/components/resume-preview/resume-download-section";
@@ -41,6 +44,9 @@ type Props = {
   downloadAccess: ResumeDownloadAccess;
   /** Server truth: Stripe secret configured — hide dead checkout CTAs when false. */
   checkoutEnabled: boolean;
+  initialResumeStyle: ResumeStyleV1;
+  /** Short-lived signed URL for an already-uploaded avatar, or null. */
+  initialAvatarSignedUrl: string | null;
   /** Non-authoritative UI hint from URL; entitlement still comes from the server. */
   checkoutNotice?: "success" | "failed" | "cancelled" | null;
 };
@@ -53,15 +59,40 @@ export function ProjectPreviewClient({
   selectedTemplateId,
   downloadAccess,
   checkoutEnabled,
+  initialResumeStyle,
+  initialAvatarSignedUrl,
   checkoutNotice = null,
 }: Props) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [checkoutBannerDismissed, setCheckoutBannerDismissed] = useState(false);
+  const [resumeStyle, setResumeStyle] = useState<ResumeStyleV1>(initialResumeStyle);
+  const [avatarSignedUrl, setAvatarSignedUrl] = useState<string | null>(
+    initialAvatarSignedUrl,
+  );
+  const styleSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const effectiveId = selectedTemplateId ?? DEFAULT_TEMPLATE_ID;
   const slug = templateIdToSlug(effectiveId);
+
+  // Merge the latest avatar URL into the preview document so the live preview
+  // reflects uploads immediately without waiting for a router.refresh().
+  const liveDocument: ResumePreviewDocument =
+    document.identity.avatarUrl === avatarSignedUrl
+      ? document
+      : {
+          ...document,
+          identity: { ...document.identity, avatarUrl: avatarSignedUrl },
+        };
+
+  const handleResumeStyleChange = (next: ResumeStyleV1) => {
+    setResumeStyle(next);
+    if (styleSaveTimer.current) clearTimeout(styleSaveTimer.current);
+    styleSaveTimer.current = setTimeout(() => {
+      void updateResumeStyleAction({ projectId, resumeStyle: next });
+    }, 500);
+  };
 
   const selectTemplate = (templateId: string) => {
     if (templateId === effectiveId) return;
@@ -195,6 +226,11 @@ export function ProjectPreviewClient({
           </p>
         ) : null}
         <div
+          className="max-h-[min(480px,55vh)] overflow-y-auto overscroll-contain rounded-xl border border-border/60 bg-muted/20 p-2 pr-1"
+          tabIndex={0}
+          aria-label="Template gallery"
+        >
+        <div
           className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           role="radiogroup"
           aria-label="Resume template"
@@ -262,7 +298,23 @@ export function ProjectPreviewClient({
             );
           })}
         </div>
+        </div>
       </section>
+
+      <ResumeAppearancePanel
+        templateSlug={slug}
+        resumeStyle={resumeStyle}
+        onResumeStyleChange={handleResumeStyleChange}
+      />
+
+      <AvatarUploadPanel
+        projectId={projectId}
+        templateSlug={slug}
+        avatarSignedUrl={avatarSignedUrl}
+        resumeStyle={resumeStyle}
+        onResumeStyleChange={handleResumeStyleChange}
+        onAvatarChange={(next) => setAvatarSignedUrl(next.signedUrl)}
+      />
 
       <section className="space-y-3" aria-labelledby="live-heading">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -277,7 +329,11 @@ export function ProjectPreviewClient({
           Scroll horizontally on small screens to see the full page width, or rotate for a roomier view.
         </p>
         <PreviewViewport compactFrame>
-          <ResumePreviewRenderer document={document} templateSlug={slug} />
+          <ResumePreviewRenderer
+            document={liveDocument}
+            templateSlug={slug}
+            resumeStyle={resumeStyle}
+          />
         </PreviewViewport>
       </section>
     </div>

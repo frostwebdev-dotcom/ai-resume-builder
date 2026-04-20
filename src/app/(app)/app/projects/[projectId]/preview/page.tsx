@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { ProjectPreviewClient } from "@/components/resume-preview/project-preview-client";
+import { parseProjectMetadata } from "@/lib/projects/metadata";
+import { DEFAULT_RESUME_STYLE_V1 } from "@/lib/resume-preview/resume-style";
 import { ROUTES } from "@/lib/constants";
 import { getOptionalAuth, requireUser } from "@/lib/auth/guards";
 import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-preview";
@@ -11,6 +13,11 @@ import { fetchWizardStateForProject } from "@/services/resume-wizard/actions";
 import { listTemplatesForUi } from "@/services/templates/queries";
 import { isStripeCheckoutConfigured } from "@/lib/billing/checkout-config";
 import { getResumeDownloadAccess } from "@/services/downloads/queries";
+import {
+  createSignedAvatarUrl,
+  isAvatarPathOwnedBy,
+} from "@/lib/supabase/avatar-storage";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const maxDuration = 60;
 
@@ -58,13 +65,24 @@ export default async function ProjectPreviewPage({ params, searchParams }: PageP
     notFound();
   }
 
-  const document = mapWizardToPreviewDocument(wizard);
   const checkoutEnabled = isStripeCheckoutConfigured();
+  const meta = parseProjectMetadata(detail.project.metadata);
+  const initialResumeStyle = meta.resume_style ?? DEFAULT_RESUME_STYLE_V1;
+
+  // Resolve avatar: short-lived signed URL for private bucket preview.
+  let avatarSignedUrl: string | null = null;
+  if (meta.avatar_path && isAvatarPathOwnedBy(meta.avatar_path, user.id, projectId)) {
+    const service = createSupabaseServiceRoleClient();
+    avatarSignedUrl = await createSignedAvatarUrl(service, meta.avatar_path, 60 * 15);
+  }
+
+  const document = mapWizardToPreviewDocument(wizard, { avatarUrl: avatarSignedUrl });
 
   return (
     <section className="min-h-0 flex-1 py-4 sm:py-8">
       <PageContainer className="max-w-4xl">
         <ProjectPreviewClient
+          key={projectId}
           projectId={projectId}
           projectTitle={detail.project.title}
           document={document}
@@ -72,6 +90,8 @@ export default async function ProjectPreviewPage({ params, searchParams }: PageP
           selectedTemplateId={detail.project.template_id}
           downloadAccess={downloadAccess}
           checkoutEnabled={checkoutEnabled}
+          initialResumeStyle={initialResumeStyle}
+          initialAvatarSignedUrl={avatarSignedUrl}
           checkoutNotice={checkoutNotice}
         />
       </PageContainer>

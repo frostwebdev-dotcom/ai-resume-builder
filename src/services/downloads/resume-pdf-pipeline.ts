@@ -2,9 +2,14 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
+import { parseProjectMetadata } from "@/lib/projects/metadata";
 import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-preview";
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
 import { renderResumePdfBuffer } from "@/lib/resume-pdf/pdfkit/render-resume-pdf";
+import {
+  downloadAvatarBuffer,
+  isAvatarPathOwnedBy,
+} from "@/lib/supabase/avatar-storage";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { fetchWizardStateForProject } from "@/services/resume-wizard/actions";
 import { getCompletedOrderForProject } from "@/services/downloads/entitlement";
@@ -59,12 +64,29 @@ export async function generateResumePdfAndSignedUrl(params: {
     return { ok: false, code: "NOT_FOUND", message: "Resume not found." };
   }
 
+  const { data: projectRow } = await service
+    .from("resume_projects")
+    .select("metadata")
+    .eq("id", params.projectId)
+    .eq("user_id", params.userId)
+    .maybeSingle();
+
+  const meta = projectRow ? parseProjectMetadata(projectRow.metadata) : { resume_style: undefined, avatar_path: null };
+  const resumeStyle = meta.resume_style;
+  const avatarPath = meta.avatar_path ?? null;
+
+  let avatarBuffer: Buffer | null = null;
+  if (avatarPath && isAvatarPathOwnedBy(avatarPath, params.userId, params.projectId)) {
+    const downloaded = await downloadAvatarBuffer(service, avatarPath);
+    if (downloaded) avatarBuffer = downloaded.buffer;
+  }
+
   const doc = mapWizardToPreviewDocument(wizard);
   const slug = templateIdToSlug(params.templateId);
 
   let buffer: Buffer;
   try {
-    buffer = await renderResumePdfBuffer(doc, slug);
+    buffer = await renderResumePdfBuffer(doc, slug, resumeStyle, avatarBuffer);
   } catch (e) {
     console.error("[resume-pdf]", e);
     return {

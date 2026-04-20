@@ -6,6 +6,11 @@ import {
   type SectionTitleVariant,
 } from "@/components/resume-preview/shared-parts";
 import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
+import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
+import {
+  mergeTemplateWithStyle,
+  type EffectiveResumeTheme,
+} from "@/lib/resume-preview/resume-style";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme, type TemplateTheme } from "@/lib/resume-preview/template-theme";
 import { cn } from "@/lib/utils";
@@ -13,8 +18,16 @@ import { cn } from "@/lib/utils";
 type Props = {
   doc: ResumePreviewDocument;
   slug: TemplateSlug;
+  /** Saved per-project overrides (colors, type, spacing). */
+  resumeStyle?: ResumeStyleV1 | null;
   className?: string;
 };
+
+function headerAlignClass(ha: EffectiveResumeTheme["headerTextAlign"]): string {
+  if (ha === "center") return "text-center";
+  if (ha === "right") return "text-right";
+  return "text-left";
+}
 
 type Density = "compact" | "comfortable" | "airy";
 
@@ -31,11 +44,12 @@ function densityOf(theme: TemplateTheme): Density {
  * `getTemplateTheme`. Add a new template by adding a row to
  * `template-theme.ts`; no code changes here.
  */
-export function ThemedTemplate({ doc, slug, className }: Props) {
+export function ThemedTemplate({ doc, slug, resumeStyle = null, className }: Props) {
   const theme = getTemplateTheme(slug);
+  const effective = mergeTemplateWithStyle(theme, resumeStyle);
   const density = densityOf(theme);
   const sectionTitle: SectionTitleVariant = theme.sectionTitleStyle;
-  const isSerif = theme.fontFamily === "serif";
+  const isSerif = effective.fontFamily === "serif";
   const isBanner = theme.headerStyle === "banner";
 
   const paperClasses = cn(
@@ -67,37 +81,63 @@ export function ThemedTemplate({ doc, slug, className }: Props) {
       {isBanner ? (
         <div
           className={cn("w-full text-white", padX, "pt-[clamp(10mm,3vw,14mm)]", "pb-5")}
-          style={{ backgroundColor: theme.accentStrong }}
+          style={{ backgroundColor: effective.accentStrong }}
         >
-          <h1 className="text-[1.55rem] font-bold leading-tight tracking-tight">
-            {doc.identity.fullName || <PlaceholderName>Your name</PlaceholderName>}
-          </h1>
-          {doc.identity.headline ? (
-            <p
-              className="mt-1 text-[13px] font-medium opacity-90"
-              style={{ color: "#e5e7eb" }}
-            >
-              {doc.identity.headline}
-            </p>
-          ) : null}
-          <ContactInline
-            lines={doc.contact.lines}
-            className="mt-2 text-[10.5px] leading-snug opacity-90"
-            accent="#ffffff"
-          />
+          <div
+            className={cn(
+              "flex items-center gap-5",
+              effective.headerTextAlign === "center" && "justify-center text-center",
+              effective.headerTextAlign === "right" && "justify-end text-right",
+              effective.headerTextAlign === "left" && "text-left",
+            )}
+          >
+            {effective.showAvatar && doc.identity.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={doc.identity.avatarUrl}
+                alt=""
+                aria-hidden
+                className="size-[22mm] shrink-0 rounded-full object-cover ring-2 ring-white/60"
+                style={{ boxShadow: "0 2px 10px rgba(0,0,0,0.2)" }}
+              />
+            ) : null}
+            <div className={cn("min-w-0", headerAlignClass(effective.headerTextAlign))}>
+              <h1 className="text-[1.55rem] font-bold leading-tight tracking-tight">
+                {doc.identity.fullName || <PlaceholderName>Your name</PlaceholderName>}
+              </h1>
+              {doc.identity.headline ? (
+                <p
+                  className="mt-1 text-[13px] font-medium opacity-90"
+                  style={{ color: "#e5e7eb" }}
+                >
+                  {doc.identity.headline}
+                </p>
+              ) : null}
+              <ContactInline
+                lines={doc.contact.lines}
+                className="mt-2 text-[10.5px] leading-snug opacity-90"
+                accent="#ffffff"
+              />
+            </div>
+          </div>
           <div
             aria-hidden
-            className="mt-3 h-[2px] w-16 rounded-full"
-            style={{ backgroundColor: theme.accent }}
+            className={cn(
+              "mt-3 h-[2px] w-16 rounded-full",
+              effective.headerTextAlign === "center" && "mx-auto",
+              effective.headerTextAlign === "right" && "ml-auto",
+            )}
+            style={{ backgroundColor: effective.accent }}
           />
         </div>
       ) : null}
 
       <div className={cn(padX, !isBanner && padY, isBanner && "pt-6 pb-[clamp(10mm,3vw,14mm)]")}>
-        {!isBanner ? <Header doc={doc} theme={theme} /> : null}
+        {!isBanner ? <Header doc={doc} theme={theme} effective={effective} /> : null}
         <Body
           doc={doc}
           theme={theme}
+          effective={effective}
           sectionTitle={sectionTitle}
           topGap={isBanner ? "mt-0" : undefined}
         />
@@ -106,23 +146,34 @@ export function ThemedTemplate({ doc, slug, className }: Props) {
   );
 }
 
-function Header({ doc, theme }: { doc: ResumePreviewDocument; theme: TemplateTheme }) {
+function Header({
+  doc,
+  theme,
+  effective,
+}: {
+  doc: ResumePreviewDocument;
+  theme: TemplateTheme;
+  effective: EffectiveResumeTheme;
+}) {
   const name = doc.identity.fullName || null;
   const headline = doc.identity.headline;
+  const ha = effective.headerTextAlign;
+  const contactAlign =
+    ha === "center" ? "sm:text-center" : ha === "right" ? "sm:text-right" : "sm:text-left";
 
   if (theme.headerStyle === "centered") {
     return (
-      <header className="text-center">
+      <header className={headerAlignClass(ha)}>
         <h1
           className="text-[1.55rem] font-bold tracking-[0.01em]"
-          style={{ color: theme.accentStrong }}
+          style={{ color: effective.accentStrong }}
         >
           {name ? name : <PlaceholderName>Your name</PlaceholderName>}
         </h1>
         {headline ? (
           <p
             className="mt-2 text-[0.85rem] font-medium tracking-wide"
-            style={{ color: theme.accent }}
+            style={{ color: effective.accent }}
           >
             {headline}
           </p>
@@ -132,11 +183,15 @@ function Header({ doc, theme }: { doc: ResumePreviewDocument; theme: TemplateThe
         <ContactInline
           lines={doc.contact.lines}
           className="mt-2 text-[10.5px] leading-snug text-neutral-600"
-          accent={theme.accent}
+          accent={effective.accent}
         />
         <div
-          className="mx-auto mt-3 h-[1.25px] w-1/3"
-          style={{ backgroundColor: theme.accent }}
+          className={cn(
+            "mt-3 h-[1.25px] w-1/3",
+            ha === "center" && "mx-auto",
+            ha === "right" && "ml-auto",
+          )}
+          style={{ backgroundColor: effective.accent }}
         />
       </header>
     );
@@ -146,17 +201,17 @@ function Header({ doc, theme }: { doc: ResumePreviewDocument; theme: TemplateThe
     return (
       <>
         <header className="grid gap-4 pb-3 sm:grid-cols-[1.15fr_0.85fr] sm:items-start sm:gap-8">
-          <div className="min-w-0">
+          <div className={cn("min-w-0", headerAlignClass(ha))}>
             <h1
               className="text-[1.45rem] font-bold leading-tight tracking-tight"
-              style={{ color: theme.accentStrong }}
+              style={{ color: effective.accentStrong }}
             >
               {name ? name : <PlaceholderName>Your name</PlaceholderName>}
             </h1>
             {headline ? (
               <p
                 className="mt-1 text-[13px] font-medium leading-snug"
-                style={{ color: theme.accent }}
+                style={{ color: effective.accent }}
               >
                 {headline}
               </p>
@@ -164,18 +219,22 @@ function Header({ doc, theme }: { doc: ResumePreviewDocument; theme: TemplateThe
               <p className="mt-1 text-[13px] text-neutral-400">Professional headline</p>
             )}
           </div>
-          <div className="text-[10.5px] leading-relaxed sm:text-right sm:text-[11px]">
+          <div className={cn("text-[10.5px] leading-relaxed sm:text-[11px]", contactAlign)}>
             <ContactStack
               lines={doc.contact.lines}
-              className="sm:ml-auto sm:max-w-[16rem]"
-              accent={theme.accent}
+              className={cn(
+                ha === "right" && "sm:ml-auto sm:max-w-[16rem]",
+                ha === "center" && "sm:mx-auto sm:max-w-[16rem]",
+                ha === "left" && "sm:mr-auto sm:max-w-[16rem]",
+              )}
+              accent={effective.accent}
             />
           </div>
         </header>
         <div className="flex items-center gap-2" aria-hidden>
           <span
             className="h-[2.5px] w-11 rounded-full"
-            style={{ backgroundColor: theme.accent }}
+            style={{ backgroundColor: effective.accent }}
           />
           <span className="h-px flex-1 bg-neutral-200 print:bg-neutral-300" />
         </div>
@@ -185,15 +244,15 @@ function Header({ doc, theme }: { doc: ResumePreviewDocument; theme: TemplateThe
 
   /* compact */
   return (
-    <header>
+    <header className={headerAlignClass(ha)}>
       <h1
         className="text-[1.15rem] font-bold leading-tight tracking-tight"
-        style={{ color: theme.accentStrong }}
+        style={{ color: effective.accentStrong }}
       >
         {name ? name : <PlaceholderName>Your name</PlaceholderName>}
       </h1>
       {headline ? (
-        <p className="mt-0.5 text-[11px] font-medium" style={{ color: theme.accent }}>
+        <p className="mt-0.5 text-[11px] font-medium" style={{ color: effective.accent }}>
           {headline}
         </p>
       ) : (
@@ -202,12 +261,12 @@ function Header({ doc, theme }: { doc: ResumePreviewDocument; theme: TemplateThe
       <ContactInline
         lines={doc.contact.lines}
         className="mt-1 text-[9.75px] leading-snug text-neutral-700"
-        accent={theme.accent}
+        accent={effective.accent}
       />
       <div
         aria-hidden
         className="mt-2 h-px w-full"
-        style={{ backgroundColor: theme.accent, opacity: 0.5 }}
+        style={{ backgroundColor: effective.accent, opacity: 0.5 }}
       />
     </header>
   );
@@ -216,30 +275,36 @@ function Header({ doc, theme }: { doc: ResumePreviewDocument; theme: TemplateThe
 function Body({
   doc,
   theme,
+  effective,
   sectionTitle,
   topGap,
 }: {
   doc: ResumePreviewDocument;
   theme: TemplateTheme;
+  effective: EffectiveResumeTheme;
   sectionTitle: SectionTitleVariant;
   topGap?: string;
 }) {
   const density = densityOf(theme);
-  const spaceY =
-    density === "compact"
-      ? "space-y-2.5"
-      : density === "airy"
-        ? "space-y-6"
-        : "space-y-5";
+  const baseGap =
+    density === "compact" ? 10 : density === "airy" ? 22 : 18;
+  const sectionGapPx = Math.round(baseGap * effective.sectionGapScale);
   const bulletIndent = density === "compact" ? "pl-3.5" : "pl-4";
-  const accent = theme.accent;
-  const accentStrong = theme.accentStrong;
+  const accent = effective.accent;
+  const accentStrong = effective.accentStrong;
   const twoCol = theme.twoColumnMeta;
 
   return (
-    <div className={cn(topGap ?? (density === "compact" ? "mt-2.5" : "mt-5"), spaceY)}>
+    <div
+      className={cn(topGap ?? (density === "compact" ? "mt-2.5" : "mt-5"), "flex flex-col")}
+      style={{
+        gap: `${sectionGapPx}px`,
+        textAlign: effective.bodyTextAlign,
+        lineHeight: effective.lineHeight,
+      }}
+    >
       {doc.summary ? (
-        <section className="space-y-2">
+        <section className="space-y-2" style={{ lineHeight: effective.lineHeight }}>
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Summary
           </ResumeSectionTitle>
@@ -248,7 +313,7 @@ function Body({
       ) : null}
 
       {doc.experience.some((e) => e.title || e.company || e.highlights.length) ? (
-        <section className="space-y-3">
+        <section className="space-y-3" style={{ lineHeight: effective.lineHeight }}>
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Experience
           </ResumeSectionTitle>

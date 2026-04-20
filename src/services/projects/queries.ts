@@ -12,6 +12,7 @@ export type DashboardProject = {
   id: string;
   title: string;
   slug: string;
+  templateId: string | null;
   dbStatus: ResumeProject["status"];
   updatedAt: string;
   createdAt: string;
@@ -48,7 +49,7 @@ export async function getDashboardProjects(
 
   const { data: projects, error: pErr } = await supabase
     .from("resume_projects")
-    .select("id, title, slug, status, metadata, created_at, updated_at")
+    .select("id, title, slug, status, metadata, template_id, created_at, updated_at")
     .eq("user_id", userId)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
@@ -91,6 +92,7 @@ export async function getDashboardProjects(
       id: row.id,
       title: row.title,
       slug: row.slug,
+      templateId: row.template_id,
       dbStatus: row.status,
       updatedAt: row.updated_at,
       createdAt: row.created_at,

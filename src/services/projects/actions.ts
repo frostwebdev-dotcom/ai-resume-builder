@@ -1,14 +1,25 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { mergeProjectMetadata } from "@/lib/projects/metadata";
+import { mergeProjectMetadata, parseProjectMetadata } from "@/lib/projects/metadata";
 import { slugifyTitle } from "@/lib/projects/slug";
 import { DEFAULT_TEMPLATE_ID, TEMPLATE_IDS } from "@/lib/resume-preview/template-ids";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { ROUTES } from "@/lib/constants";
+import {
+  AVATAR_ALLOWED_MIME,
+  AVATAR_BUCKET,
+  AVATAR_MAX_BYTES,
+  avatarExtensionFor,
+  getAvatarService,
+  isAvatarPathOwnedBy,
+  removeAvatarObject,
+} from "@/lib/supabase/avatar-storage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   createProjectSchema,
@@ -16,6 +27,8 @@ import {
   renameProjectSchema,
   setProjectTemplateSchema,
 } from "@/validation/projects";
+import { updateResumeStyleSchema } from "@/validation/resume-style";
+import { avatarActionSchema } from "@/validation/avatar";
 
 export type ProjectActionState = {
   error?: string;
@@ -266,6 +279,190 @@ export async function setProjectTemplateAction(
 
   revalidatePath(ROUTES.app.project(parsed.data.projectId));
   revalidatePath(ROUTES.app.projectBuild(parsed.data.projectId));
+  revalidatePath(ROUTES.app.projectPreview(parsed.data.projectId));
+  return { ok: true };
+}
+
+export async function updateResumeStyleAction(
+  raw: unknown,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = updateResumeStyleSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid appearance settings." };
+  }
+
+  const userId = await getSessionUserId();
+  if (!userId) return { ok: false, error: "You must be signed in." };
+
+  const supabase = await createSupabaseServerClient();
+
+  const { data: row, error: fetchErr } = await supabase
+    .from("resume_projects")
+    .select("metadata")
+    .eq("id", parsed.data.projectId)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (fetchErr || !row) {
+    return { ok: false, error: "Project not found." };
+  }
+
+  const { error } = await supabase
+    .from("resume_projects")
+    .update({
+      metadata: mergeProjectMetadata(row.metadata, {
+        resume_style: parsed.data.resumeStyle,
+      }),
+    })
+    .eq("id", parsed.data.projectId)
+    .eq("user_id", userId);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(ROUTES.app.project(parsed.data.projectId));
+  revalidatePath(ROUTES.app.projectBuild(parsed.data.projectId));
+  revalidatePath(ROUTES.app.projectPreview(parsed.data.projectId));
+  return { ok: true };
+}
+
+export type AvatarActionResult =
+  | { ok: true; avatarPath: string }
+  | { ok: false; code: "INPUT" | "AUTH" | "NOT_FOUND" | "UPLOAD"; error: string };
+
+/**
+ * Uploads a user avatar to the private `avatars` bucket and stores the object
+ * key on the project metadata. Replaces any prior avatar for this project.
+ *
+ * Expects FormData: { projectId, file }. File is validated for size + mime.
+ */
+export async function uploadAvatarAction(formData: FormData): Promise<AvatarActionResult> {
+  const parsed = avatarActionSchema.safeParse({
+    projectId: formData.get("projectId"),
+  });
+  if (!parsed.success) {
+    return { ok: false, code: "INPUT", error: "Invalid project." };
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, code: "INPUT", error: "Select an image to upload." };
+  }
+  if (file.size > AVATAR_MAX_BYTES) {
+    return {
+      ok: false,
+      code: "INPUT",
+      error: `Image too large. Max ${Math.round(AVATAR_MAX_BYTES / 1024 / 1024)} MB.`,
+    };
+  }
+  if (!AVATAR_ALLOWED_MIME.has(file.type)) {
+    return { ok: false, code: "INPUT", error: "Use a JPEG, PNG, or WebP image." };
+  }
+
+  const ext = avatarExtensionFor(file.type);
+  if (!ext) {
+    return { ok: false, code: "INPUT", error: "Unsupported image format." };
+  }
+
+  const userId = await getSessionUserId();
+  if (!userId) return { ok: false, code: "AUTH", error: "You must be signed in." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: row, error: fetchErr } = await supabase
+    .from("resume_projects")
+    .select("metadata")
+    .eq("id", parsed.data.projectId)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (fetchErr || !row) {
+    return { ok: false, code: "NOT_FOUND", error: "Project not found." };
+  }
+
+  const prior = parseProjectMetadata(row.metadata).avatar_path;
+
+  // Upload via service role: bucket is private, and we also explicitly namespace
+  // by userId so a compromised client can't smuggle someone else's path.
+  const service = getAvatarService();
+  const objectId = randomUUID();
+  const storagePath = `${userId}/${parsed.data.projectId}/${objectId}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const { error: upErr } = await service.storage
+    .from(AVATAR_BUCKET)
+    .upload(storagePath, buffer, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (upErr) {
+    console.error("[avatars] upload", upErr);
+    return { ok: false, code: "UPLOAD", error: "Could not upload avatar. Try again." };
+  }
+
+  // Persist new path then garbage-collect the prior one.
+  const { error: updErr } = await supabase
+    .from("resume_projects")
+    .update({
+      metadata: mergeProjectMetadata(row.metadata, { avatar_path: storagePath }),
+    })
+    .eq("id", parsed.data.projectId)
+    .eq("user_id", userId);
+
+  if (updErr) {
+    // Roll back the upload to keep storage tidy.
+    await removeAvatarObject(service, storagePath);
+    return { ok: false, code: "UPLOAD", error: updErr.message };
+  }
+
+  if (prior && prior !== storagePath && isAvatarPathOwnedBy(prior, userId, parsed.data.projectId)) {
+    await removeAvatarObject(service, prior);
+  }
+
+  revalidatePath(ROUTES.app.project(parsed.data.projectId));
+  revalidatePath(ROUTES.app.projectPreview(parsed.data.projectId));
+  return { ok: true, avatarPath: storagePath };
+}
+
+export async function removeAvatarAction(
+  raw: unknown,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = avatarActionSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: "Invalid project." };
+
+  const userId = await getSessionUserId();
+  if (!userId) return { ok: false, error: "You must be signed in." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: row, error: fetchErr } = await supabase
+    .from("resume_projects")
+    .select("metadata")
+    .eq("id", parsed.data.projectId)
+    .eq("user_id", userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (fetchErr || !row) return { ok: false, error: "Project not found." };
+
+  const meta = parseProjectMetadata(row.metadata);
+  const current = meta.avatar_path;
+
+  const { error: updErr } = await supabase
+    .from("resume_projects")
+    .update({
+      metadata: mergeProjectMetadata(row.metadata, { avatar_path: null }),
+    })
+    .eq("id", parsed.data.projectId)
+    .eq("user_id", userId);
+
+  if (updErr) return { ok: false, error: updErr.message };
+
+  if (current && isAvatarPathOwnedBy(current, userId, parsed.data.projectId)) {
+    await removeAvatarObject(getAvatarService(), current);
+  }
+
+  revalidatePath(ROUTES.app.project(parsed.data.projectId));
   revalidatePath(ROUTES.app.projectPreview(parsed.data.projectId));
   return { ok: true };
 }
