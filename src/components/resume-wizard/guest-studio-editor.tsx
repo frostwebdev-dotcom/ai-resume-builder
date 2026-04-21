@@ -314,7 +314,7 @@ export function GuestStudioEditor({
           backgroundColor: `color-mix(in srgb, ${previewTheme.accent} 10%, rgb(241 245 249))`,
         }}
       >
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-28 pt-3 sm:px-5 sm:pt-4">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-4 sm:px-5 sm:py-5">
           {/* Floating controls — not part of the template; keeps the canvas = one real sheet */}
           <div className="pointer-events-none absolute right-4 top-4 z-50 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 sm:right-6 sm:top-5">
             <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-1.5 rounded-full border border-border/70 bg-white/95 px-2.5 py-1 text-[0.7rem] font-medium text-muted-foreground shadow-md backdrop-blur-sm dark:bg-zinc-900/95 dark:text-zinc-200">
@@ -355,7 +355,7 @@ export function GuestStudioEditor({
               className={cn(
                 "relative min-h-0 w-full flex-1",
                 previewZoomed
-                  ? "cursor-default overflow-y-auto overflow-x-auto px-1 pt-10 sm:px-2"
+                  ? "cursor-default overflow-y-auto overflow-x-auto px-1 py-10 sm:px-2"
                   : "cursor-zoom-in overflow-hidden",
               )}
               onClick={(e) => {
@@ -382,7 +382,7 @@ export function GuestStudioEditor({
               aria-label={previewZoomed ? undefined : "Zoom preview — click to enlarge and scroll"}
             >
               {previewZoomed ? (
-                <div ref={previewMeasureRef} className="inline-block min-w-0 max-w-full pb-2 pt-1 sm:px-1">
+                <div ref={previewMeasureRef} className="inline-block min-w-0 max-w-full py-2 sm:px-1">
                   <PreviewViewport presentation="document" clipCanvas={false}>
                     <ResumePreviewRenderer
                       document={previewDocument}
@@ -392,7 +392,7 @@ export function GuestStudioEditor({
                   </PreviewViewport>
                 </div>
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-2 pt-11 sm:p-3 sm:pt-12">
+                <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-3 sm:p-4">
                   {fitContentSize.w > 0 && fitContentSize.h > 0 ? (
                     <div
                       className="overflow-hidden rounded-[2px]"
