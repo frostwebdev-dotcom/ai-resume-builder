@@ -5,20 +5,31 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
+  type RefObject,
   type SetStateAction,
 } from "react";
 import {
   ChevronDown,
-  Cloud,
+  CloudCheck,
+  Copy,
   Download,
   Globe,
-  MoreHorizontal,
+  MoreVertical,
   Redo2,
+  Tag,
   Undo2,
+  UserPlus,
 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { GuestStudioEditor } from "@/components/resume-wizard/guest-studio-editor";
 import { loadGuestWizardDraftFromStorage } from "@/hooks/use-guest-wizard-autosave";
 import {
@@ -156,11 +167,44 @@ export function GuestCreateClient() {
     [],
   );
 
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  const handleShareResume = useCallback(async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const shareTitle = presentation.title?.trim() || "My resume";
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: shareTitle,
+          text: "Resume draft",
+          url,
+        });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      }
+    } catch {
+      // User cancelled share or API unavailable
+    }
+  }, [presentation.title]);
+
+  const handleDuplicateResume = useCallback(() => {
+    const prev = snapshotNow();
+    history.commit(prev, true);
+    setContent(structuredClone(content));
+    setPresentation((p) => ({
+      ...p,
+      title: p.title?.trim() ? `Copy of ${p.title}` : "Copy of Untitled resume",
+    }));
+  }, [content, history, snapshotNow]);
+
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
       <TopBar
         title={presentation.title}
+        titleInputRef={titleInputRef}
         onTitleCommit={(next) => updatePresentation((p) => ({ ...p, title: next }))}
+        onShare={handleShareResume}
+        onDuplicate={handleDuplicateResume}
         canUndo={history.canUndo}
         canRedo={history.canRedo}
         onUndo={handleUndo}
@@ -182,9 +226,15 @@ export function GuestCreateClient() {
   );
 }
 
+const resumeMenuItemClass =
+  "cursor-pointer gap-3 rounded-sm px-2 py-2.5 text-slate-700 focus-visible:bg-[#2268d7] focus-visible:text-white data-[highlighted]:bg-[#2268d7] data-[highlighted]:text-white [&_svg]:opacity-80 [&_svg]:data-[highlighted]:opacity-100 [&_svg]:data-[highlighted]:text-white";
+
 function TopBar({
   title,
+  titleInputRef,
   onTitleCommit,
+  onShare,
+  onDuplicate,
   canUndo,
   canRedo,
   onUndo,
@@ -192,7 +242,10 @@ function TopBar({
   loginHref,
 }: {
   title: string;
+  titleInputRef: RefObject<HTMLInputElement | null>;
   onTitleCommit: (next: string) => void;
+  onShare: () => void | Promise<void>;
+  onDuplicate: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -203,40 +256,54 @@ function TopBar({
   // so typing stays buttery without a sync-from-props effect.
   return (
     <header className="shrink-0 border-b border-black/30 bg-[#17191d] pt-[env(safe-area-inset-top,0px)] text-white">
-      <div className="flex h-12 items-center justify-between gap-2 px-2 sm:h-14 sm:px-3">
-      <div className="flex min-w-0 items-center gap-1">
-        <Link
-          href={ROUTES.home}
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "h-8 gap-1.5 rounded-full px-3 text-xs text-slate-200 hover:bg-white/10 hover:text-white",
-          )}
-          aria-label="Back to resumes"
-        >
-          <span className="text-base leading-none">←</span>
-          Resumes
-        </Link>
-      </div>
+      {/*
+        Equal `1fr | auto | 1fr` columns so the title block stays in the true horizontal
+        center of the header (not the center of the remaining flex space).
+      */}
+      <div className="grid h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 px-2 sm:h-14 sm:gap-x-3 sm:px-4">
+        <div className="flex min-w-0 items-center justify-self-start">
+          <Link
+            href={ROUTES.home}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "h-8 gap-1.5 rounded-full px-3 text-xs text-slate-200 hover:bg-white/10 hover:text-white",
+            )}
+            aria-label="Back to resumes"
+          >
+            <span className="text-base leading-none">←</span>
+            Resumes
+          </Link>
+        </div>
 
-      <div className="mx-2 flex min-w-0 flex-1 items-center justify-center gap-1.5">
-        <input
-          key={`title-${title}`}
-          defaultValue={title}
-          onBlur={(e) => {
-            const v = e.currentTarget.value.trim() || "Untitled resume";
-            if (v !== title) onTitleCommit(v);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          }}
-          aria-label="Resume title"
-          maxLength={80}
-          className="w-full max-w-[18rem] truncate rounded-md border border-transparent bg-transparent px-2 py-1 text-center text-xs font-medium text-slate-100 outline-none transition-colors hover:border-white/10 focus:border-white/30 focus:bg-white/5 sm:text-sm"
-        />
-        <Cloud className="size-3.5 shrink-0 text-slate-400" aria-hidden />
-      </div>
+        <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100vw-7.5rem))] justify-self-center sm:max-w-[min(32rem,calc(100vw-11rem))]">
+          {/* Minimal “underline” title + sync icon — matches compact doc-editor chrome */}
+          <div className="flex w-full min-w-0 items-end gap-2.5 sm:gap-3">
+            <input
+              ref={titleInputRef}
+              key={`title-${title}`}
+              defaultValue={title}
+              onBlur={(e) => {
+                const v = e.currentTarget.value.trim() || "Untitled resume";
+                if (v !== title) onTitleCommit(v);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              aria-label="Resume title"
+              maxLength={80}
+              placeholder="Untitled resume"
+              className="min-w-0 flex-1 rounded-none border-0 border-b-2 border-[#3b82f6] bg-transparent px-0.5 pb-0.5 text-center text-xs font-normal text-slate-100 caret-white placeholder:text-slate-500 outline-none transition-colors selection:bg-sky-500/35 focus-visible:border-sky-300 sm:text-sm"
+            />
+            <span
+              className="inline-flex shrink-0 translate-y-px text-white/90"
+              title="Saved on this device"
+            >
+              <CloudCheck className="size-4 stroke-[1.35] sm:size-[1.125rem]" aria-hidden />
+            </span>
+          </div>
+        </div>
 
-      <div className="flex items-center gap-1">
+        <div className="flex min-w-0 items-center justify-end justify-self-end gap-1">
         <button
           type="button"
           onClick={onUndo}
@@ -269,15 +336,43 @@ function TopBar({
           EN
           <ChevronDown className="size-3.5" aria-hidden />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 rounded-full p-0 text-slate-200 hover:bg-white/10 hover:text-white"
-          aria-label="More options"
-        >
-          <MoreHorizontal className="size-4" aria-hidden />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            type="button"
+            className={cn(
+              "inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-white/30 bg-transparent text-white outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/35",
+            )}
+            aria-label="Resume actions"
+          >
+            <MoreVertical className="size-4" aria-hidden />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            sideOffset={8}
+            className="min-w-[12.5rem] border-0 bg-white p-1.5 text-slate-800 shadow-xl ring-1 ring-black/10"
+          >
+            <DropdownMenuItem
+              className={resumeMenuItemClass}
+              onClick={() => {
+                const el = titleInputRef.current;
+                if (!el) return;
+                el.focus();
+                el.select();
+              }}
+            >
+              <Tag className="size-4 shrink-0" aria-hidden />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem className={resumeMenuItemClass} onClick={() => void onShare()}>
+              <UserPlus className="size-4 shrink-0" aria-hidden />
+              Share
+            </DropdownMenuItem>
+            <DropdownMenuItem className={resumeMenuItemClass} onClick={onDuplicate}>
+              <Copy className="size-4 shrink-0" aria-hidden />
+              Duplicate
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Link
           href={loginHref}
           className={cn(
@@ -289,7 +384,7 @@ function TopBar({
           <Download className="size-3.5" aria-hidden />
           Download
         </Link>
-      </div>
+        </div>
       </div>
     </header>
   );
