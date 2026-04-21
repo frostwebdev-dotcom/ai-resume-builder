@@ -14,19 +14,38 @@ function splitSkills(lines: string): string[] {
     .filter(Boolean);
 }
 
+function composedFullName(p: WizardStateV1["personal"]): string {
+  const split = [p.givenName, p.familyName].map((s) => s.trim()).filter(Boolean).join(" ");
+  return (split || p.fullName).trim();
+}
+
+function composedLocationLine(p: WizardStateV1["personal"]): string {
+  const parts = [
+    p.address.trim(),
+    [p.postCode.trim(), p.city.trim()].filter(Boolean).join(" "),
+  ]
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (parts.length) return parts.join(" · ");
+  return p.location.trim();
+}
+
 export function mapWizardToPreviewDocument(
   wizard: WizardStateV1,
   options?: { avatarUrl?: string | null },
 ): ResumePreviewDocument {
   const p = wizard.personal;
-  const fullName = p.fullName.trim();
-  const headline = wizard.summary.headline.trim();
+  const fullName = composedFullName(p);
+  const fromJob = p.useJobPositionAsHeadline && p.desiredJobPosition.trim();
+  const headline = (fromJob ? p.desiredJobPosition : wizard.summary.headline).trim();
   const summary = wizard.summary.summary.trim() || null;
 
   const contactLines: ResumePreviewDocument["contact"]["lines"] = [];
   if (p.email.trim()) contactLines.push({ label: "Email", value: p.email.trim() });
   if (p.phone.trim()) contactLines.push({ label: "Phone", value: p.phone.trim() });
-  if (p.location.trim()) contactLines.push({ label: "Location", value: p.location.trim() });
+  const loc = composedLocationLine(p);
+  if (loc) contactLines.push({ label: "Location", value: loc });
+  else if (p.location.trim()) contactLines.push({ label: "Location", value: p.location.trim() });
   if (p.linkedIn.trim()) contactLines.push({ label: "LinkedIn", value: p.linkedIn.trim() });
   if (p.website.trim()) contactLines.push({ label: "Web", value: p.website.trim() });
 
@@ -88,6 +107,35 @@ export function mapWizardToPreviewDocument(
     additional = merged.length ? merged : null;
   }
 
+  const personalExtraLines: string[] = [];
+  if (p.dateOfBirth.trim()) {
+    personalExtraLines.push(`Date of birth: ${p.dateOfBirth.trim()}`);
+  }
+  if (p.placeOfBirth.trim()) {
+    personalExtraLines.push(`Place of birth: ${p.placeOfBirth.trim()}`);
+  }
+  if (p.driversLicense.trim()) {
+    personalExtraLines.push(`Driver's license: ${p.driversLicense.trim()}`);
+  }
+  if (p.gender.trim()) {
+    personalExtraLines.push(`Gender: ${p.gender.trim()}`);
+  }
+  if (p.nationality.trim()) {
+    personalExtraLines.push(`Nationality: ${p.nationality.trim()}`);
+  }
+  if (p.civilStatus.trim()) {
+    personalExtraLines.push(`Civil status: ${p.civilStatus.trim()}`);
+  }
+  if (p.customFieldLabel.trim() && p.customFieldValue.trim()) {
+    personalExtraLines.push(
+      `${p.customFieldLabel.trim()}: ${p.customFieldValue.trim()}`,
+    );
+  }
+  if (personalExtraLines.length) {
+    const block = personalExtraLines.join("\n");
+    additional = additional ? `${additional}\n\n${block}` : block;
+  }
+
   const filledSections: string[] = [];
   if (fullName) filledSections.push("name");
   if (headline) filledSections.push("headline");
@@ -112,7 +160,9 @@ export function mapWizardToPreviewDocument(
     identity: {
       fullName,
       headline,
-      avatarUrl: options?.avatarUrl ?? null,
+      avatarUrl:
+        options?.avatarUrl ??
+        (p.photoDataUrl?.trim().startsWith("data:") ? p.photoDataUrl.trim() : null),
     },
     contact: { lines: contactLines },
     summary,

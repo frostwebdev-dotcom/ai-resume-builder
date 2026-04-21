@@ -13,6 +13,7 @@ import {
   type SetStateAction,
 } from "react";
 import {
+  Camera,
   Check,
   ChevronDown,
   ChevronUp,
@@ -21,6 +22,7 @@ import {
   LayoutGrid,
   Maximize2,
   Minimize2,
+  MoreVertical,
   Plus,
   Trash2,
   ZoomOut,
@@ -1166,7 +1168,11 @@ function SectionCard({
           )}
           aria-hidden
         >
-          <Plus className="size-[0.9rem] stroke-[2.5]" />
+          {open ? (
+            <ChevronUp className="size-[0.95rem] stroke-[2.25]" aria-hidden />
+          ) : (
+            <Plus className="size-[0.9rem] stroke-[2.5]" aria-hidden />
+          )}
         </span>
       </button>
       {open ? (
@@ -1180,8 +1186,13 @@ function SectionCard({
 
 function isSectionFilled(id: SectionId, s: WizardStateV1): boolean {
   switch (id) {
-    case "personal":
-      return Boolean(s.personal.fullName.trim() || s.personal.email.trim());
+    case "personal": {
+      const n = [s.personal.givenName, s.personal.familyName, s.personal.fullName]
+        .map((x) => x.trim())
+        .join("")
+        .length;
+      return Boolean(n || s.personal.email.trim());
+    }
     case "summary":
       return Boolean(s.summary.headline.trim() || s.summary.summary.trim());
     case "experience":
@@ -1288,78 +1299,401 @@ function SectionBody({
 
 type Setter = Dispatch<SetStateAction<WizardStateV1>>;
 
+const softInput =
+  "border-0 bg-neutral-100 shadow-inner shadow-black/[0.04] transition-colors focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#2268d7]/25";
+
+type PersonalPillKey =
+  | "dateOfBirth"
+  | "placeOfBirth"
+  | "driversLicense"
+  | "gender"
+  | "nationality"
+  | "civilStatus"
+  | "websitePill"
+  | "linkedInPill"
+  | "custom";
+
 function PersonalBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
   const p = state.personal;
+  const [openPills, setOpenPills] = useState<Set<PersonalPillKey>>(() => new Set());
+
+  const togglePill = (key: PersonalPillKey) => {
+    setOpenPills((prev) => {
+      const n = new Set(prev);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
+      return n;
+    });
+  };
+
+  const updatePersonal = (patch: Partial<WizardStateV1["personal"]>) => {
+    setState((s) => {
+      const next = { ...s.personal, ...patch };
+      const g = next.givenName.trim();
+      const f = next.familyName.trim();
+      next.fullName = [g, f].filter(Boolean).join(" ").trim();
+      let summary = s.summary;
+      if (next.useJobPositionAsHeadline) {
+        summary = { ...s.summary, headline: next.desiredJobPosition };
+      }
+      return { ...s, personal: next, summary };
+    });
+  };
+
+  const setJobPosition = (desiredJobPosition: string) => {
+    setState((s) => {
+      const personal = { ...s.personal, desiredJobPosition };
+      let summary = s.summary;
+      if (personal.useJobPositionAsHeadline) {
+        summary = { ...s.summary, headline: desiredJobPosition };
+      }
+      return { ...s, personal, summary };
+    });
+  };
+
+  const toggleHeadlineSync = () => {
+    setState((s) => {
+      const on = !s.personal.useJobPositionAsHeadline;
+      const personal = { ...s.personal, useJobPositionAsHeadline: on };
+      let summary = { ...s.summary };
+      if (on && personal.desiredJobPosition.trim()) {
+        summary.headline = personal.desiredJobPosition;
+      }
+      return { ...s, personal, summary };
+    });
+  };
+
+  const onPhotoPick = (file: File | undefined) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    if (file.size > 1.5 * 1024 * 1024) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      if (typeof dataUrl !== "string") return;
+      setState((s) => ({ ...s, personal: { ...s.personal, photoDataUrl: dataUrl } }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  function Pill({
+    pillKey,
+    label,
+  }: {
+    pillKey: PersonalPillKey;
+    label: string;
+  }) {
+    const open = openPills.has(pillKey);
+    return (
+      <button
+        type="button"
+        onClick={() => togglePill(pillKey)}
+        className="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-left text-xs font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 sm:text-[0.8125rem]"
+      >
+        {open ? (
+          <ChevronUp className="size-3.5 shrink-0 text-[#2268d7]" aria-hidden />
+        ) : (
+          <Plus className="size-3.5 shrink-0 text-neutral-500" aria-hidden />
+        )}
+        <span className="truncate">{label}</span>
+      </button>
+    );
+  }
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <Field id="fullName" label="Full name" required>
+    <div className="space-y-6">
+      {/* In-panel toolbar — mirrors stacked editors: actions live top-right inside the form */}
+      <div className="flex items-center justify-end gap-1">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            type="button"
+            className="inline-flex size-9 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-sm outline-none hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-[#2268d7]/35"
+            aria-label="Personal details options"
+          >
+            <MoreVertical className="size-4" aria-hidden />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-[11rem]">
+            <DropdownMenuItem
+              className="cursor-pointer"
+              disabled={!p.photoDataUrl}
+              onClick={() => setState((s) => ({ ...s, personal: { ...s.personal, photoDataUrl: "" } }))}
+            >
+              Remove photo
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+        <div className="flex shrink-0 flex-col gap-1.5">
+          <p className="text-caption font-medium text-neutral-600">Photo</p>
+          <label className="relative flex size-[120px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-neutral-200 bg-neutral-100 transition-colors hover:border-neutral-300 hover:bg-neutral-50">
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => onPhotoPick(e.target.files?.[0])}
+            />
+            {p.photoDataUrl ? (
+              <img src={p.photoDataUrl} alt="" className="size-full object-cover" />
+            ) : (
+              <>
+                <Camera className="size-7 text-neutral-400" aria-hidden />
+                <Plus className="absolute bottom-3 size-4 text-neutral-500" aria-hidden />
+              </>
+            )}
+          </label>
+        </div>
+
+        <div className="min-w-0 flex-1 space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field id="givenName" label="Given name" className="gap-1.5">
+              <Input
+                className={softInput}
+                autoComplete="given-name"
+                placeholder="Alex"
+                value={p.givenName}
+                onChange={(e) => updatePersonal({ givenName: e.target.value })}
+              />
+            </Field>
+            <Field id="familyName" label="Family name" className="gap-1.5">
+              <Input
+                className={softInput}
+                autoComplete="family-name"
+                placeholder="Morgan"
+                value={p.familyName}
+                onChange={(e) => updatePersonal({ familyName: e.target.value })}
+              />
+            </Field>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Field
+                id="desiredJob"
+                label="Desired job position"
+                className="min-w-0 flex-1 gap-1.5 [&>div]:!mt-0"
+              >
+                <Input
+                  className={softInput}
+                  placeholder="Product designer"
+                  value={p.desiredJobPosition}
+                  onChange={(e) => setJobPosition(e.target.value)}
+                />
+              </Field>
+              <div className="flex shrink-0 items-center gap-2 pt-6 sm:pt-7">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={p.useJobPositionAsHeadline}
+                  onClick={toggleHeadlineSync}
+                  className={cn(
+                    "relative inline-flex h-7 w-12 shrink-0 rounded-full border border-neutral-200/80 bg-neutral-200/80 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40",
+                    p.useJobPositionAsHeadline && "border-[#2268d7]/40 bg-[#2268d7]",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none absolute top-0.5 left-0.5 size-6 rounded-full bg-white shadow-sm transition-transform",
+                      p.useJobPositionAsHeadline && "translate-x-5",
+                    )}
+                  />
+                </button>
+                <span className="text-caption font-medium text-neutral-600">Use as headline</span>
+              </div>
+            </div>
+            <p className="text-[0.7rem] text-neutral-500">
+              When on, the Profile headline matches this line for the preview.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field id="email" label="Email address" className="gap-1.5">
+          <Input
+            className={softInput}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={p.email}
+            onChange={(e) => setState((s) => ({ ...s, personal: { ...s.personal, email: e.target.value } }))}
+          />
+        </Field>
+        <Field id="phone" label="Phone number" className="gap-1.5">
+          <Input
+            className={softInput}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="+1 555 0100"
+            value={p.phone}
+            onChange={(e) => setState((s) => ({ ...s, personal: { ...s.personal, phone: e.target.value } }))}
+          />
+        </Field>
+      </div>
+
+      <Field id="address" label="Address" className="gap-1.5">
         <Input
-          name="fullName"
-          autoComplete="name"
-          placeholder="Alex Morgan"
-          value={p.fullName}
-          onChange={(e) =>
-            setState((s) => ({ ...s, personal: { ...s.personal, fullName: e.target.value } }))
-          }
+          className={softInput}
+          autoComplete="street-address"
+          placeholder="Street, building, unit"
+          value={p.address}
+          onChange={(e) => updatePersonal({ address: e.target.value })}
         />
       </Field>
-      <Field id="email" label="Email" required>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field id="postCode" label="Post code" className="gap-1.5">
+          <Input
+            className={softInput}
+            autoComplete="postal-code"
+            placeholder="10115"
+            value={p.postCode}
+            onChange={(e) => updatePersonal({ postCode: e.target.value })}
+          />
+        </Field>
+        <Field id="city" label="City" className="gap-1.5">
+          <Input
+            className={softInput}
+            autoComplete="address-level2"
+            placeholder="Berlin"
+            value={p.city}
+            onChange={(e) => updatePersonal({ city: e.target.value })}
+          />
+        </Field>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-neutral-500">
+          Optional fields
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Pill pillKey="dateOfBirth" label="Date of birth" />
+          <Pill pillKey="placeOfBirth" label="Place of birth" />
+          <Pill pillKey="driversLicense" label="Driver's license" />
+          <Pill pillKey="gender" label="Gender" />
+          <Pill pillKey="nationality" label="Nationality" />
+          <Pill pillKey="civilStatus" label="Civil status" />
+          <Pill pillKey="websitePill" label="Website" />
+          <Pill pillKey="linkedInPill" label="LinkedIn" />
+          <Pill pillKey="custom" label="Custom field" />
+        </div>
+
+        <div className="space-y-4 border-t border-neutral-100 pt-4">
+          {openPills.has("dateOfBirth") ? (
+            <Field id="dob" label="Date of birth" className="gap-1.5">
+              <Input
+                className={softInput}
+                placeholder="1992-04-18"
+                value={p.dateOfBirth}
+                onChange={(e) => updatePersonal({ dateOfBirth: e.target.value })}
+              />
+            </Field>
+          ) : null}
+          {openPills.has("placeOfBirth") ? (
+            <Field id="pob" label="Place of birth" className="gap-1.5">
+              <Input
+                className={softInput}
+                placeholder="City, country"
+                value={p.placeOfBirth}
+                onChange={(e) => updatePersonal({ placeOfBirth: e.target.value })}
+              />
+            </Field>
+          ) : null}
+          {openPills.has("driversLicense") ? (
+            <Field id="license" label="Driver's license" className="gap-1.5">
+              <Input
+                className={softInput}
+                placeholder="Class B — valid through 2028"
+                value={p.driversLicense}
+                onChange={(e) => updatePersonal({ driversLicense: e.target.value })}
+              />
+            </Field>
+          ) : null}
+          {openPills.has("gender") ? (
+            <Field id="gender" label="Gender" className="gap-1.5">
+              <Input
+                className={softInput}
+                value={p.gender}
+                onChange={(e) => updatePersonal({ gender: e.target.value })}
+              />
+            </Field>
+          ) : null}
+          {openPills.has("nationality") ? (
+            <Field id="nationality" label="Nationality" className="gap-1.5">
+              <Input
+                className={softInput}
+                value={p.nationality}
+                onChange={(e) => updatePersonal({ nationality: e.target.value })}
+              />
+            </Field>
+          ) : null}
+          {openPills.has("civilStatus") ? (
+            <Field id="civil" label="Civil status" className="gap-1.5">
+              <Input
+                className={softInput}
+                placeholder="Single / Married / …"
+                value={p.civilStatus}
+                onChange={(e) => updatePersonal({ civilStatus: e.target.value })}
+              />
+            </Field>
+          ) : null}
+          {openPills.has("websitePill") ? (
+            <Field id="web-pill" label="Website" className="gap-1.5">
+              <Input
+                className={softInput}
+                inputMode="url"
+                placeholder="example.com"
+                value={p.website}
+                onChange={(e) => updatePersonal({ website: e.target.value })}
+              />
+            </Field>
+          ) : null}
+          {openPills.has("linkedInPill") ? (
+            <Field id="li-pill" label="LinkedIn" className="gap-1.5">
+              <Input
+                className={softInput}
+                inputMode="url"
+                placeholder="linkedin.com/in/your-name"
+                value={p.linkedIn}
+                onChange={(e) => updatePersonal({ linkedIn: e.target.value })}
+              />
+            </Field>
+          ) : null}
+          {openPills.has("custom") ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field id="customLabel" label="Field label" className="gap-1.5">
+                <Input
+                  className={softInput}
+                  placeholder="Security clearance"
+                  value={p.customFieldLabel}
+                  onChange={(e) => updatePersonal({ customFieldLabel: e.target.value })}
+                />
+              </Field>
+              <Field id="customValue" label="Value" className="gap-1.5">
+                <Input
+                  className={softInput}
+                  placeholder="EU Secret"
+                  value={p.customFieldValue}
+                  onChange={(e) => updatePersonal({ customFieldValue: e.target.value })}
+                />
+              </Field>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <Field id="legacy-location" label="Location (short line)" className="gap-1.5">
         <Input
-          name="email"
-          type="email"
-          inputMode="email"
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={p.email}
-          onChange={(e) =>
-            setState((s) => ({ ...s, personal: { ...s.personal, email: e.target.value } }))
-          }
-        />
-      </Field>
-      <Field id="phone" label="Phone">
-        <Input
-          name="phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="+1 555 0100"
-          value={p.phone}
-          onChange={(e) =>
-            setState((s) => ({ ...s, personal: { ...s.personal, phone: e.target.value } }))
-          }
-        />
-      </Field>
-      <Field id="location" label="Location">
-        <Input
-          name="location"
-          placeholder="Berlin, DE · Remote"
+          className={softInput}
+          placeholder="Optional: Berlin · Remote (used if address is empty)"
           value={p.location}
-          onChange={(e) =>
-            setState((s) => ({ ...s, personal: { ...s.personal, location: e.target.value } }))
-          }
+          onChange={(e) => updatePersonal({ location: e.target.value })}
         />
-      </Field>
-      <Field id="linkedIn" label="LinkedIn">
-        <Input
-          name="linkedIn"
-          inputMode="url"
-          placeholder="linkedin.com/in/your-name"
-          value={p.linkedIn}
-          onChange={(e) =>
-            setState((s) => ({ ...s, personal: { ...s.personal, linkedIn: e.target.value } }))
-          }
-        />
-      </Field>
-      <Field id="website" label="Website">
-        <Input
-          name="website"
-          inputMode="url"
-          placeholder="example.com"
-          value={p.website}
-          onChange={(e) =>
-            setState((s) => ({ ...s, personal: { ...s.personal, website: e.target.value } }))
-          }
-        />
+        <p className="text-[0.7rem] text-neutral-500">
+          Shown on the resume if street address and city are not filled.
+        </p>
       </Field>
     </div>
   );

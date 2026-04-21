@@ -101,22 +101,43 @@ export const projectEntrySchema = z.object({
   technologies: z.string().trim().max(500),
 });
 
-export const personalDetailsSchema = z.object({
-  fullName: z
-    .string()
-    .trim()
-    .min(1, "Add your full name.")
-    .max(120, "Keep your name under 120 characters."),
-  email: z
-    .string()
-    .trim()
-    .min(1, "Add an email address.")
-    .email("Use a valid email address."),
-  phone: z.string().trim().max(40),
-  location: z.string().trim().max(160),
-  linkedIn: optionalLinkedIn,
-  website: optionalUrl,
-});
+export const personalDetailsSchema = z
+  .object({
+    fullName: z.string().trim().max(120),
+    givenName: z.string().trim().max(80),
+    familyName: z.string().trim().max(80),
+    photoDataUrl: z.string().trim().max(2_000_000),
+    desiredJobPosition: z.string().trim().max(200),
+    useJobPositionAsHeadline: z.boolean(),
+    email: z
+      .string()
+      .trim()
+      .min(1, "Add an email address.")
+      .email("Use a valid email address."),
+    phone: z.string().trim().max(40),
+    address: z.string().trim().max(240),
+    postCode: z.string().trim().max(32),
+    city: z.string().trim().max(120),
+    location: z.string().trim().max(160),
+    linkedIn: optionalLinkedIn,
+    website: optionalUrl,
+    dateOfBirth: z.string().trim().max(64),
+    placeOfBirth: z.string().trim().max(120),
+    driversLicense: z.string().trim().max(80),
+    gender: z.string().trim().max(40),
+    nationality: z.string().trim().max(80),
+    civilStatus: z.string().trim().max(80),
+    customFieldLabel: z.string().trim().max(80),
+    customFieldValue: z.string().trim().max(240),
+  })
+  .refine(
+    (d) => {
+      const split = [d.givenName, d.familyName].map((s) => s.trim()).filter(Boolean).join(" ");
+      const legacy = d.fullName.trim();
+      return split.length > 0 || legacy.length > 0;
+    },
+    { message: "Add your name (given and family name or full name).", path: ["givenName"] },
+  );
 
 export const professionalSummarySchema = z.object({
   headline: z.string().trim().max(200),
@@ -131,11 +152,27 @@ export const wizardStateSchema = z.object({
   v: z.literal(1),
   personal: z.object({
     fullName: z.string().trim().max(120),
+    givenName: z.string().trim().max(80),
+    familyName: z.string().trim().max(80),
+    photoDataUrl: z.string().trim().max(2_000_000),
+    desiredJobPosition: z.string().trim().max(200),
+    useJobPositionAsHeadline: z.boolean(),
     email: z.string().trim().max(320),
     phone: z.string().trim().max(40),
+    address: z.string().trim().max(240),
+    postCode: z.string().trim().max(32),
+    city: z.string().trim().max(120),
     location: z.string().trim().max(160),
     linkedIn: z.string().trim().max(500),
     website: z.string().trim().max(500),
+    dateOfBirth: z.string().trim().max(64),
+    placeOfBirth: z.string().trim().max(120),
+    driversLicense: z.string().trim().max(80),
+    gender: z.string().trim().max(40),
+    nationality: z.string().trim().max(80),
+    civilStatus: z.string().trim().max(80),
+    customFieldLabel: z.string().trim().max(80),
+    customFieldValue: z.string().trim().max(240),
   }),
   summary: professionalSummarySchema,
   experience: z.object({

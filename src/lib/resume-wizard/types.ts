@@ -2,12 +2,36 @@
 export type EntryId = string;
 
 export type PersonalDetails = {
+  /**
+   * Derived or legacy full name for preview/PDF — kept in sync when
+   * givenName/familyName are edited in the guest personal editor.
+   */
   fullName: string;
+  givenName: string;
+  familyName: string;
+  /** Guest photo — data URL or empty (local preview only unless exported). */
+  photoDataUrl: string;
+  desiredJobPosition: string;
+  /** When true, preview headline uses `desiredJobPosition` instead of Profile headline. */
+  useJobPositionAsHeadline: boolean;
   email: string;
   phone: string;
+  /** Street address line (new structured layout). */
+  address: string;
+  postCode: string;
+  city: string;
+  /** Legacy / fallback single line (e.g. "Berlin · Remote"). */
   location: string;
   linkedIn: string;
   website: string;
+  dateOfBirth: string;
+  placeOfBirth: string;
+  driversLicense: string;
+  gender: string;
+  nationality: string;
+  civilStatus: string;
+  customFieldLabel: string;
+  customFieldValue: string;
 };
 
 export type ProfessionalSummary = {
