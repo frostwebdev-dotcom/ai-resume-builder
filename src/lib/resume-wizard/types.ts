@@ -32,6 +32,12 @@ export type PersonalDetails = {
   civilStatus: string;
   customFieldLabel: string;
   customFieldValue: string;
+  /**
+   * Where the candidate name appears on the resume preview / PDF.
+   * `title` — main header only; `personal` — contact / personal block only;
+   * `both` — header and as a labeled contact line.
+   */
+  showNameIn: "title" | "personal" | "both";
 };
 
 export type ProfessionalSummary = {

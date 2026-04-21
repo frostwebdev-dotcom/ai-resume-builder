@@ -40,7 +40,14 @@ export function mapWizardToPreviewDocument(
   const headline = (fromJob ? p.desiredJobPosition : wizard.summary.headline).trim();
   const summary = wizard.summary.summary.trim() || null;
 
+  const placement = p.showNameIn ?? "title";
   const contactLines: ResumePreviewDocument["contact"]["lines"] = [];
+  if (
+    fullName &&
+    (placement === "personal" || placement === "both")
+  ) {
+    contactLines.push({ label: "Name", value: fullName });
+  }
   if (p.email.trim()) contactLines.push({ label: "Email", value: p.email.trim() });
   if (p.phone.trim()) contactLines.push({ label: "Phone", value: p.phone.trim() });
   const loc = composedLocationLine(p);
@@ -163,6 +170,7 @@ export function mapWizardToPreviewDocument(
       avatarUrl:
         options?.avatarUrl ??
         (p.photoDataUrl?.trim().startsWith("data:") ? p.photoDataUrl.trim() : null),
+      namePlacement: placement,
     },
     contact: { lines: contactLines },
     summary,

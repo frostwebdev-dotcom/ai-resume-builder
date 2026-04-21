@@ -11,6 +11,7 @@ import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import { mergeTemplateWithStyle } from "@/lib/resume-preview/resume-style";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
+import { nameShowsInResumeHeader } from "@/lib/resume-preview/name-placement";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -47,6 +48,7 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
   };
 
   const avatarUrl = effective.showAvatar ? doc.identity.avatarUrl ?? null : null;
+  const showNameInSidebarTitle = nameShowsInResumeHeader(doc.identity);
 
   const hasCerts = doc.certifications.some((c) => c.name || c.issuer);
   const hasSkills = doc.skills.length > 0;
@@ -74,13 +76,25 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
           )}
 
           <div className="text-center">
-            <h1 className="text-[1.15rem] font-bold leading-tight tracking-tight">
-              {doc.identity.fullName || <PlaceholderName>Your name</PlaceholderName>}
-            </h1>
-            {doc.identity.headline ? (
-              <p className="mt-1 text-[10.5px] font-medium opacity-90">{doc.identity.headline}</p>
+            {showNameInSidebarTitle ? (
+              <>
+                <h1 className="text-[1.15rem] font-bold leading-tight tracking-tight">
+                  {doc.identity.fullName || <PlaceholderName>Your name</PlaceholderName>}
+                </h1>
+                {doc.identity.headline ? (
+                  <p className="mt-1 text-[10.5px] font-medium opacity-90">
+                    {doc.identity.headline}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[10.5px] opacity-70">Professional headline</p>
+                )}
+              </>
+            ) : doc.identity.headline ? (
+              <h1 className="text-[1.15rem] font-bold leading-tight tracking-tight">
+                {doc.identity.headline}
+              </h1>
             ) : (
-              <p className="mt-1 text-[10.5px] opacity-70">Professional headline</p>
+              <h1 className="text-[1.15rem] font-bold text-white/70">Professional headline</h1>
             )}
           </div>
 

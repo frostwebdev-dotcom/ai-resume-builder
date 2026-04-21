@@ -50,6 +50,10 @@ export type ResumePreviewDocument = {
      * `layoutFamily` supports a photo (sidebar / photo-banner).
      */
     avatarUrl?: string | null;
+    /**
+     * Controls header vs contact placement for the name (guest studio control).
+     */
+    namePlacement?: "title" | "personal" | "both";
   };
   contact: {
     lines: ResumeContactLine[];

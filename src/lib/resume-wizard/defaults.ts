@@ -33,6 +33,7 @@ export function createEmptyWizardState(): WizardStateV1 {
       civilStatus: "",
       customFieldLabel: "",
       customFieldValue: "",
+      showNameIn: "title",
     },
     summary: {
       headline: "",

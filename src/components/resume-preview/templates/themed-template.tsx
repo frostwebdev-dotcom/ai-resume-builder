@@ -13,6 +13,7 @@ import {
 } from "@/lib/resume-preview/resume-style";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme, type TemplateTheme } from "@/lib/resume-preview/template-theme";
+import { nameShowsInResumeHeader } from "@/lib/resume-preview/name-placement";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -104,17 +105,7 @@ export function ThemedTemplate({ doc, slug, resumeStyle = null, className }: Pro
               />
             ) : null}
             <div className={cn("min-w-0", headerAlignClass(effective.headerTextAlign))}>
-              <h1 className="text-[1.55rem] font-bold leading-tight tracking-tight">
-                {doc.identity.fullName || <PlaceholderName>Your name</PlaceholderName>}
-              </h1>
-              {doc.identity.headline ? (
-                <p
-                  className="mt-1 text-[13px] font-medium opacity-90"
-                  style={{ color: "#e5e7eb" }}
-                >
-                  {doc.identity.headline}
-                </p>
-              ) : null}
+              <BannerTitleBlock doc={doc} />
               <ContactInline
                 lines={doc.contact.lines}
                 className="mt-2 text-[10.5px] leading-snug opacity-90"
@@ -148,6 +139,36 @@ export function ThemedTemplate({ doc, slug, resumeStyle = null, className }: Pro
   );
 }
 
+function BannerTitleBlock({ doc }: { doc: ResumePreviewDocument }) {
+  const showName = nameShowsInResumeHeader(doc.identity);
+  const name = doc.identity.fullName?.trim();
+  const headline = doc.identity.headline?.trim();
+  if (showName) {
+    return (
+      <>
+        <h1 className="text-[1.55rem] font-bold leading-tight tracking-tight">
+          {name ? name : <PlaceholderName>Your name</PlaceholderName>}
+        </h1>
+        {headline ? (
+          <p
+            className="mt-1 text-[13px] font-medium opacity-90"
+            style={{ color: "#e5e7eb" }}
+          >
+            {headline}
+          </p>
+        ) : null}
+      </>
+    );
+  }
+  return headline ? (
+    <h1 className="text-[1.55rem] font-bold leading-tight tracking-tight text-white/95">{headline}</h1>
+  ) : (
+    <h1 className="text-[1.55rem] font-bold leading-tight tracking-tight text-white/70">
+      Professional headline
+    </h1>
+  );
+}
+
 function Header({
   doc,
   theme,
@@ -157,6 +178,7 @@ function Header({
   theme: TemplateTheme;
   effective: EffectiveResumeTheme;
 }) {
+  const showName = nameShowsInResumeHeader(doc.identity);
   const name = doc.identity.fullName || null;
   const headline = doc.identity.headline;
   const ha = effective.headerTextAlign;
@@ -166,22 +188,33 @@ function Header({
   if (theme.headerStyle === "centered") {
     return (
       <header className={headerAlignClass(ha)}>
-        <h1
-          className="text-[1.55rem] font-bold tracking-[0.01em]"
-          style={{ color: effective.accentStrong }}
-        >
-          {name ? name : <PlaceholderName>Your name</PlaceholderName>}
-        </h1>
-        {headline ? (
-          <p
-            className="mt-2 text-[0.85rem] font-medium tracking-wide"
-            style={{ color: effective.accent }}
+        {showName ? (
+          <h1
+            className="text-[1.55rem] font-bold tracking-[0.01em]"
+            style={{ color: effective.accentStrong }}
           >
-            {headline}
-          </p>
+            {name ? name : <PlaceholderName>Your name</PlaceholderName>}
+          </h1>
         ) : (
-          <p className="mt-2 text-[0.85rem] text-neutral-400">Professional headline</p>
+          <h1
+            className="text-[1.55rem] font-bold tracking-[0.01em]"
+            style={{ color: effective.accentStrong }}
+          >
+            {headline ? headline : "Professional headline"}
+          </h1>
         )}
+        {showName ? (
+          headline ? (
+            <p
+              className="mt-2 text-[0.85rem] font-medium tracking-wide"
+              style={{ color: effective.accent }}
+            >
+              {headline}
+            </p>
+          ) : (
+            <p className="mt-2 text-[0.85rem] text-neutral-400">Professional headline</p>
+          )
+        ) : null}
         <ContactInline
           lines={doc.contact.lines}
           className="mt-2 text-[10.5px] leading-snug text-neutral-600"
@@ -204,22 +237,33 @@ function Header({
       <>
         <header className="grid gap-4 pb-3 sm:grid-cols-[1.15fr_0.85fr] sm:items-start sm:gap-8">
           <div className={cn("min-w-0", headerAlignClass(ha))}>
-            <h1
-              className="text-[1.45rem] font-bold leading-tight tracking-tight"
-              style={{ color: effective.accentStrong }}
-            >
-              {name ? name : <PlaceholderName>Your name</PlaceholderName>}
-            </h1>
-            {headline ? (
-              <p
-                className="mt-1 text-[13px] font-medium leading-snug"
-                style={{ color: effective.accent }}
+            {showName ? (
+              <h1
+                className="text-[1.45rem] font-bold leading-tight tracking-tight"
+                style={{ color: effective.accentStrong }}
               >
-                {headline}
-              </p>
+                {name ? name : <PlaceholderName>Your name</PlaceholderName>}
+              </h1>
             ) : (
-              <p className="mt-1 text-[13px] text-neutral-400">Professional headline</p>
+              <h1
+                className="text-[1.45rem] font-bold leading-tight tracking-tight"
+                style={{ color: effective.accentStrong }}
+              >
+                {headline ? headline : "Professional headline"}
+              </h1>
             )}
+            {showName ? (
+              headline ? (
+                <p
+                  className="mt-1 text-[13px] font-medium leading-snug"
+                  style={{ color: effective.accent }}
+                >
+                  {headline}
+                </p>
+              ) : (
+                <p className="mt-1 text-[13px] text-neutral-400">Professional headline</p>
+              )
+            ) : null}
           </div>
           <div className={cn("text-[10.5px] leading-relaxed sm:text-[11px]", contactAlign)}>
             <ContactStack
@@ -247,19 +291,30 @@ function Header({
   /* compact */
   return (
     <header className={headerAlignClass(ha)}>
-      <h1
-        className="text-[1.15rem] font-bold leading-tight tracking-tight"
-        style={{ color: effective.accentStrong }}
-      >
-        {name ? name : <PlaceholderName>Your name</PlaceholderName>}
-      </h1>
-      {headline ? (
-        <p className="mt-0.5 text-[11px] font-medium" style={{ color: effective.accent }}>
-          {headline}
-        </p>
+      {showName ? (
+        <h1
+          className="text-[1.15rem] font-bold leading-tight tracking-tight"
+          style={{ color: effective.accentStrong }}
+        >
+          {name ? name : <PlaceholderName>Your name</PlaceholderName>}
+        </h1>
       ) : (
-        <p className="mt-0.5 text-[11px] text-neutral-400">Professional headline</p>
+        <h1
+          className="text-[1.15rem] font-bold leading-tight tracking-tight"
+          style={{ color: effective.accentStrong }}
+        >
+          {headline ? headline : "Professional headline"}
+        </h1>
       )}
+      {showName ? (
+        headline ? (
+          <p className="mt-0.5 text-[11px] font-medium" style={{ color: effective.accent }}>
+            {headline}
+          </p>
+        ) : (
+          <p className="mt-0.5 text-[11px] text-neutral-400">Professional headline</p>
+        )
+      ) : null}
       <ContactInline
         lines={doc.contact.lines}
         className="mt-1 text-[9.75px] leading-snug text-neutral-700"

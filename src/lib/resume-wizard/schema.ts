@@ -129,6 +129,7 @@ export const personalDetailsSchema = z
     civilStatus: z.string().trim().max(80),
     customFieldLabel: z.string().trim().max(80),
     customFieldValue: z.string().trim().max(240),
+    showNameIn: z.enum(["title", "personal", "both"]),
   })
   .refine(
     (d) => {
@@ -173,6 +174,7 @@ export const wizardStateSchema = z.object({
     civilStatus: z.string().trim().max(80),
     customFieldLabel: z.string().trim().max(80),
     customFieldValue: z.string().trim().max(240),
+    showNameIn: z.enum(["title", "personal", "both"]),
   }),
   summary: professionalSummarySchema,
   experience: z.object({

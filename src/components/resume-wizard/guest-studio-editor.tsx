@@ -24,6 +24,8 @@ import {
   Minimize2,
   MoreVertical,
   Plus,
+  SquareSplitHorizontal,
+  Tag,
   Trash2,
   ZoomOut,
 } from "lucide-react";
@@ -34,8 +36,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PreviewViewport } from "@/components/resume-preview/preview-viewport";
@@ -163,6 +169,12 @@ export function GuestStudioEditor({
 
   // Only one section is expanded at a time — keeps the left panel calm and focused.
   const [openSection, setOpenSection] = useState<SectionId | null>("personal");
+  const [sectionLabelOverrides, setSectionLabelOverrides] = useState<
+    Partial<Record<SectionId, string>>
+  >({});
+  const [pageBreakBeforeSection, setPageBreakBeforeSection] = useState<
+    Partial<Record<SectionId, boolean>>
+  >({});
 
   const toggleSection = useCallback((id: SectionId) => {
     setOpenSection((cur) => (cur === id ? null : id));
@@ -322,9 +334,45 @@ export function GuestStudioEditor({
               <SectionCard
                 key={section.id}
                 section={section}
+                displayLabel={sectionLabelOverrides[section.id] ?? section.label}
                 open={openSection === section.id}
                 onToggle={() => toggleSection(section.id)}
                 filled={isSectionFilled(section.id, state)}
+                headerMenu={
+                  openSection === section.id ? (
+                    <SectionOverflowMenu
+                      section={section}
+                      currentLabel={sectionLabelOverrides[section.id] ?? section.label}
+                      onRename={(label) => {
+                        setSectionLabelOverrides((prev) => {
+                          if (!label.trim() || label.trim() === section.label) {
+                            const { [section.id]: _, ...rest } = prev;
+                            return rest;
+                          }
+                          return { ...prev, [section.id]: label.trim() };
+                        });
+                      }}
+                      pageBreak={pageBreakBeforeSection[section.id] ?? false}
+                      onPageBreakChange={(next) =>
+                        setPageBreakBeforeSection((prev) => ({ ...prev, [section.id]: next }))
+                      }
+                      showNameIn={state.personal.showNameIn}
+                      onShowNameInChange={(value) =>
+                        setState((s) => ({
+                          ...s,
+                          personal: { ...s.personal, showNameIn: value },
+                        }))
+                      }
+                      canRemovePhoto={Boolean(state.personal.photoDataUrl)}
+                      onRemovePhoto={() =>
+                        setState((s) => ({
+                          ...s,
+                          personal: { ...s.personal, photoDataUrl: "" },
+                        }))
+                      }
+                    />
+                  ) : null
+                }
               >
                 <SectionBody section={section.id} state={state} setState={setState} />
               </SectionCard>
@@ -1099,6 +1147,125 @@ function SaveBadge({
   );
 }
 
+function SectionOverflowMenu({
+  section,
+  currentLabel,
+  onRename,
+  pageBreak,
+  onPageBreakChange,
+  showNameIn,
+  onShowNameInChange,
+  canRemovePhoto,
+  onRemovePhoto,
+}: {
+  section: SectionDef;
+  currentLabel: string;
+  onRename: (label: string) => void;
+  pageBreak: boolean;
+  onPageBreakChange: (next: boolean) => void;
+  showNameIn: WizardStateV1["personal"]["showNameIn"];
+  onShowNameInChange: (v: WizardStateV1["personal"]["showNameIn"]) => void;
+  canRemovePhoto: boolean;
+  onRemovePhoto: () => void;
+}) {
+  const handleRename = () => {
+    const next = window.prompt("Section name", currentLabel);
+    if (next === null) return;
+    onRename(next.trim());
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        type="button"
+        onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex size-9 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-sm outline-none hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-[#2268d7]/35"
+        aria-label={`${section.label} section options`}
+      >
+        <MoreVertical className="size-4" aria-hidden />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        sideOffset={6}
+        className="w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-neutral-200 bg-white p-0 py-2 shadow-lg ring-1 ring-black/[0.06]"
+      >
+        <div className="px-1.5">
+          <DropdownMenuItem
+            className="cursor-pointer gap-2.5 rounded-md px-2.5 py-2.5 text-[0.9375rem] focus:bg-neutral-100/90"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRename();
+            }}
+          >
+            <Tag className="size-4 shrink-0 text-neutral-500" aria-hidden />
+            Rename section
+          </DropdownMenuItem>
+          {section.id === "personal" ? (
+            <DropdownMenuItem
+              className="cursor-pointer gap-2.5 rounded-md px-2.5 py-2.5 text-[0.9375rem] focus:bg-neutral-100/90"
+              disabled={!canRemovePhoto}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (canRemovePhoto) onRemovePhoto();
+              }}
+            >
+              <Camera className="size-4 shrink-0 text-neutral-500" aria-hidden />
+              Remove photo
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuCheckboxItem
+            checked={pageBreak}
+            onCheckedChange={(v) => onPageBreakChange(Boolean(v))}
+            className="cursor-pointer gap-2.5 rounded-md py-2.5 pr-8 pl-2.5 text-[0.9375rem] data-[checked=true]:bg-transparent focus:bg-neutral-100/90"
+          >
+            <SquareSplitHorizontal className="size-4 shrink-0 text-neutral-500" aria-hidden />
+            Add page break
+          </DropdownMenuCheckboxItem>
+        </div>
+
+        {section.id === "personal" ? (
+          <>
+            <DropdownMenuSeparator className="my-1.5 bg-neutral-200/90" />
+            {/* Base UI: GroupLabel must live inside Menu.Group or it throws at runtime. */}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="px-3 pt-1 pb-1.5 text-[0.65rem] font-bold uppercase tracking-wide text-neutral-400">
+                Show name in
+              </DropdownMenuLabel>
+              <div className="px-1.5 pb-0.5">
+                {(
+                  [
+                    { value: "title" as const, label: "Title" },
+                    { value: "personal" as const, label: "Personal details" },
+                    { value: "both" as const, label: "Both" },
+                  ] as const
+                ).map((row) => (
+                  <DropdownMenuItem
+                    key={row.value}
+                    className="cursor-pointer gap-2 rounded-md py-2.5 pr-2 pl-2 text-[0.9375rem] focus:bg-neutral-100/90"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onShowNameInChange(row.value);
+                    }}
+                  >
+                    <span className="inline-flex size-4 shrink-0 justify-center">
+                      {showNameIn === row.value ? (
+                        <Check className="size-4 text-neutral-800" aria-hidden />
+                      ) : null}
+                    </span>
+                    {row.label}
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </DropdownMenuGroup>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function IntakeShortcuts() {
   return (
     <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -1124,15 +1291,19 @@ function IntakeShortcuts() {
 
 function SectionCard({
   section,
+  displayLabel,
   open,
   onToggle,
   filled,
+  headerMenu,
   children,
 }: {
   section: SectionDef;
+  displayLabel: string;
   open: boolean;
   onToggle: () => void;
   filled: boolean;
+  headerMenu: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -1142,39 +1313,46 @@ function SectionCard({
         open && "bg-neutral-50/60",
       )}
     >
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between gap-4 px-4 py-[1.05rem] text-left transition-colors sm:py-[1.15rem] sm:pl-5 sm:pr-4"
-      >
-        <span
-          className={cn(
-            "min-w-0 text-[0.95rem] font-semibold tracking-tight",
-            open ? "text-[#2268d7]" : "text-neutral-500",
-            filled && !open && "text-neutral-600",
-          )}
+      <div className="flex w-full items-center gap-2 px-4 py-[1.05rem] sm:py-[1.15rem] sm:pl-5 sm:pr-4">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="min-w-0 flex-1 truncate text-left text-[0.95rem] font-semibold tracking-tight transition-colors"
         >
-          {section.label}
-        </span>
-        <span
-          className={cn(
-            "inline-flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-            open
-              ? "border-[#2268d7] bg-[#2268d7]/8 text-[#2268d7]"
-              : filled
-                ? "border-neutral-300 text-neutral-500"
-                : "border-neutral-300 text-neutral-400",
-          )}
-          aria-hidden
-        >
-          {open ? (
-            <ChevronUp className="size-[0.95rem] stroke-[2.25]" aria-hidden />
-          ) : (
-            <Plus className="size-[0.9rem] stroke-[2.5]" aria-hidden />
-          )}
-        </span>
-      </button>
+          <span
+            className={cn(
+              open ? "text-[#2268d7]" : "text-neutral-500",
+              filled && !open && "text-neutral-600",
+            )}
+          >
+            {displayLabel}
+          </span>
+        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {open ? headerMenu : null}
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            aria-label={open ? "Collapse section" : "Expand section"}
+            className={cn(
+              "inline-flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+              open
+                ? "border-[#2268d7] bg-[#2268d7]/8 text-[#2268d7]"
+                : filled
+                  ? "border-neutral-300 text-neutral-500"
+                  : "border-neutral-300 text-neutral-400",
+            )}
+          >
+            {open ? (
+              <ChevronUp className="size-[0.95rem] stroke-[2.25]" aria-hidden />
+            ) : (
+              <Plus className="size-[0.9rem] stroke-[2.5]" aria-hidden />
+            )}
+          </button>
+        </div>
+      </div>
       {open ? (
         <div className="border-t border-neutral-200/90 bg-white px-4 pb-5 pt-4 sm:px-5">
           {children}
@@ -1401,28 +1579,6 @@ function PersonalBody({ state, setState }: { state: WizardStateV1; setState: Set
 
   return (
     <div className="space-y-6">
-      {/* In-panel toolbar — mirrors stacked editors: actions live top-right inside the form */}
-      <div className="flex items-center justify-end gap-1">
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            type="button"
-            className="inline-flex size-9 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-sm outline-none hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-[#2268d7]/35"
-            aria-label="Personal details options"
-          >
-            <MoreVertical className="size-4" aria-hidden />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[11rem]">
-            <DropdownMenuItem
-              className="cursor-pointer"
-              disabled={!p.photoDataUrl}
-              onClick={() => setState((s) => ({ ...s, personal: { ...s.personal, photoDataUrl: "" } }))}
-            >
-              Remove photo
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <div className="flex shrink-0 flex-col gap-1.5">
           <p className="text-caption font-medium text-neutral-600">Photo</p>
