@@ -172,6 +172,7 @@ export function GuestStudioEditor({
   const [fitContentSize, setFitContentSize] = useState({ w: 0, h: 0 });
   const previewFitBodyRef = useRef<HTMLDivElement | null>(null);
   const previewMeasureRef = useRef<HTMLDivElement | null>(null);
+  const templateStripScrollRef = useRef<HTMLDivElement | null>(null);
 
   const currentSize =
     SIZE_PRESETS.find((p) => Math.abs((resumeStyle.lineHeight ?? 1.45) - p.lineHeight) < 0.02) ??
@@ -203,6 +204,30 @@ export function GuestStudioEditor({
     document.addEventListener("mousedown", handleDown);
     return () => document.removeEventListener("mousedown", handleDown);
   }, [fontOpen, sizeOpen, spacingOpen, colorOpen, templatesOpen]);
+
+  // Vertical wheel / trackpad pans the template row horizontally (native passive:on would block preventDefault).
+  useEffect(() => {
+    if (!templatesOpen) return;
+    const node = templateStripScrollRef.current;
+    if (!node) return;
+
+    function onWheel(e: WheelEvent) {
+      const el = templateStripScrollRef.current;
+      if (!el) return;
+      if (el.scrollWidth <= el.clientWidth + 1) return;
+      const dx = e.deltaX;
+      const dy = e.deltaY;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        el.scrollLeft += dx;
+      } else {
+        el.scrollLeft += dy;
+      }
+      e.preventDefault();
+    }
+
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  }, [templatesOpen]);
 
   useLayoutEffect(() => {
     if (previewZoomed) {
@@ -435,6 +460,7 @@ export function GuestStudioEditor({
               >
                 <div className="mx-auto max-w-[780px] rounded-lg border border-border/80 bg-white px-2 py-2.5 shadow-sm sm:px-3">
                   <div
+                    ref={templateStripScrollRef}
                     className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth pb-1 [scrollbar-width:thin]"
                   >
                     <div className="flex w-max min-w-full flex-nowrap justify-center gap-3 px-0.5 sm:gap-4">
