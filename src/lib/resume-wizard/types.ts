@@ -69,6 +69,12 @@ export type WizardStateV1 = {
   experience: { entries: WorkExperienceEntry[] };
   education: { entries: EducationEntry[] };
   skills: SkillsBlock;
+  /** One entry per line — shown as Languages in the guest studio list. */
+  languages: SkillsBlock;
+  hobbies: SkillsBlock;
+  courses: SkillsBlock;
+  /** One role per block of lines (guest studio); maps to preview additional text. */
+  internships: SkillsBlock;
   certifications: { entries: CertificationEntry[] };
   projects: { entries: ProjectEntry[] };
   additional: AdditionalInfo;

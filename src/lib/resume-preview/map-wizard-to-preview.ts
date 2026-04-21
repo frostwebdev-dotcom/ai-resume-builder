@@ -67,7 +67,26 @@ export function mapWizardToPreviewDocument(
     technologies: p.technologies.trim(),
   }));
 
-  const additional = wizard.additional.notes.trim() || null;
+  const appendOptionalLines = (
+    label: string,
+    lines: string | undefined,
+  ): string | null => {
+    const t = lines?.trim();
+    return t ? `${label}\n${t}` : null;
+  };
+
+  const extraBlocks = [
+    appendOptionalLines("Languages", wizard.languages?.lines),
+    appendOptionalLines("Hobbies", wizard.hobbies?.lines),
+    appendOptionalLines("Courses", wizard.courses?.lines),
+    appendOptionalLines("Internships", wizard.internships?.lines),
+  ].filter((x): x is string => Boolean(x));
+
+  let additional = wizard.additional.notes.trim() || null;
+  if (extraBlocks.length) {
+    const merged = [additional, ...extraBlocks].filter(Boolean).join("\n\n");
+    additional = merged.length ? merged : null;
+  }
 
   const filledSections: string[] = [];
   if (fullName) filledSections.push("name");
@@ -82,6 +101,10 @@ export function mapWizardToPreviewDocument(
   }
   if (certifications.some((x) => x.name || x.issuer)) filledSections.push("certifications");
   if (projects.some((x) => x.name || x.description)) filledSections.push("projects");
+  if (wizard.languages?.lines?.trim()) filledSections.push("languages");
+  if (wizard.hobbies?.lines?.trim()) filledSections.push("hobbies");
+  if (wizard.courses?.lines?.trim()) filledSections.push("courses");
+  if (wizard.internships?.lines?.trim()) filledSections.push("internships");
   if (additional) filledSections.push("additional");
 
   return {

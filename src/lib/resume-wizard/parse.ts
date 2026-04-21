@@ -51,6 +51,30 @@ export function hydrateWizardState(raw: unknown): WizardStateV1 {
         ? (o.skills as WizardStateV1["skills"])
         : {}),
     },
+    languages: {
+      ...defaults.languages,
+      ...(typeof o.languages === "object" && o.languages !== null
+        ? (o.languages as WizardStateV1["languages"])
+        : {}),
+    },
+    hobbies: {
+      ...defaults.hobbies,
+      ...(typeof o.hobbies === "object" && o.hobbies !== null
+        ? (o.hobbies as WizardStateV1["hobbies"])
+        : {}),
+    },
+    courses: {
+      ...defaults.courses,
+      ...(typeof o.courses === "object" && o.courses !== null
+        ? (o.courses as WizardStateV1["courses"])
+        : {}),
+    },
+    internships: {
+      ...defaults.internships,
+      ...(typeof o.internships === "object" && o.internships !== null
+        ? (o.internships as WizardStateV1["internships"])
+        : {}),
+    },
     certifications: {
       entries: normalizeCertEntries(
         (o.certifications as WizardStateV1["certifications"] | undefined)

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { hydrateWizardState } from "@/lib/resume-wizard/parse";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 
 import type { SaveStatus } from "@/hooks/use-wizard-autosave";
@@ -102,7 +103,7 @@ export function loadGuestWizardDraftFromStorage(): WizardStateV1 | null {
       "v" in parsed &&
       (parsed as { v: unknown }).v === 1
     ) {
-      return parsed as WizardStateV1;
+      return hydrateWizardState(parsed);
     }
   } catch {
     /* ignore corrupt drafts */

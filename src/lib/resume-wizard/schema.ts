@@ -145,6 +145,10 @@ export const wizardStateSchema = z.object({
     entries: z.array(educationEntrySchema).max(16),
   }),
   skills: skillsBlockSchema,
+  languages: skillsBlockSchema,
+  hobbies: skillsBlockSchema,
+  courses: skillsBlockSchema,
+  internships: skillsBlockSchema,
   certifications: z.object({
     entries: z.array(certificationEntrySchema).max(24),
   }),

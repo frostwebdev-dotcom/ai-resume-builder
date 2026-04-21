@@ -51,6 +51,10 @@ export function createEmptyWizardState(): WizardStateV1 {
       ],
     },
     skills: { lines: "" },
+    languages: { lines: "" },
+    hobbies: { lines: "" },
+    courses: { lines: "" },
+    internships: { lines: "" },
     certifications: {
       entries: [
         {

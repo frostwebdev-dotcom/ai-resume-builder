@@ -16,11 +16,11 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Download,
   FileUp,
   LayoutGrid,
   Maximize2,
   Minimize2,
-  Minus,
   Plus,
   Trash2,
   ZoomOut,
@@ -30,6 +30,12 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PreviewViewport } from "@/components/resume-preview/preview-viewport";
 import { ResumePreviewRenderer } from "@/components/resume-preview/resume-preview-renderer";
 import { useGuestWizardAutosave } from "@/hooks/use-guest-wizard-autosave";
@@ -48,11 +54,15 @@ import { cn } from "@/lib/utils";
 type SectionId =
   | "personal"
   | "summary"
-  | "experience"
   | "education"
+  | "experience"
   | "skills"
-  | "projects"
+  | "languages"
+  | "hobbies"
+  | "courses"
+  | "internships"
   | "certifications"
+  | "projects"
   | "additional";
 
 type SectionDef = {
@@ -61,14 +71,19 @@ type SectionDef = {
   hint?: string;
 };
 
+/** Order matches common resume/CV builders: profile → education → work → supporting sections. */
 const SECTIONS: SectionDef[] = [
   { id: "personal", label: "Personal details" },
-  { id: "summary", label: "Professional summary" },
-  { id: "experience", label: "Employment history" },
+  { id: "summary", label: "Profile" },
   { id: "education", label: "Education" },
+  { id: "experience", label: "Employment" },
   { id: "skills", label: "Skills" },
+  { id: "languages", label: "Languages" },
+  { id: "hobbies", label: "Hobbies" },
+  { id: "courses", label: "Courses" },
+  { id: "internships", label: "Internships" },
+  { id: "certifications", label: "Certificates" },
   { id: "projects", label: "Projects" },
-  { id: "certifications", label: "Certifications" },
   { id: "additional", label: "Additional information" },
 ];
 
@@ -150,6 +165,26 @@ export function GuestStudioEditor({
   const toggleSection = useCallback((id: SectionId) => {
     setOpenSection((cur) => (cur === id ? null : id));
   }, []);
+
+  /** Append a module block to Additional information and open that section. */
+  const appendAdditionalModule = useCallback(
+    (heading: string, starter: string) => {
+      setState((s) => {
+        const cur = s.additional.notes.trim();
+        const block = cur.length ? `${cur}\n\n${heading}\n${starter}` : `${heading}\n${starter}`;
+        return { ...s, additional: { notes: block } };
+      });
+      setOpenSection("additional");
+      requestAnimationFrame(() => {
+        const ta = document.getElementById("additional");
+        if (ta && ta instanceof HTMLTextAreaElement) {
+          ta.focus();
+          ta.setSelectionRange(ta.value.length, ta.value.length);
+        }
+      });
+    },
+    [setState],
+  );
 
   // Mobile-only: editor is shown by default; preview is reachable via a toggle
   // so the entire screen never needs to scroll beyond the viewport.
@@ -277,17 +312,122 @@ export function GuestStudioEditor({
 
           <IntakeShortcuts />
 
-          {SECTIONS.map((section) => (
-            <SectionCard
-              key={section.id}
-              section={section}
-              open={openSection === section.id}
-              onToggle={() => toggleSection(section.id)}
-              filled={isSectionFilled(section.id, state)}
-            >
-              <SectionBody section={section.id} state={state} setState={setState} />
-            </SectionCard>
-          ))}
+          <nav
+            className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm"
+            aria-label="Resume sections"
+          >
+            {SECTIONS.map((section) => (
+              <SectionCard
+                key={section.id}
+                section={section}
+                open={openSection === section.id}
+                onToggle={() => toggleSection(section.id)}
+                filled={isSectionFilled(section.id, state)}
+              >
+                <SectionBody section={section.id} state={state} setState={setState} />
+              </SectionCard>
+            ))}
+          </nav>
+
+          <footer className="mt-6 border-t border-neutral-200/90 pt-6">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+              <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+                <ModulePill
+                  label="Extracurricular activities"
+                  onClick={() =>
+                    appendAdditionalModule("Extracurricular activities", "• ")
+                  }
+                />
+                <ModulePill
+                  label="References"
+                  onClick={() =>
+                    appendAdditionalModule(
+                      "References",
+                      "Name, role — email — relationship\n• ",
+                    )
+                  }
+                />
+                <ModulePill
+                  label="Qualities"
+                  onClick={() => appendAdditionalModule("Qualities", "• ")}
+                />
+                <ModulePill
+                  label="Achievements"
+                  onClick={() => appendAdditionalModule("Achievements", "• ")}
+                />
+                <ModulePill
+                  label="Signature"
+                  onClick={() =>
+                    appendAdditionalModule(
+                      "Signature",
+                      "Signed,\n[Your name]\nDate / Place",
+                    )
+                  }
+                />
+                <ModulePill
+                  label="Footer"
+                  onClick={() =>
+                    appendAdditionalModule(
+                      "Footer",
+                      "Optional line for licenses, links, or disclosures.",
+                    )
+                  }
+                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-900 shadow-sm outline-none transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 sm:text-[0.8125rem]"
+                  >
+                    <Plus className="size-3.5 shrink-0 stroke-neutral-500" aria-hidden />
+                    Custom section
+                    <ChevronDown className="size-3 shrink-0 opacity-60" aria-hidden />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="min-w-[13rem]">
+                    <DropdownMenuItem
+                      className="cursor-pointer gap-2"
+                      onClick={() =>
+                        appendAdditionalModule("Custom", "Add your content here.\n\n")
+                      }
+                    >
+                      Blank section
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer gap-2"
+                      onClick={() =>
+                        appendAdditionalModule(
+                          "Custom — two columns",
+                          "Left column:\n\nRight column:\n\n",
+                        )
+                      }
+                    >
+                      Two-column note
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer gap-2"
+                      onClick={() =>
+                        appendAdditionalModule(
+                          "Custom — checklist",
+                          "☐ \n☐ \n☐ \n",
+                        )
+                      }
+                    >
+                      Checklist
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <Link
+                href={loginHref}
+                className={cn(
+                  "inline-flex shrink-0 items-center justify-center gap-1.5 self-end rounded-full bg-[#2268d7] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1f5fca] sm:self-auto",
+                )}
+                aria-label="Sign in to download as PDF"
+              >
+                <Download className="size-4 shrink-0" aria-hidden />
+                Download
+              </Link>
+            </div>
+          </footer>
 
           <p className="pt-4 pb-10 text-center text-xs text-muted-foreground">
             Saved to this device only.{" "}
@@ -902,6 +1042,19 @@ function ToolbarButton({
   );
 }
 
+function ModulePill({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-left text-xs font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 sm:text-[0.8125rem]"
+    >
+      <Plus className="size-3.5 shrink-0 text-neutral-500" aria-hidden />
+      <span className="min-w-0">{label}</span>
+    </button>
+  );
+}
+
 function SaveBadge({
   status,
   error,
@@ -983,39 +1136,43 @@ function SectionCard({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-xl border bg-white transition-shadow",
-        open ? "border-border/80 shadow-sm" : "border-border/60 hover:border-border/80",
+        "border-t border-neutral-200 first:border-t-0",
+        open && "bg-neutral-50/60",
       )}
     >
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left"
+        className="flex w-full items-center justify-between gap-4 px-4 py-[1.05rem] text-left transition-colors sm:py-[1.15rem] sm:pl-5 sm:pr-4"
       >
-        <span className="flex items-center gap-2 text-[0.95rem] font-semibold text-foreground">
+        <span
+          className={cn(
+            "min-w-0 text-[0.95rem] font-semibold tracking-tight",
+            open ? "text-[#2268d7]" : "text-neutral-500",
+            filled && !open && "text-neutral-600",
+          )}
+        >
           {section.label}
-          {filled ? (
-            <span
-              className="inline-flex size-1.5 rounded-full bg-success"
-              aria-label="Has content"
-            />
-          ) : null}
         </span>
         <span
           className={cn(
-            "inline-flex size-7 items-center justify-center rounded-full border transition-all",
+            "inline-flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
             open
-              ? "border-brand/60 bg-brand-muted text-brand"
-              : "border-border/70 bg-white text-muted-foreground",
+              ? "border-[#2268d7] bg-[#2268d7]/8 text-[#2268d7]"
+              : filled
+                ? "border-neutral-300 text-neutral-500"
+                : "border-neutral-300 text-neutral-400",
           )}
           aria-hidden
         >
-          {open ? <Minus className="size-3.5" /> : <Plus className="size-3.5" />}
+          <Plus className="size-[0.9rem] stroke-[2.5]" />
         </span>
       </button>
       {open ? (
-        <div className="border-t border-border/70 px-4 pb-5 pt-4">{children}</div>
+        <div className="border-t border-neutral-200/90 bg-white px-4 pb-5 pt-4 sm:px-5">
+          {children}
+        </div>
       ) : null}
     </section>
   );
@@ -1033,6 +1190,14 @@ function isSectionFilled(id: SectionId, s: WizardStateV1): boolean {
       return s.education.entries.some((e) => e.school.trim() || e.degree.trim());
     case "skills":
       return s.skills.lines.trim().length > 0;
+    case "languages":
+      return s.languages.lines.trim().length > 0;
+    case "hobbies":
+      return s.hobbies.lines.trim().length > 0;
+    case "courses":
+      return s.courses.lines.trim().length > 0;
+    case "internships":
+      return s.internships.lines.trim().length > 0;
     case "projects":
       return s.projects.entries.some((p) => p.name.trim());
     case "certifications":
@@ -1066,6 +1231,50 @@ function SectionBody({
       return <EducationBody state={state} setState={setState} />;
     case "skills":
       return <SkillsBody state={state} setState={setState} />;
+    case "languages":
+      return (
+        <LinesBlockBody
+          id="languages"
+          label="Languages"
+          description="One language per line. You can add proficiency (e.g. English — native, Spanish — B2)."
+          placeholder={"English — Native\nSpanish — Professional working proficiency"}
+          value={state.languages.lines}
+          onChange={(lines) => setState((s) => ({ ...s, languages: { lines } }))}
+        />
+      );
+    case "hobbies":
+      return (
+        <LinesBlockBody
+          id="hobbies"
+          label="Hobbies"
+          description="Short list of interests — keeps your CV human and memorable."
+          placeholder={"Photography\nChess club\nCommunity volunteering"}
+          value={state.hobbies.lines}
+          onChange={(lines) => setState((s) => ({ ...s, hobbies: { lines } }))}
+        />
+      );
+    case "courses":
+      return (
+        <LinesBlockBody
+          id="courses"
+          label="Courses"
+          description="Relevant training, bootcamps, or continuing education — one per line."
+          placeholder={"AWS Cloud Practitioner — 2024\nDesign Thinking — Coursera"}
+          value={state.courses.lines}
+          onChange={(lines) => setState((s) => ({ ...s, courses: { lines } }))}
+        />
+      );
+    case "internships":
+      return (
+        <LinesBlockBody
+          id="internships"
+          label="Internships"
+          description="Company, role, and dates — one entry per line or short paragraph."
+          placeholder={"Product intern · Acme Inc. · Summer 2023"}
+          value={state.internships.lines}
+          onChange={(lines) => setState((s) => ({ ...s, internships: { lines } }))}
+        />
+      );
     case "projects":
       return <ProjectsBody state={state} setState={setState} />;
     case "certifications":
@@ -1515,6 +1724,33 @@ function EducationBody({ state, setState }: { state: WizardStateV1; setState: Se
   );
 }
 
+function LinesBlockBody({
+  id,
+  label,
+  description,
+  placeholder,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  description: string;
+  placeholder: string;
+  value: string;
+  onChange: (lines: string) => void;
+}) {
+  return (
+    <Field id={id} label={label} description={description}>
+      <Textarea
+        className="min-h-[10rem]"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    </Field>
+  );
+}
+
 function SkillsBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
   return (
     <Field
@@ -1753,13 +1989,13 @@ function AdditionalBody({ state, setState }: { state: WizardStateV1; setState: S
     <Field
       id="additional"
       label="Additional information"
-      description="Languages, interests, volunteer work — anything that adds context."
+      description="Volunteering, awards, publications — anything that did not fit above."
     >
       <Textarea
         className="min-h-[8rem]"
         value={state.additional.notes}
         onChange={(e) => setState((s) => ({ ...s, additional: { notes: e.target.value } }))}
-        placeholder={"Languages: English (native), Spanish (B2)\nVolunteer: Code mentor at …"}
+        placeholder={"Volunteer: Code mentor at local non-profit, 2022–2024\nAwards: Dean's list …"}
       />
     </Field>
   );
