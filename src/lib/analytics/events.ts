@@ -8,7 +8,6 @@ export const ANALYTICS_EVENTS = {
   SIGNUP_COMPLETED: "signup_completed",
   MAGIC_LINK_REQUESTED: "magic_link_requested",
   PROJECT_CREATED: "project_created",
-  WIZARD_STEP_COMPLETED: "wizard_step_completed",
   AI_GENERATION_USED: "ai_generation_used",
   PREVIEW_VIEWED: "preview_viewed",
   CHECKOUT_STARTED: "checkout_started",

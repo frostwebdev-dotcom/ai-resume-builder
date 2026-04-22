@@ -197,7 +197,7 @@ export function GuestStudioEditor({
   const previewAvatarForMap =
     persistMode === "project" ? previewAvatarUrl ?? null : null;
 
-  /** Signed-in `/build`: defer heavy preview map like the old `ResumeWizard` aside. Guest: immediate. */
+  /** Signed-in `/build`: defer heavy preview map (keeps typing responsive). Guest: immediate. */
   const deferredProjectState = useDeferredValue(state);
   const stateForPreview =
     persistMode === "project" ? deferredProjectState : state;
