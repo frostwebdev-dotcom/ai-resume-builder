@@ -5,11 +5,6 @@ export type LandingCtaPayload = {
   href: string;
 };
 
-export type WizardStepPayload = {
-  step_id: string;
-  step_index: number;
-};
-
 export type AiGenerationPayload = {
   operation: string;
 };

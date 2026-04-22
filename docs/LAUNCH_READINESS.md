@@ -6,6 +6,8 @@ This document supports **QA**, **go-live decisions**, and **post-launch operatio
 
 ## QA checklist (pre-release)
 
+**First-time user / guest + signed-in flows (release gate):** [docs/qa/resume-flows.md](qa/resume-flows.md)
+
 ### Authentication & sessions
 
 - [ ] Sign up, email confirmation (if enabled), sign in, sign out.

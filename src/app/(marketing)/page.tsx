@@ -24,14 +24,14 @@ import {
 } from "@/components/ui/card";
 import { TrackedLink } from "@/components/analytics/tracked-link";
 import { cn } from "@/lib/utils";
-import { ROUTES } from "@/lib/constants";
+import { APP_NAME, ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "ATS-friendly resumes in minutes",
   description:
     "Create a professional ATS-friendly resume in minutes. Preview free, pay only to export your PDF. Mobile-first editor built for real job searches.",
   openGraph: {
-    title: "AI Resume Builder — ATS-friendly resumes in minutes",
+    title: `${APP_NAME} — ATS-friendly resumes in minutes`,
     description:
       "Create a professional ATS-friendly resume in minutes. Preview free, pay only to export your PDF.",
   },
@@ -216,7 +216,7 @@ export default function MarketingHomePage() {
               <h2 className="mt-3 text-headline">Preview before you pay</h2>
               <p className="mt-3 text-body-muted">
                 See your resume as hiring managers will — on desktop and on the phone. When you are
-                happy with the content, unlock PDF export in one step.
+                happy with the content, unlock PDF export at checkout.
               </p>
               <ul className="mt-6 space-y-3 text-sm text-foreground">
                 <li className="flex gap-2">

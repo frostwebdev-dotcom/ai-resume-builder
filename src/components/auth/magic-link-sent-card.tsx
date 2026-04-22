@@ -13,13 +13,20 @@ type MagicLinkSentCardProps = {
   onReset: () => void;
   /** Copy variants — mostly cosmetic. */
   mode?: "signIn" | "signUp";
+  /** When true, omit the link back to `/login` (e.g. slide-in panel). */
+  embedded?: boolean;
 };
 
 /**
  * Shared "Check your inbox" confirmation shown after `signInWithOtp` succeeds.
  * Used by both the login and signup forms so the passwordless experience is consistent.
  */
-export function MagicLinkSentCard({ email, onReset, mode = "signIn" }: MagicLinkSentCardProps) {
+export function MagicLinkSentCard({
+  email,
+  onReset,
+  mode = "signIn",
+  embedded = false,
+}: MagicLinkSentCardProps) {
   const headline = mode === "signUp" ? "Almost there — check your inbox" : "Check your inbox";
   const lead =
     mode === "signUp"
@@ -62,12 +69,14 @@ export function MagicLinkSentCard({ email, onReset, mode = "signIn" }: MagicLink
         >
           Use a different email
         </Button>
-        <Link
-          href={ROUTES.auth.login}
-          className={cn(buttonVariants({ variant: "ghost", size: "touch" }), "w-full")}
-        >
-          Back to sign in
-        </Link>
+        {embedded ? null : (
+          <Link
+            href={ROUTES.auth.login}
+            className={cn(buttonVariants({ variant: "ghost", size: "touch" }), "w-full")}
+          >
+            Back to sign in
+          </Link>
+        )}
       </div>
     </div>
   );

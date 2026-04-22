@@ -3,13 +3,15 @@ import { CalendarDays, ShieldCheck } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
+import { APP_NAME } from "@/lib/constants";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description:
-    "How AI Resume Builder collects, uses, and protects your information.",
-  robots: { index: true, follow: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Privacy Policy",
+    description: `How ${APP_NAME} collects, uses, and protects your information.`,
+    robots: { index: true, follow: true },
+  };
+}
 
 const sections = [
   {
@@ -59,9 +61,9 @@ export default function PrivacyPage() {
             Last updated: April 15, 2026
           </p>
           <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-            This policy describes how &quot;AI Resume Builder&quot; (&ldquo;we&rdquo;, &ldquo;us&rdquo;)
-            handles information when you use our website and product. It is written for
-            transparency and will evolve as features ship — check back for updates.
+            This policy describes how &quot;{APP_NAME}&quot; (&ldquo;we&rdquo;, &ldquo;us&rdquo;) handles
+            information when you use our website and product. It is written for transparency and will
+            evolve as features ship — check back for updates.
           </p>
         </div>
 

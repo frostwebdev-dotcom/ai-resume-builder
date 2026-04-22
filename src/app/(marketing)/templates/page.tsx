@@ -17,9 +17,9 @@ import { ROUTES } from "@/lib/constants";
 import { ALL_TEMPLATE_THEMES } from "@/lib/resume-preview/template-theme";
 
 export const metadata: Metadata = {
-  title: "Resume templates",
+  title: "Templates",
   description:
-    "Forty ATS-friendly resume templates with clean previews. Pick a layout that matches your industry and goals.",
+    "Browse ATS-friendly resume templates. After you create a project, open Preview & export in that project to apply a template and export a PDF.",
 };
 
 export default function TemplatesPage() {
@@ -30,11 +30,12 @@ export default function TemplatesPage() {
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-eyebrow justify-center">Templates</p>
             <h1 className="mt-3 text-display text-balance">
-              Forty professional layouts that <span className="text-gradient-brand">read well everywhere</span>
+              Resume templates
             </h1>
             <p className="mt-4 text-body-muted">
-              Every layout prioritizes readable structure over decoration — so both humans and ATS
-              tools can scan your experience quickly. Switch between them at any time from your project preview.
+              Forty ATS-friendly layouts built for readability. Browse here, then—after you create a
+              project—open <span className="font-medium text-foreground/90">Preview &amp; export</span> on
+              that project to apply a template and continue to PDF export.
             </p>
           </div>
 
@@ -79,10 +80,10 @@ export default function TemplatesPage() {
           <div className="mx-auto mt-16 grid max-w-4xl gap-6 rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-10 md:grid-cols-2 md:gap-10">
             <div>
               <p className="text-eyebrow">Mobile &amp; desktop</p>
-              <h2 className="mt-2 text-subhead">Edit anywhere, export anywhere</h2>
+              <h2 className="mt-2 text-subhead">Draft anywhere, export anywhere</h2>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                 Tweak on your phone with large tap targets; settle in on desktop for long edits.
-                Previews match exactly what employers will see in the PDF.
+                Preview matches what you get after export.
               </p>
             </div>
             <div>
@@ -101,7 +102,7 @@ export default function TemplatesPage() {
                   "w-full bg-brand text-brand-foreground hover:bg-brand/90 sm:w-auto",
                 )}
               >
-                Start with a template
+                Sign in to create a project
               </Link>
             </div>
           </div>

@@ -25,7 +25,8 @@ export const BILLING_PRODUCTS: Record<BillingProductSku, BillingProductDefinitio
   resume_pdf_v1: {
     sku: "resume_pdf_v1",
     label: "Resume PDF export",
-    description: "One-time export of your resume as a print-ready PDF.",
+    description:
+      "One-time purchase unlocks PDF export for this resume project—including new downloads after you edit.",
     amountCents: 999,
     currency: "usd",
     availableAtCheckout: true,

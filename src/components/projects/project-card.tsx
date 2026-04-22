@@ -142,7 +142,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
                   }
                 >
                   <NotebookPen className="size-4 opacity-70" aria-hidden />
-                  Resume builder
+                  Open draft
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setRenameOpen(true)}

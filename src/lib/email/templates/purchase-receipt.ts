@@ -1,3 +1,4 @@
+import { APP_NAME } from "@/lib/constants";
 import { escapeHtml } from "@/lib/email/escape-html";
 import { emailParagraph, emailPrimaryButton, renderEmailLayout } from "@/lib/email/layout";
 
@@ -45,7 +46,7 @@ export function buildPurchaseReceiptEmail(params: {
   });
 
   const text = [
-    "Receipt & purchase confirmation — AI Resume Builder",
+    `Receipt & purchase confirmation — ${APP_NAME}`,
     "",
     "Your payment was successful. This message confirms your purchase and serves as a receipt.",
     "",

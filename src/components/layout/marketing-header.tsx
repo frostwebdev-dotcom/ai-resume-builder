@@ -19,7 +19,7 @@ export async function MarketingHeader() {
           className="group flex min-h-10 shrink-0 items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand-ring"
         >
           <span className="brand-mark" aria-hidden>
-            R
+            S
           </span>
           <span className="flex flex-col leading-none">
             <span className="text-sm font-semibold tracking-tight">

@@ -30,6 +30,23 @@ export const magicLinkSchema = z.object({
   email: emailSchema,
 });
 
+/** First + last name collected in the guest `/app` sign-in panel before sending the magic link. */
+export const panelSignInNameSchema = z.object({
+  givenName: z.string().trim().min(1, "Enter your first name.").max(80),
+  familyName: z.string().trim().min(1, "Enter your last name.").max(80),
+});
+
+/** Password + confirm after name on the guest `/app` email + password registration path. */
+export const panelPasswordRegisterSchema = z
+  .object({
+    password: passwordField,
+    confirmPassword: z.string().min(1, "Confirm your password."),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
 export const resetPasswordSchema = z
   .object({
     password: passwordField,

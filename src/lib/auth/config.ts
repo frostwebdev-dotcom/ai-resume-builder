@@ -9,6 +9,10 @@ export function isPublicPath(pathname: string): boolean {
   }
   if (pathname === "/") return true;
   if (pathname.startsWith("/create")) return true;
+  /** Guest dashboard (signed-in sub-routes under `/app/*` stay protected in `proxy.ts` + per-page `requireUser`). */
+  if (pathname === ROUTES.app.root || pathname === `${ROUTES.app.root}/`) {
+    return true;
+  }
   if (
     pathname.startsWith("/pricing") ||
     pathname.startsWith("/how-it-works") ||

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   useCallback,
+  useDeferredValue,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -59,7 +60,20 @@ import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import { isProfileDescriptionEmpty } from "@/lib/profile-description-html";
 import { ensureEntryId } from "@/lib/resume-wizard/ids";
 import type { WizardEditorSectionId, WizardStateV1 } from "@/lib/resume-wizard/types";
+import {
+  AdditionalAiPanel,
+  ExperienceEntryAiPanel,
+  SkillsAiPanel,
+  SummaryAiPanel,
+} from "@/components/resume-wizard/wizard-ai-panels";
+import {
+  ExperienceJobTailorSection,
+  SkillsJobTailorSection,
+  SummaryJobTailorSection,
+} from "@/components/resume-wizard/job-tailor-sections";
 import { ProfileDescriptionEditor } from "@/components/resume-wizard/profile-description-editor";
+import { ResumeStudioSplitLayout } from "@/components/resume-wizard/resume-studio-split-layout";
+import type { TailoringCompareV1 } from "@/lib/job-target/types";
 import { cn } from "@/lib/utils";
 
 type SectionId = WizardEditorSectionId;
@@ -120,6 +134,14 @@ const COLOR_SWATCHES = [
 const softInput =
   "border-0 bg-neutral-100 shadow-inner shadow-black/[0.04] transition-colors focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#2268d7]/25";
 
+/** Optional: signed-in `/build` — AI assist + job-posting tailoring (shared with the step-form module). */
+export type StudioJobAssistProps = {
+  projectId: string;
+  hasSavedJobTarget: boolean;
+  tailoringCompare: TailoringCompareV1 | null;
+  setTailoringCompare: Dispatch<SetStateAction<TailoringCompareV1 | null>>;
+};
+
 type StudioEditorProps = {
   content: WizardStateV1;
   onContentChange: Dispatch<SetStateAction<WizardStateV1>>;
@@ -128,6 +150,17 @@ type StudioEditorProps = {
   resumeStyle: ResumeStyleV1;
   onResumeStyleChange: Dispatch<SetStateAction<ResumeStyleV1>>;
   loginHref: string;
+  /**
+   * `"guest"` (default): localStorage autosave + guest footer copy.
+   * `"project"`: skips guest localStorage autosave (parent uses `useWizardAutosave`); preview can use
+   * `previewAvatarUrl`; footer links to Preview.
+   */
+  persistMode?: "guest" | "project";
+  /** Required when `persistMode` is `"project"` — used for PDF / export CTA. */
+  projectPreviewHref?: string;
+  /** Signed avatar URL for live preview (project drafts only). */
+  previewAvatarUrl?: string | null;
+  jobAssist?: StudioJobAssistProps;
 };
 
 /**
@@ -148,19 +181,36 @@ export function GuestStudioEditor({
   resumeStyle,
   onResumeStyleChange,
   loginHref,
+  persistMode = "guest",
+  projectPreviewHref,
+  previewAvatarUrl = null,
+  jobAssist,
 }: StudioEditorProps) {
   const state = content;
   const setState = onContentChange;
 
-  const { saveStatus, lastError, retry } = useGuestWizardAutosave({
+  const guestAutosave = useGuestWizardAutosave({
     state,
-    enabled: true,
+    enabled: persistMode === "guest",
   });
 
+  const previewAvatarForMap =
+    persistMode === "project" ? previewAvatarUrl ?? null : null;
+
+  /** Signed-in `/build`: defer heavy preview map (keeps typing responsive). Guest: immediate. */
+  const deferredProjectState = useDeferredValue(state);
+  const stateForPreview =
+    persistMode === "project" ? deferredProjectState : state;
+
   const previewDocument = useMemo(
-    () => mapWizardToPreviewDocument(state, { avatarUrl: null }),
-    [state],
+    () => mapWizardToPreviewDocument(stateForPreview, { avatarUrl: previewAvatarForMap }),
+    [stateForPreview, previewAvatarForMap],
   );
+
+  const exportHref =
+    persistMode === "project" && projectPreviewHref
+      ? projectPreviewHref
+      : loginHref;
 
   // Only one section is expanded at a time — keeps the left panel calm and focused.
   const [openSection, setOpenSection] = useState<SectionId | null>("personal");
@@ -327,19 +377,19 @@ export function GuestStudioEditor({
   }, [previewZoomed, previewDocument, templateSlug, resumeStyle, templateHoverSlug]);
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
-      {/* Left: editor */}
-      <div
-        className={cn(
-          "min-h-0 overflow-y-auto border-border/70 bg-white lg:border-r",
-          // On mobile the preview is a separate toggle-able pane — show
-          // the editor full height by default so there's no outer scroll.
-          focusMode ? "hidden" : "block",
-          mobilePreviewOpen ? "hidden lg:block" : "",
-        )}
-      >
+    <ResumeStudioSplitLayout
+      focusMode={focusMode}
+      mobilePreviewOpen={mobilePreviewOpen}
+      previewAccent={previewTheme.accent}
+      editor={(
         <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-5 sm:px-6 sm:py-6">
-          <SaveBadge status={saveStatus} error={lastError} onRetry={retry} />
+          {persistMode === "guest" ? (
+            <SaveBadge
+              status={guestAutosave.saveStatus}
+              error={guestAutosave.lastError}
+              onRetry={guestAutosave.retry}
+            />
+          ) : null}
 
           <IntakeShortcuts />
 
@@ -403,6 +453,7 @@ export function GuestStudioEditor({
                   state={state}
                   setState={setState}
                   loginHref={loginHref}
+                  jobAssist={jobAssist}
                 />
               </SectionCard>
             ))}
@@ -496,43 +547,51 @@ export function GuestStudioEditor({
                 </DropdownMenu>
               </div>
               <Link
-                href={loginHref}
+                href={exportHref}
                 className={cn(
                   "inline-flex shrink-0 items-center justify-center gap-1.5 self-end rounded-full bg-[#2268d7] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1f5fca] sm:self-auto",
                 )}
-                aria-label="Sign in to download as PDF"
+                aria-label={
+                  persistMode === "project"
+                    ? "Open Preview and export"
+                    : "Sign in to download as PDF"
+                }
               >
                 <Download className="size-4 shrink-0" aria-hidden />
-                Download
+                {persistMode === "project" ? "Preview & export" : "Download"}
               </Link>
             </div>
           </footer>
 
           <p className="pt-4 pb-10 text-center text-xs text-muted-foreground">
-            Saved to this device only.{" "}
-            <Link
-              href={loginHref}
-              className="font-semibold text-brand underline-offset-4 hover:underline"
-            >
-              Sign in
-            </Link>{" "}
-            to save to your account and download PDFs.
+            {persistMode === "guest" ? (
+              <>
+                Saved to this device only.{" "}
+                <Link
+                  href={loginHref}
+                  className="font-semibold text-brand underline-offset-4 hover:underline"
+                >
+                  Sign in
+                </Link>{" "}
+                to save to your account and download PDFs.
+              </>
+            ) : (
+              <>
+                Draft content saves automatically to this project.{" "}
+                <Link
+                  href={exportHref}
+                  className="font-semibold text-brand underline-offset-4 hover:underline"
+                >
+                  Preview &amp; export
+                </Link>{" "}
+                for templates and PDFs.
+              </>
+            )}
           </p>
         </div>
-      </div>
-
-      {/* Right: preview */}
-      <div
-        className={cn(
-          "relative flex min-h-0 flex-col transition-[background-color] duration-300 ease-out",
-          focusMode ? "col-span-full" : "",
-          // On mobile, show only when the user taps the preview toggle.
-          !mobilePreviewOpen && !focusMode ? "hidden lg:flex" : "flex",
-        )}
-        style={{
-          backgroundColor: `color-mix(in srgb, ${previewTheme.accent} 10%, rgb(241 245 249))`,
-        }}
-      >
+      )}
+      preview={(
+        <>
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-4 sm:px-5 sm:py-5">
           {/* Floating controls — not part of the template; keeps the canvas = one real sheet */}
           <div className="pointer-events-none absolute right-4 top-4 z-50 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 sm:right-6 sm:top-5">
@@ -1023,25 +1082,24 @@ export function GuestStudioEditor({
               Template: <span className="font-semibold text-foreground">{templateName}</span>
             </span>
           </div>
-        </div>
       </div>
-
-      {/* Mobile-only floating toggle: swap between the editor and the preview
-          without spawning any outer page scroll. Hidden on lg+ where the split
-          layout shows both at once. */}
-      <button
-        type="button"
-        onClick={() => setMobilePreviewOpen((v) => !v)}
-        aria-pressed={mobilePreviewOpen}
-        aria-label={mobilePreviewOpen ? "Show editor" : "Show preview"}
-        className={cn(
-          "fixed bottom-4 right-4 z-40 inline-flex h-11 items-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-semibold text-white shadow-lg ring-1 ring-black/10 transition-transform hover:-translate-y-0.5 active:translate-y-0",
-          "lg:hidden",
-        )}
-      >
-        {mobilePreviewOpen ? "Edit" : "Preview"}
-      </button>
-    </div>
+        </>
+      )}
+      mobileFab={(
+        <button
+          type="button"
+          onClick={() => setMobilePreviewOpen((v) => !v)}
+          aria-pressed={mobilePreviewOpen}
+          aria-label={mobilePreviewOpen ? "Show editor" : "Show preview"}
+          className={cn(
+            "fixed bottom-4 right-4 z-40 inline-flex h-11 items-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-semibold text-white shadow-lg ring-1 ring-black/10 transition-transform hover:-translate-y-0.5 active:translate-y-0",
+            "lg:hidden",
+          )}
+        >
+          {mobilePreviewOpen ? "Edit" : "Preview"}
+        </button>
+      )}
+    />
   );
 }
 
@@ -1483,23 +1541,27 @@ function SectionBody({
   state,
   setState,
   loginHref,
+  jobAssist,
 }: {
   section: SectionId;
   state: WizardStateV1;
   setState: Dispatch<SetStateAction<WizardStateV1>>;
   loginHref: string;
+  jobAssist?: StudioJobAssistProps;
 }) {
   switch (section) {
     case "personal":
       return <PersonalBody state={state} setState={setState} />;
     case "summary":
-      return <SummaryBody state={state} setState={setState} loginHref={loginHref} />;
+      return (
+        <SummaryBody state={state} setState={setState} loginHref={loginHref} jobAssist={jobAssist} />
+      );
     case "experience":
-      return <ExperienceBody state={state} setState={setState} />;
+      return <ExperienceBody state={state} setState={setState} jobAssist={jobAssist} />;
     case "education":
       return <EducationBody state={state} setState={setState} />;
     case "skills":
-      return <SkillsBody state={state} setState={setState} />;
+      return <SkillsBody state={state} setState={setState} jobAssist={jobAssist} />;
     case "languages":
       return (
         <LinesBlockBody
@@ -1549,7 +1611,7 @@ function SectionBody({
     case "certifications":
       return <CertificationsBody state={state} setState={setState} />;
     case "additional":
-      return <AdditionalBody state={state} setState={setState} />;
+      return <AdditionalBody state={state} setState={setState} jobAssist={jobAssist} />;
     default:
       return null;
   }
@@ -1943,10 +2005,12 @@ function SummaryBody({
   state,
   setState,
   loginHref,
+  jobAssist,
 }: {
   state: WizardStateV1;
   setState: Setter;
   loginHref: string;
+  jobAssist?: StudioJobAssistProps;
 }) {
   return (
     <div className="space-y-4">
@@ -1979,11 +2043,32 @@ function SummaryBody({
           3–5 sentences: strengths, scope, and what you are looking for next.
         </p>
       </div>
+      {jobAssist ? (
+        <div className="space-y-4 border-t border-neutral-200 pt-4">
+          <SummaryAiPanel projectId={jobAssist.projectId} state={state} setState={setState} />
+          <SummaryJobTailorSection
+            projectId={jobAssist.projectId}
+            state={state}
+            setState={setState}
+            hasSavedJobTarget={jobAssist.hasSavedJobTarget}
+            tailoringCompare={jobAssist.tailoringCompare}
+            setTailoringCompare={jobAssist.setTailoringCompare}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function ExperienceBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
+function ExperienceBody({
+  state,
+  setState,
+  jobAssist,
+}: {
+  state: WizardStateV1;
+  setState: Setter;
+  jobAssist?: StudioJobAssistProps;
+}) {
   const entries = state.experience.entries;
   return (
     <div className="space-y-3">
@@ -2139,6 +2224,41 @@ function ExperienceBody({ state, setState }: { state: WizardStateV1; setState: S
               Add bullet
             </Button>
           </div>
+          {jobAssist ? (
+            <div className="mt-4 space-y-4 border-t border-neutral-200 pt-4">
+              <ExperienceEntryAiPanel
+                projectId={jobAssist.projectId}
+                entry={entry}
+                onApplyBullets={(bullets) =>
+                  setState((s) => {
+                    const next = [...s.experience.entries];
+                    next[index] = {
+                      ...next[index],
+                      highlights: bullets.length > 0 ? bullets : [""],
+                    };
+                    return { ...s, experience: { entries: next } };
+                  })
+                }
+              />
+              <ExperienceJobTailorSection
+                projectId={jobAssist.projectId}
+                entry={entry}
+                hasSavedJobTarget={jobAssist.hasSavedJobTarget}
+                tailoringCompare={jobAssist.tailoringCompare}
+                setTailoringCompare={jobAssist.setTailoringCompare}
+                onApplyBullets={(bullets) =>
+                  setState((s) => {
+                    const next = [...s.experience.entries];
+                    next[index] = {
+                      ...next[index],
+                      highlights: bullets.length > 0 ? bullets : [""],
+                    };
+                    return { ...s, experience: { entries: next } };
+                  })
+                }
+              />
+            </div>
+          ) : null}
         </EntryCard>
       ))}
       <Button
@@ -2339,20 +2459,47 @@ function LinesBlockBody({
   );
 }
 
-function SkillsBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
+function SkillsBody({
+  state,
+  setState,
+  jobAssist,
+}: {
+  state: WizardStateV1;
+  setState: Setter;
+  jobAssist?: StudioJobAssistProps;
+}) {
   return (
-    <Field
-      id="skills"
-      label="Skills"
-      description="One skill per line. Keep it focused — 8–12 top skills usually read best."
-    >
-      <Textarea
-        className="min-h-[10rem]"
-        value={state.skills.lines}
-        onChange={(e) => setState((s) => ({ ...s, skills: { lines: e.target.value } }))}
-        placeholder={"TypeScript\nReact\nProduct strategy\nDesign systems"}
-      />
-    </Field>
+    <div className="space-y-4">
+      <Field
+        id="skills"
+        label="Skills"
+        description="One skill per line. Keep it focused — 8–12 top skills usually read best."
+      >
+        <Textarea
+          className="min-h-[10rem]"
+          value={state.skills.lines}
+          onChange={(e) => setState((s) => ({ ...s, skills: { lines: e.target.value } }))}
+          placeholder={"TypeScript\nReact\nProduct strategy\nDesign systems"}
+        />
+      </Field>
+      {jobAssist ? (
+        <div className="space-y-4 border-t border-neutral-200 pt-4">
+          <SkillsAiPanel
+            projectId={jobAssist.projectId}
+            lines={state.skills.lines}
+            onApplyLines={(lines) => setState((s) => ({ ...s, skills: { lines } }))}
+          />
+          <SkillsJobTailorSection
+            projectId={jobAssist.projectId}
+            lines={state.skills.lines}
+            setLines={(lines) => setState((s) => ({ ...s, skills: { lines } }))}
+            hasSavedJobTarget={jobAssist.hasSavedJobTarget}
+            tailoringCompare={jobAssist.tailoringCompare}
+            setTailoringCompare={jobAssist.setTailoringCompare}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -2572,20 +2719,39 @@ function CertificationsBody({ state, setState }: { state: WizardStateV1; setStat
   );
 }
 
-function AdditionalBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
+function AdditionalBody({
+  state,
+  setState,
+  jobAssist,
+}: {
+  state: WizardStateV1;
+  setState: Setter;
+  jobAssist?: StudioJobAssistProps;
+}) {
   return (
-    <Field
-      id="additional"
-      label="Additional information"
-      description="Volunteering, awards, publications — anything that did not fit above."
-    >
-      <Textarea
-        className="min-h-[8rem]"
-        value={state.additional.notes}
-        onChange={(e) => setState((s) => ({ ...s, additional: { notes: e.target.value } }))}
-        placeholder={"Volunteer: Code mentor at local non-profit, 2022–2024\nAwards: Dean's list …"}
-      />
-    </Field>
+    <div className="space-y-4">
+      <Field
+        id="additional"
+        label="Additional information"
+        description="Volunteering, awards, publications — anything that did not fit above."
+      >
+        <Textarea
+          className="min-h-[8rem]"
+          value={state.additional.notes}
+          onChange={(e) => setState((s) => ({ ...s, additional: { notes: e.target.value } }))}
+          placeholder={"Volunteer: Code mentor at local non-profit, 2022–2024\nAwards: Dean's list …"}
+        />
+      </Field>
+      {jobAssist ? (
+        <div className="border-t border-neutral-200 pt-4">
+          <AdditionalAiPanel
+            projectId={jobAssist.projectId}
+            text={state.additional.notes}
+            onApply={(text) => setState((s) => ({ ...s, additional: { notes: text } }))}
+          />
+        </div>
+      ) : null}
+    </div>
   );
 }
 

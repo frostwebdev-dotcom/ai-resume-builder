@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { UserMenu } from "@/components/auth/user-menu";
 import type { AppShellUser } from "@/components/layout/app-shell";
+import { useAppLoginPanel } from "@/components/layout/app-login-panel";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { APP_NAME, ROUTES } from "@/lib/constants";
@@ -11,7 +12,7 @@ import { APP_NAME, ROUTES } from "@/lib/constants";
 type AppMobileHeaderProps = {
   title?: string;
   showBack?: boolean;
-  user: AppShellUser;
+  user: AppShellUser | null;
 };
 
 /**
@@ -23,6 +24,7 @@ export function AppMobileHeader({
   user,
 }: AppMobileHeaderProps) {
   const isDefaultTitle = title === APP_NAME;
+  const { openLogin } = useAppLoginPanel();
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/80 pt-safe backdrop-blur-md supports-[backdrop-filter]:bg-background/70 md:hidden">
@@ -45,7 +47,7 @@ export function AppMobileHeader({
               className="inline-flex min-h-10 items-center gap-2 px-2"
             >
               <span className="brand-mark !size-7 !text-[0.65rem]" aria-hidden>
-                R
+                S
               </span>
             </Link>
           )}
@@ -58,7 +60,20 @@ export function AppMobileHeader({
           )}
         </h1>
         <div className="flex justify-end">
-          <UserMenu email={user.email} isAdmin={user.isAdmin} variant="icon" />
+          {user ? (
+            <UserMenu email={user.email} isAdmin={user.isAdmin} variant="icon" />
+          ) : (
+            <button
+              type="button"
+              onClick={() => openLogin(ROUTES.app.root)}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "gap-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Log in
+            </button>
+          )}
         </div>
       </div>
     </header>

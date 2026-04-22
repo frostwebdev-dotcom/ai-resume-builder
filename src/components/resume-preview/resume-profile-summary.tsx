@@ -10,7 +10,7 @@ type Props = {
 };
 
 /**
- * Renders wizard profile / summary body: sanitized HTML when present, otherwise plain text.
+ * Renders profile / summary body: sanitized HTML when present, otherwise plain text.
  */
 export function ResumeProfileSummary({ text, className }: Props) {
   if (looksLikeProfileHtml(text)) {

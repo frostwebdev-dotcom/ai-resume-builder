@@ -1,4 +1,5 @@
 import { escapeHtml } from "@/lib/email/escape-html";
+import { APP_NAME } from "@/lib/constants";
 
 export type EmailLayoutProps = {
   /** Inbox preview line (hidden in body). */
@@ -47,7 +48,7 @@ export function renderEmailLayout(props: EmailLayoutProps): string {
           <tr>
             <td style="padding:16px 28px 24px;border-top:1px solid #f4f4f5;font-family:ui-sans-serif,system-ui,sans-serif;font-size:12px;line-height:1.5;color:#a1a1aa;">
               <p style="margin:0;">You received this message because of activity on ${escapeHtml(
-                "AI Resume Builder",
+                APP_NAME,
               )}. If it looks unexpected, you can ignore it or contact support via our website.</p>
             </td>
           </tr>

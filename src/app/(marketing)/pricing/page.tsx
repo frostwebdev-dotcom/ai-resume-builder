@@ -15,29 +15,43 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
+import { BILLING_PRODUCTS } from "@/lib/billing/catalog";
+import { formatUsdFromCents } from "@/lib/billing/format-money";
+
+const RESUME_PDF_CHECKOUT_PRICE = formatUsdFromCents(BILLING_PRODUCTS.resume_pdf_v1.amountCents);
 
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Simple one-time pricing for resume PDF export. Preview free — pay only when you download. Cover letter and premium bundles coming soon.",
+    `Resume PDF export (${RESUME_PDF_CHECKOUT_PRICE} today in checkout): free draft and preview, then a one-time purchase to unlock downloads for that project. Cover letter and bundles are not sold yet.`,
 };
 
 const plans = [
   {
     name: "Resume PDF",
     price: "Pay once",
-    description: "Export your finalized resume as a polished PDF when you are ready.",
-    bullets: ["Build & preview free", "ATS-friendly layout", "Secure download"],
+    description:
+      "When your resume is ready in a project, pay once to unlock PDF generation and downloads for that same project—including after you make edits.",
+    bullets: [
+      "Draft & preview are free first",
+      "Readable templates for screen and print",
+      "Private storage; downloads use short-lived signed links",
+    ],
     cta: "Start free",
     href: ROUTES.auth.login,
     featured: true,
-    footnote: "Final price shown at checkout. No subscription.",
+    footnote: `Checkout lists ${RESUME_PDF_CHECKOUT_PRICE} for this product today; Stripe may add taxes where applicable. No subscription.`,
   },
   {
     name: "Resume + Cover letter",
     price: "Coming soon",
-    description: "Matched cover letter generated from your resume and job context.",
-    bullets: ["Same resume purchase flow", "Tailored tone", "Export as PDF"],
+    description:
+      "Planned add-on: matched cover letter from your resume and job context. Not available for purchase in the app yet.",
+    bullets: [
+      "Checkout style aligned with resume PDF (when shipped)",
+      "Tone aligned to your resume and posting (when shipped)",
+      "Downloadable PDF (when shipped)",
+    ],
     cta: "Get notified",
     href: ROUTES.contact,
     featured: false,
@@ -46,8 +60,9 @@ const plans = [
   {
     name: "Premium bundle",
     price: "Future",
-    description: "Reserved for deeper tailoring, multiple versions, or team use cases.",
-    bullets: ["Job-specific passes", "Version packs", "Priority support (exploring)"],
+    description:
+      "Ideas only for now—nothing here is sold or entitled in checkout yet. We may ship pieces of this over time.",
+    bullets: ["Job-specific passes (roadmap)", "Version packs (roadmap)", "Priority support (exploring)"],
     cta: "Contact us",
     href: ROUTES.contact,
     featured: false,
@@ -61,10 +76,9 @@ export default function PricingPage() {
       <PageContainer>
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-eyebrow justify-center">Pricing</p>
-          <h1 className="mt-3 text-display">Pay only when you&apos;re ready to export</h1>
+          <h1 className="mt-3 text-display">Pay when you export your PDF</h1>
           <p className="mt-4 text-body-muted">
-            Start free. Pay a simple one-time fee when you export your resume PDF — no subscription
-            required at launch.
+            {`Draft and preview are free (including on ${ROUTES.create} before you sign in). After you have a project, pay once—currently ${RESUME_PDF_CHECKOUT_PRICE} in Stripe checkout—to unlock PDF export and downloads for that project. No subscription at launch.`}
           </p>
         </div>
 

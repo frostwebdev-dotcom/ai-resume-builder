@@ -34,11 +34,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
   title: "Design system",
-  description: "AI Resume Builder UI tokens, components, and responsive patterns.",
+  description: `${APP_NAME} UI tokens, components, and responsive patterns.`,
 };
 
 export default function StyleGuidePage() {
@@ -82,7 +83,7 @@ export default function StyleGuidePage() {
           <div className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-8">
             <div className="flex items-center gap-3">
               <span className="brand-mark" aria-hidden>
-                R
+                S
               </span>
               <div>
                 <p className="text-label">Brand mark</p>

@@ -33,11 +33,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
+      className={`${GeistSans.variable} ${GeistMono.variable} h-full min-h-dvh antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        <AppProviders>{children}</AppProviders>
+      <body className="flex min-h-0 min-h-dvh flex-col bg-background text-foreground">
+        <AppProviders>
+          {/* Flex pass-through so nested `flex-1 min-h-0` shells (e.g. app studio) get a bounded height */}
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        </AppProviders>
       </body>
     </html>
   );

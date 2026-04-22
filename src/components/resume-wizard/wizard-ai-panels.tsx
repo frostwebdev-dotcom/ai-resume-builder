@@ -24,10 +24,19 @@ import {
   aiStrengthenExperienceBulletsAction,
   aiTailorSummaryAction,
 } from "@/services/ai/actions";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AI_ASSIST_ADDITIONAL_LINE,
+  AI_ASSIST_EXPERIENCE_LINE,
+  AI_ASSIST_PROFILE_LINE,
+  AI_ASSIST_PROFILE_ROLE_LINE,
+  AI_ASSIST_SKILLS_LINE,
+  formatAiAssistClientMessage,
+} from "@/lib/ai/assist-client-copy";
 import { cn } from "@/lib/utils";
 
 type PanelProps = {
@@ -99,10 +108,10 @@ export function SummaryAiPanel({
               },
             }));
           } else {
-            setError(res.error);
+            setError(formatAiAssistClientMessage(res.error, res.code));
           }
         } catch {
-          setError("Request failed. Try again.");
+          setError(formatAiAssistClientMessage("Request failed. Try again."));
         } finally {
           setPendingKey(null);
         }
@@ -123,13 +132,11 @@ export function SummaryAiPanel({
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         AI assist
       </p>
-      <p className="mt-1 text-caption text-muted-foreground">
-        Rewrites use your text only — review before sending applications.
-      </p>
+      <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">{AI_ASSIST_PROFILE_LINE}</p>
       {error ? (
-        <p className="mt-2 text-sm font-medium text-destructive" role="alert">
-          {error}
-        </p>
+        <Alert variant="destructive" className="mt-2 py-2">
+          <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+        </Alert>
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -147,7 +154,7 @@ export function SummaryAiPanel({
             )
           }
         >
-          Generate summary
+          Generate profile
         </AiButton>
         <AiButton
           pending={pendingKey === "short"}
@@ -197,7 +204,8 @@ export function SummaryAiPanel({
       </div>
 
       <div className="mt-6 space-y-3 border-t border-border/60 pt-4">
-        <Field id="target-role" label="Target role (for tailoring)" description="Required to tailor your summary.">
+        <p className="text-[0.7rem] leading-snug text-muted-foreground">{AI_ASSIST_PROFILE_ROLE_LINE}</p>
+        <Field id="target-role" label="Target role (for Improve)" description="Required for this AI assist action.">
           <Input
             id="target-role"
             value={targetRole}
@@ -231,7 +239,7 @@ export function SummaryAiPanel({
             )
           }
         >
-          Tailor to role
+          Align to role
         </AiButton>
       </div>
     </div>
@@ -271,10 +279,10 @@ export function ExperienceEntryAiPanel({
           if (res.ok) {
             onApplyBullets(res.data.bullets);
           } else {
-            setError(res.error);
+            setError(formatAiAssistClientMessage(res.error, res.code));
           }
         } catch {
-          setError("Request failed. Try again.");
+          setError(formatAiAssistClientMessage("Request failed. Try again."));
         } finally {
           setPendingKey(null);
         }
@@ -292,11 +300,12 @@ export function ExperienceEntryAiPanel({
 
   return (
     <div className={cn("mt-4 space-y-2 rounded-lg bg-muted/40 p-3", className)}>
-      <p className="text-xs font-medium text-muted-foreground">AI for this role</p>
+      <p className="text-xs font-medium text-muted-foreground">AI assist for this role</p>
+      <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">{AI_ASSIST_EXPERIENCE_LINE}</p>
       {error ? (
-        <p className="text-sm font-medium text-destructive" role="alert">
-          {error}
-        </p>
+        <Alert variant="destructive" className="py-2">
+          <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+        </Alert>
       ) : null}
       <div className="flex flex-wrap gap-2">
         <AiButton
@@ -355,10 +364,10 @@ export function SkillsAiPanel({
           if (res.ok) {
             onApplyLines(res.data.lines);
           } else {
-            setError(res.error);
+            setError(formatAiAssistClientMessage(res.error, res.code));
           }
         } catch {
-          setError("Request failed. Try again.");
+          setError(formatAiAssistClientMessage("Request failed. Try again."));
         } finally {
           setPendingKey(null);
         }
@@ -376,10 +385,11 @@ export function SkillsAiPanel({
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         AI assist
       </p>
+      <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">{AI_ASSIST_SKILLS_LINE}</p>
       {error ? (
-        <p className="mt-2 text-sm font-medium text-destructive" role="alert">
-          {error}
-        </p>
+        <Alert variant="destructive" className="mt-2 py-2">
+          <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+        </Alert>
       ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
         <AiButton
@@ -438,10 +448,11 @@ export function AdditionalAiPanel({
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         AI assist
       </p>
+      <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">{AI_ASSIST_ADDITIONAL_LINE}</p>
       {error ? (
-        <p className="mt-2 text-sm font-medium text-destructive" role="alert">
-          {error}
-        </p>
+        <Alert variant="destructive" className="mt-2 py-2">
+          <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+        </Alert>
       ) : null}
       <div className="mt-3">
         <AiButton
@@ -459,10 +470,10 @@ export function AdditionalAiPanel({
                   if (res.ok) {
                     onApply(res.data.text);
                   } else {
-                    setError(res.error);
+                    setError(formatAiAssistClientMessage(res.error, res.code));
                   }
                 } catch {
-                  setError("Request failed. Try again.");
+                  setError(formatAiAssistClientMessage("Request failed. Try again."));
                 } finally {
                   setPending(false);
                 }

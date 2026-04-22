@@ -22,7 +22,7 @@ export function AuthCard({ title, description, children }: AuthCardProps) {
             className="group mb-6 inline-flex items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand-ring"
           >
             <span className="brand-mark" aria-hidden>
-              R
+              S
             </span>
             <span className="text-sm font-semibold tracking-tight">
               {APP_NAME}

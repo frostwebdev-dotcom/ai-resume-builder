@@ -1,5 +1,5 @@
 -- =============================================================================
--- AI Resume Builder — initial schema
+-- Smart Resume Builder — initial schema
 -- Run via Supabase CLI: supabase db push / supabase migration up
 -- =============================================================================
 

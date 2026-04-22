@@ -3,12 +3,15 @@ import { CalendarDays, ScrollText } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
+import { APP_NAME } from "@/lib/constants";
 
-export const metadata: Metadata = {
-  title: "Terms of Service",
-  description: "Terms governing your use of AI Resume Builder.",
-  robots: { index: true, follow: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Terms of Service",
+    description: `Terms governing your use of ${APP_NAME}.`,
+    robots: { index: true, follow: true },
+  };
+}
 
 const sections = [
   {
@@ -63,8 +66,8 @@ export default function TermsPage() {
             Last updated: April 15, 2026
           </p>
           <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-            These terms govern your access to &quot;AI Resume Builder&quot;. By using the service, you
-            agree to them. If you do not agree, do not use the product.
+            These terms govern your access to &quot;{APP_NAME}&quot;. By using the service, you agree to
+            them. If you do not agree, do not use the product.
           </p>
         </div>
 

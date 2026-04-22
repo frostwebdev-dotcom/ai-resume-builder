@@ -26,6 +26,10 @@ import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
 import { DEFAULT_TEMPLATE_ID, isTemplateSlug } from "@/lib/resume-preview/template-ids";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
+import {
+  TEMPLATE_PICKER_CAPTION,
+  TEMPLATE_PICKER_TITLE,
+} from "@/lib/resume-preview/template-picker-copy";
 import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import { setProjectTemplateAction, updateResumeStyleAction } from "@/services/projects/actions";
 import type { TemplateOption } from "@/services/templates/queries";
@@ -172,8 +176,10 @@ export function ProjectPreviewClient({
             Back to project
           </Link>
           <p className="text-eyebrow">Preview &amp; export</p>
-          <h1 className="text-balance text-display text-foreground">Preview</h1>
-          <p className="text-sm text-muted-foreground">{projectTitle}</p>
+          <h1 className="text-balance text-display text-foreground">{projectTitle}</h1>
+          <p className="text-sm text-muted-foreground">
+            Pick layout and styling here; edit content in Draft. PDF export is below (one-time purchase).
+          </p>
         </div>
         <Link
           href={ROUTES.app.projectBuild(projectId)}
@@ -183,7 +189,7 @@ export function ProjectPreviewClient({
           )}
         >
           <NotebookPen className="size-4" aria-hidden />
-          Edit in builder
+          Back to draft
         </Link>
       </div>
 
@@ -220,17 +226,15 @@ export function ProjectPreviewClient({
                 >
                   <LayoutTemplate className="size-4" />
                 </span>
-                <div>
+                <div className="min-w-0 space-y-1">
                   <h2 id="template-heading" className="text-subhead text-foreground">
-                    Template
+                    {TEMPLATE_PICKER_TITLE}
                   </h2>
-                  <p className="text-caption text-muted-foreground">
-                    ATS-linear structure — colors and type change, parseable order stays.
-                  </p>
+                  <p className="text-caption text-muted-foreground">{TEMPLATE_PICKER_CAPTION}</p>
                 </div>
               </div>
               <span className="inline-flex items-center rounded-full bg-muted/60 px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border">
-                {templates.length} designs
+                {templates.length} templates
               </span>
             </div>
             {error ? (
@@ -241,12 +245,12 @@ export function ProjectPreviewClient({
             <div
               className="max-h-[min(420px,52vh)] overflow-y-auto overscroll-contain rounded-xl border border-border/60 bg-muted/20 p-2 pr-1"
               tabIndex={0}
-              aria-label="Template gallery"
+              aria-label={`${TEMPLATE_PICKER_TITLE} — choose a layout`}
             >
               <div
                 className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3"
                 role="radiogroup"
-                aria-label="Resume template"
+                aria-label={TEMPLATE_PICKER_TITLE}
               >
                 {templates.map((t) => {
                   const active = t.id === effectiveId;
@@ -345,7 +349,7 @@ export function ProjectPreviewClient({
         >
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 id="live-heading" className="text-subhead text-foreground">
-              Live preview
+              Preview
             </h2>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground ring-1 ring-border">
               Matches export

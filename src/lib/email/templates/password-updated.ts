@@ -1,8 +1,9 @@
+import { APP_NAME } from "@/lib/constants";
 import { appAbsoluteUrl } from "@/lib/email/app-origin";
 import { emailParagraph, emailPrimaryButton, renderEmailLayout } from "@/lib/email/layout";
 export function buildPasswordUpdatedEmail(params: { loginUrl: string }): { html: string; text: string } {
   const bodyHtml = `
-    ${emailParagraph(`The password for your AI Resume Builder account was just changed.`)}
+    ${emailParagraph(`The password for your ${APP_NAME} account was just changed.`)}
     ${emailParagraph(`If you made this change, no further action is needed.`)}
     ${emailParagraph(`If you did not change your password, reset it immediately and consider reviewing your email account security.`)}
     ${emailPrimaryButton(params.loginUrl, "Sign in")}
@@ -15,7 +16,7 @@ export function buildPasswordUpdatedEmail(params: { loginUrl: string }): { html:
   });
 
   const text = [
-    "Password updated — AI Resume Builder",
+    `Password updated — ${APP_NAME}`,
     "",
     "The password for your account was just changed.",
     "",

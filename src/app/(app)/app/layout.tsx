@@ -1,5 +1,5 @@
-import { AppShell } from "@/components/layout/app-shell";
-import { requireUser } from "@/lib/auth/guards";
+import { AppAreaShell } from "@/components/layout/app-area-shell";
+import { getOptionalAuth } from "@/lib/auth/guards";
 
 export const dynamic = "force-dynamic";
 
@@ -8,16 +8,13 @@ export default async function AppAreaLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, profile } = await requireUser();
+  const ctx = await getOptionalAuth();
+  const user = ctx
+    ? {
+        email: ctx.user.email ?? "",
+        isAdmin: ctx.profile.role === "admin",
+      }
+    : null;
 
-  return (
-    <AppShell
-      user={{
-        email: user.email ?? "",
-        isAdmin: profile.role === "admin",
-      }}
-    >
-      {children}
-    </AppShell>
-  );
+  return <AppAreaShell user={user}>{children}</AppAreaShell>;
 }

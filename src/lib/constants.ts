@@ -1,5 +1,5 @@
 /** Application-wide constants (no secrets). */
-export const APP_NAME = "AI Resume Builder";
+export const APP_NAME = "Smart Resume Builder";
 
 /** Sentinel `projectId` for the browser-only guest builder — never sent to the server. */
 export const GUEST_RESUME_PROJECT_ID = "__guest__" as const;
@@ -18,6 +18,10 @@ export const ROUTES = {
   styleGuide: "/style-guide",
   app: {
     root: "/app",
+    resumes: "/app/resumes",
+    coverLetters: "/app/cover-letters",
+    jobs: "/app/jobs",
+    applications: "/app/applications",
     /** @deprecated Use dashboard (`/app`) or a project URL. */
     resume: "/app/resume",
     account: "/app/account",
@@ -46,3 +50,10 @@ export const ROUTES = {
     incomplete: "/auth/incomplete",
   },
 } as const;
+
+/**
+ * `next` value for login from the guest `/create` flow. After OAuth/magic link, `/auth/callback`
+ * redirects here; `/create` reads `signedIn=1` client-side and shows a short banner (draft stays
+ * localStorage until the user creates a project, then opens Draft—the same studio UI—on that project).
+ */
+export const CREATE_RESUME_POST_AUTH_NEXT = `${ROUTES.create}?signedIn=1`;

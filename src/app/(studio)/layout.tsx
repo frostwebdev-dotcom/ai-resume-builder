@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { STUDIO_VIEWPORT_ROOT_CLASS } from "@/lib/studio-viewport";
+
 /**
  * Studio route group: no marketing header/footer chrome.
  *
@@ -7,9 +9,5 @@ import type { ReactNode } from "react";
  * builder never spawns outer page scroll. Only inner panels scroll.
  */
 export default function StudioLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="fixed inset-0 flex h-[100dvh] w-screen flex-col overflow-hidden overscroll-none bg-slate-50">
-      {children}
-    </div>
-  );
+  return <div className={STUDIO_VIEWPORT_ROOT_CLASS}>{children}</div>;
 }

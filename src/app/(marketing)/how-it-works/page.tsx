@@ -10,7 +10,7 @@ import { ROUTES } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "How it works",
   description:
-    "Step-by-step: structured prompts, AI-assisted editing, and PDF export when you are ready — optimized for ATS and mobile.",
+    "Studio editor with structured sections, AI-assisted editing, and PDF export when you are ready — optimized for ATS and mobile.",
 };
 
 const steps = [

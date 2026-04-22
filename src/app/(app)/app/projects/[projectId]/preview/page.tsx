@@ -39,12 +39,13 @@ function parseCheckoutNotice(
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { projectId } = await params;
   const ctx = await getOptionalAuth();
-  if (!ctx) return { title: "Preview" };
+  if (!ctx) return { title: "Preview & export" };
   const detail = await getProjectDetailForUser(ctx.user.id, projectId);
-  if (!detail) return { title: "Preview" };
+  if (!detail) return { title: "Preview & export" };
   return {
-    title: `Preview · ${detail.project.title}`,
-    description: "Resume preview and template selection.",
+    title: `Preview & export · ${detail.project.title}`,
+    description:
+      "Preview this resume project, pick a template and appearance, then export a PDF when you are ready.",
   };
 }
 

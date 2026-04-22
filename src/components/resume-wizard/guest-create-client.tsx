@@ -1,18 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type ReactNode,
   type RefObject,
   type SetStateAction,
 } from "react";
 import {
   ChevronDown,
-  CloudCheck,
   Copy,
   Download,
   Globe,
@@ -30,8 +31,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AutosaveStatusChip } from "@/components/resume-wizard/autosave-status-chip";
+import { GuestDraftLocalSaveNote } from "@/components/resume-wizard/guest-draft-local-save-note";
 import { GuestStudioEditor } from "@/components/resume-wizard/guest-studio-editor";
-import { loadGuestWizardDraftFromStorage } from "@/hooks/use-guest-wizard-autosave";
+import {
+  loadGuestWizardDraftFromStorage,
+  useGuestWizardAutosave,
+} from "@/hooks/use-guest-wizard-autosave";
 import {
   DEFAULT_GUEST_PRESENTATION,
   loadGuestPresentationFromStorage,
@@ -42,7 +48,9 @@ import {
 } from "@/hooks/use-guest-studio-store";
 import { createEmptyWizardState } from "@/lib/resume-wizard/defaults";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
-import { ROUTES } from "@/lib/constants";
+import { CREATE_RESUME_POST_AUTH_NEXT, ROUTES } from "@/lib/constants";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { cn } from "@/lib/utils";
@@ -144,6 +152,11 @@ export function GuestCreateClient() {
 
   useGuestPresentationAutosave(presentation);
 
+  const { saveStatus, lastError, retry } = useGuestWizardAutosave({
+    state: content,
+    enabled: true,
+  });
+
   // Global keyboard shortcuts — mimic every text editor.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -163,9 +176,37 @@ export function GuestCreateClient() {
   }, [handleUndo, handleRedo]);
 
   const loginHref = useMemo(
-    () => `${ROUTES.auth.login}?next=${encodeURIComponent(ROUTES.create)}`,
+    () => `${ROUTES.auth.login}?next=${encodeURIComponent(CREATE_RESUME_POST_AUTH_NEXT)}`,
     [],
   );
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [postAuthBanner, setPostAuthBanner] = useState(false);
+  const postAuthHandled = useRef(false);
+  const [browserHasSession, setBrowserHasSession] = useState(false);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    void supabase.auth.getSession().then(({ data }) => setBrowserHasSession(Boolean(data.session)));
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setBrowserHasSession(Boolean(session));
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (postAuthHandled.current) return;
+    if (searchParams.get("signedIn") !== "1") return;
+    postAuthHandled.current = true;
+    const supabase = createSupabaseBrowserClient();
+    void supabase.auth.getUser().then(({ data: { user } }) => {
+      router.replace(ROUTES.create, { scroll: false });
+      if (user) setPostAuthBanner(true);
+    });
+  }, [router, searchParams]);
 
   const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -210,7 +251,46 @@ export function GuestCreateClient() {
         onUndo={handleUndo}
         onRedo={handleRedo}
         loginHref={loginHref}
+        autosave={
+          <AutosaveStatusChip
+            context="guestDevice"
+            status={saveStatus}
+            lastError={lastError}
+            onRetry={retry}
+            surface="dark"
+            className="max-w-[min(11rem,calc(100vw-8rem))] sm:max-w-none"
+          />
+        }
       />
+      {postAuthBanner ? (
+        <Alert variant="success" className="shrink-0 rounded-none border-x-0 border-t-0 sm:rounded-none">
+          <AlertTitle>You&apos;re signed in</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              Next: create a <strong className="font-medium text-foreground">resume project</strong> on your
+              dashboard—you&apos;ll open <strong className="font-medium text-foreground">Draft</strong> in the
+              same studio editor as here, with autosave to your account. PDF is a one-time purchase under{" "}
+              <strong className="font-medium text-foreground">Preview &amp; export</strong>.
+            </span>
+            <span className="flex shrink-0 flex-col gap-2 self-start sm:flex-row sm:items-center sm:self-center">
+              <Link
+                href={ROUTES.app.root}
+                className={cn(
+                  buttonVariants({ size: "sm" }),
+                  "bg-brand text-brand-foreground hover:bg-brand/90",
+                )}
+                onClick={() => setPostAuthBanner(false)}
+              >
+                Go to dashboard
+              </Link>
+              <Button type="button" variant="outline" size="sm" onClick={() => setPostAuthBanner(false)}>
+                Dismiss
+              </Button>
+            </span>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {!postAuthBanner ? <GuestDraftLocalSaveNote signedIn={browserHasSession} /> : null}
       <div className="flex min-h-0 flex-1 flex-col">
         <GuestStudioEditor
           content={content}
@@ -240,6 +320,7 @@ function TopBar({
   onUndo,
   onRedo,
   loginHref,
+  autosave,
 }: {
   title: string;
   titleInputRef: RefObject<HTMLInputElement | null>;
@@ -251,6 +332,7 @@ function TopBar({
   onUndo: () => void;
   onRedo: () => void;
   loginHref: string;
+  autosave: ReactNode;
 }) {
   // The title input is uncontrolled (defaultValue + remount on external change)
   // so typing stays buttery without a sync-from-props effect.
@@ -263,15 +345,15 @@ function TopBar({
       <div className="grid h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 px-2 sm:h-14 sm:gap-x-3 sm:px-4">
         <div className="flex min-w-0 items-center justify-self-start">
           <Link
-            href={ROUTES.home}
+            href={ROUTES.app.root}
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
               "h-8 gap-1.5 rounded-full px-3 text-xs text-slate-200 hover:bg-white/10 hover:text-white",
             )}
-            aria-label="Back to resumes"
+            aria-label="Go to home"
           >
             <span className="text-base leading-none">←</span>
-            Resumes
+            Home
           </Link>
         </div>
 
@@ -294,16 +376,13 @@ function TopBar({
               placeholder="Untitled resume"
               className="min-w-0 flex-1 rounded-none border-0 border-b-2 border-[#3b82f6] bg-transparent px-0.5 pb-0.5 text-center text-xs font-normal text-slate-100 caret-white placeholder:text-slate-500 outline-none transition-colors selection:bg-sky-500/35 focus-visible:border-sky-300 sm:text-sm"
             />
-            <span
-              className="inline-flex shrink-0 translate-y-px text-white/90"
-              title="Saved on this device"
-            >
-              <CloudCheck className="size-4 stroke-[1.35] sm:size-[1.125rem]" aria-hidden />
-            </span>
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center justify-end justify-self-end gap-1">
+        <div className="flex min-w-0 flex-wrap items-center justify-end justify-self-end gap-x-1 gap-y-1.5 sm:gap-x-2">
+        <div className="order-first flex min-w-0 basis-full justify-end sm:order-last sm:basis-auto sm:justify-end">
+          {autosave}
+        </div>
         <button
           type="button"
           onClick={onUndo}
@@ -379,10 +458,10 @@ function TopBar({
             buttonVariants({ size: "sm" }),
             "h-8 gap-1.5 rounded-full bg-[#2268d7] px-3 text-xs font-semibold hover:bg-[#1f5fca]",
           )}
-          aria-label="Sign in to download as PDF"
+          aria-label="Sign in to save a project and export a PDF"
         >
           <Download className="size-3.5" aria-hidden />
-          Download
+          Sign in to export
         </Link>
         </div>
       </div>

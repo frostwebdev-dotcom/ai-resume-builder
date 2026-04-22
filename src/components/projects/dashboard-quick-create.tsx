@@ -25,7 +25,7 @@ export function DashboardQuickCreate() {
           htmlFor="dash-new-project-title"
           className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
         >
-          New resume name
+          Project name
         </Label>
         <Input
           id="dash-new-project-title"
@@ -48,7 +48,7 @@ export function DashboardQuickCreate() {
         className="w-full shrink-0 gap-1.5 sm:h-11 sm:w-auto sm:min-w-[10rem]"
       >
         <Plus className="size-4" aria-hidden />
-        {pending ? "Creating…" : "Create resume"}
+        {pending ? "Creating…" : "Create project"}
       </Button>
       {state.error ? (
         <p

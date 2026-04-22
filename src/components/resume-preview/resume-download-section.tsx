@@ -6,6 +6,7 @@ import { Download, Info, Lock, Loader2 } from "lucide-react";
 
 import { BILLING_PRODUCTS } from "@/lib/billing/catalog";
 import { formatUsdFromCents } from "@/lib/billing/format-money";
+import { PdfPreviewFidelityNote } from "@/components/resume-preview/pdf-preview-fidelity-note";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ROUTES } from "@/lib/constants";
@@ -83,11 +84,12 @@ export function ResumeDownloadSection({
             <Lock className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
             <div>
               <h2 id="pdf-locked-heading" className="text-subhead text-foreground">
-                PDF download
+                Export (PDF)
               </h2>
               <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-                Preview is free. Unlock export for {formatUsdFromCents(BILLING_PRODUCTS.resume_pdf_v1.amountCents)}{" "}
-                — pay once per checkout. Card details stay with Stripe.
+                Editing and on-screen preview are free. PDF file export is{" "}
+                {formatUsdFromCents(BILLING_PRODUCTS.resume_pdf_v1.amountCents)} once for this project
+                (Stripe handles the card).
               </p>
             </div>
           </div>
@@ -119,6 +121,8 @@ export function ResumeDownloadSection({
           ) : null}
         </div>
 
+        <PdfPreviewFidelityNote className="mt-3" variant="compact" />
+
         {!checkoutEnabled ? (
           <Alert variant="info" className="mt-4">
             <Info aria-hidden />
@@ -138,8 +142,7 @@ export function ResumeDownloadSection({
           </Alert>
         ) : (
           <p className="mt-3 text-caption text-muted-foreground">
-            After payment, Stripe notifies our servers — then your download unlocks here (not from the success page
-            alone).
+            After payment, your unlock appears here when the server confirms—refresh if needed.
           </p>
         )}
 
@@ -170,7 +173,7 @@ export function ResumeDownloadSection({
           <Download className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
           <div>
             <h2 id="pdf-ready-heading" className="text-subhead text-foreground">
-              PDF download
+              Export (PDF)
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {hasDownloadHistory
@@ -199,6 +202,7 @@ export function ResumeDownloadSection({
           )}
         </Button>
       </div>
+      <PdfPreviewFidelityNote className="mt-4" variant="compact" />
       {downloadError ? (
         <p className="mt-3 text-sm font-medium text-destructive" role="alert">
           {downloadError}

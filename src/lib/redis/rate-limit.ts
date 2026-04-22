@@ -38,7 +38,7 @@ function getLimiter(
         redis: r,
         limiter: Ratelimit.slidingWindow(max, window),
         analytics: true,
-        prefix: `ai-resume-builder:${name}`,
+        prefix: `smart-resume-builder:${name}`,
       }),
     );
   }

@@ -66,7 +66,7 @@ export function JobTargetPanel({
           jobDescription,
         });
         if (res.ok) {
-          setMessage("Job saved. You can tailor sections below.");
+          setMessage("Saved to this project. AI assist and posting-based options appear in sections below.");
           onSaved?.({
             title: title.trim() || null,
             company: company.trim() || null,
@@ -91,9 +91,9 @@ export function JobTargetPanel({
       <div className="flex items-start gap-3">
         <Briefcase className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
         <div className="min-w-0 flex-1 space-y-1">
-          <h2 className="text-base font-semibold text-foreground">Target job</h2>
+          <h2 className="text-base font-semibold text-foreground">Job posting (optional)</h2>
           <p className="text-sm text-muted-foreground">
-            Paste the job posting here once. We will use it to suggest wording that matches the role — you stay in control.
+            Paste the posting once for Improve: AI assist and optional alignment to that role. You stay in control of what you keep.
           </p>
         </div>
       </div>
@@ -101,7 +101,7 @@ export function JobTargetPanel({
       <JobTailorDisclaimer className="mt-4" />
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <Field id="jt-title" label="Job title (optional)" description="Helps the AI understand the role.">
+        <Field id="jt-title" label="Job title (optional)" description="Helps AI assist understand the role.">
           <Input
             id="jt-title"
             value={title}
@@ -159,7 +159,7 @@ export function JobTargetPanel({
           {pending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : null}
-          Save job target
+          Save posting
         </Button>
         {!hasText ? (
           <span className="text-caption text-muted-foreground">Add text to enable saving.</span>

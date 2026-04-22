@@ -1,91 +1,51 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { FileText, Sparkles } from "lucide-react";
 
-import { PageContainer } from "@/components/layout/page-container";
-import { DashboardQuickCreate } from "@/components/projects/dashboard-quick-create";
-import { DashboardStats } from "@/components/projects/dashboard-stats";
-import { ProjectsList } from "@/components/projects/projects-list";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { DashboardWorkspaceGrid } from "@/components/projects/dashboard-workspace-grid";
+import { getOptionalAuth } from "@/lib/auth/guards";
 import { ROUTES } from "@/lib/constants";
-import { requireUser } from "@/lib/auth/guards";
 import { getDashboardProjects } from "@/services/projects/queries";
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description:
+    "Workspace overview: resumes, cover letters, jobs, and applications. Open Resumes to manage saved projects and the studio editor.",
+};
+
 export default async function AppHomePage() {
-  const { user } = await requireUser();
-  const projects = await getDashboardProjects(user.id);
+  const ctx = await getOptionalAuth();
+  const projects = ctx ? await getDashboardProjects(ctx.user.id) : [];
 
-  const firstName =
-    user.user_metadata?.full_name?.split?.(" ")?.[0] ??
-    user.email?.split("@")[0] ??
-    "there";
+  const firstName = ctx
+    ? (ctx.user.user_metadata?.full_name?.split?.(" ")?.[0] ??
+        ctx.user.email?.split("@")[0] ??
+        "there")
+    : "there";
 
-  const hasProjects = projects.length > 0;
+  const welcomeTitle = ctx ? `Welcome back, ${firstName}` : "Welcome";
 
   return (
-    <section className="py-5 sm:py-8">
-      <PageContainer>
-        <div className="space-y-5 sm:space-y-6">
-          <header className="flex flex-wrap items-end justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-eyebrow">
-                <Sparkles className="size-3.5" aria-hidden />
-                Welcome back, {firstName}
-              </p>
-              <h1 className="mt-1 text-headline text-foreground">
-                Your resumes
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Private until you export. Preview stays in sync with PDF.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link
-                href={ROUTES.templates}
-                className={cn(
-                  buttonVariants({ variant: "ghost", size: "sm" }),
-                  "text-muted-foreground",
-                )}
-              >
-                Browse templates
-              </Link>
-              <Link
-                href={ROUTES.pricing}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                )}
-              >
-                Pricing
-              </Link>
-            </div>
-          </header>
-
-          <DashboardStats projects={projects} />
-
-          <div className="rounded-2xl border border-border/70 bg-card px-4 py-4 shadow-soft sm:px-5">
-            <DashboardQuickCreate />
-          </div>
-
-          {!hasProjects ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 bg-muted/20 px-6 py-10 text-center">
-              <div className="flex size-12 items-center justify-center rounded-full bg-brand-muted ring-1 ring-brand/15">
-                <FileText className="size-5 text-brand" aria-hidden />
-              </div>
-              <h2 className="mt-4 text-subhead text-foreground">
-                No resumes yet
-              </h2>
-              <p className="mt-1 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
-                Create your first resume above. You can duplicate it later for
-                different job targets — each keeps its own version history.
-              </p>
-            </div>
-          ) : (
-            <ProjectsList projects={projects} />
-          )}
-        </div>
-      </PageContainer>
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-100">
+      <div className="border-b border-slate-200/80 bg-slate-100 px-4 py-4 sm:px-6 sm:py-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Dashboard</p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+          {welcomeTitle}
+        </h1>
+        {!ctx ? (
+          <p className="mt-2 max-w-xl text-sm text-slate-600">
+            You&apos;re browsing as a guest. Sign in to save projects and sync your resume. Your draft on{" "}
+            <Link className="font-medium text-brand underline-offset-2 hover:underline" href={ROUTES.create}>
+              Create
+            </Link>{" "}
+            stays in this browser until you sign in.
+          </p>
+        ) : null}
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-6 sm:py-5">
+        <DashboardWorkspaceGrid projects={projects} />
+      </div>
     </section>
   );
 }
