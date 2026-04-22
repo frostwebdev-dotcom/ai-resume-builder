@@ -19,6 +19,7 @@ import {
   ChevronUp,
   Download,
   FileUp,
+  GripVertical,
   LayoutGrid,
   Maximize2,
   Minimize2,
@@ -55,23 +56,13 @@ import {
   type TemplateSlug,
 } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
+import { isProfileDescriptionEmpty } from "@/lib/profile-description-html";
 import { ensureEntryId } from "@/lib/resume-wizard/ids";
-import type { WizardStateV1 } from "@/lib/resume-wizard/types";
+import type { WizardEditorSectionId, WizardStateV1 } from "@/lib/resume-wizard/types";
+import { ProfileDescriptionEditor } from "@/components/resume-wizard/profile-description-editor";
 import { cn } from "@/lib/utils";
 
-type SectionId =
-  | "personal"
-  | "summary"
-  | "education"
-  | "experience"
-  | "skills"
-  | "languages"
-  | "hobbies"
-  | "courses"
-  | "internships"
-  | "certifications"
-  | "projects"
-  | "additional";
+type SectionId = WizardEditorSectionId;
 
 type SectionDef = {
   id: SectionId;
@@ -175,9 +166,6 @@ export function GuestStudioEditor({
   const [openSection, setOpenSection] = useState<SectionId | null>("personal");
   const [sectionLabelOverrides, setSectionLabelOverrides] = useState<
     Partial<Record<SectionId, string>>
-  >({});
-  const [pageBreakBeforeSection, setPageBreakBeforeSection] = useState<
-    Partial<Record<SectionId, boolean>>
   >({});
   const [editingSectionTitleId, setEditingSectionTitleId] = useState<SectionId | null>(null);
   const [sectionTitleDraft, setSectionTitleDraft] = useState("");
@@ -380,9 +368,17 @@ export function GuestStudioEditor({
                         setEditingSectionTitleId(section.id);
                         setSectionTitleDraft(sectionLabelOverrides[section.id] ?? section.label);
                       }}
-                      pageBreak={pageBreakBeforeSection[section.id] ?? false}
+                      pageBreak={Boolean(state.layout.pageBreakBefore[section.id])}
                       onPageBreakChange={(next) =>
-                        setPageBreakBeforeSection((prev) => ({ ...prev, [section.id]: next }))
+                        setState((s) => {
+                          const pageBreakBefore = { ...s.layout.pageBreakBefore };
+                          if (next) pageBreakBefore[section.id] = true;
+                          else delete pageBreakBefore[section.id];
+                          return {
+                            ...s,
+                            layout: { ...s.layout, v: 1, pageBreakBefore },
+                          };
+                        })
                       }
                       showNameIn={state.personal.showNameIn}
                       onShowNameInChange={(value) =>
@@ -402,7 +398,12 @@ export function GuestStudioEditor({
                   ) : null
                 }
               >
-                <SectionBody section={section.id} state={state} setState={setState} />
+                <SectionBody
+                  section={section.id}
+                  state={state}
+                  setState={setState}
+                  loginHref={loginHref}
+                />
               </SectionCard>
             ))}
           </nav>
@@ -1346,6 +1347,13 @@ function SectionCard({
       )}
     >
       <div className="flex w-full items-center gap-2 px-4 py-[1.05rem] sm:py-[1.15rem] sm:pl-5 sm:pr-4">
+        <span
+          className="inline-flex shrink-0 cursor-grab touch-none text-neutral-300"
+          aria-hidden
+          title="Section order"
+        >
+          <GripVertical className="size-4" />
+        </span>
         {titleEditing ? (
           <div
             className="min-w-0 flex-1"
@@ -1440,7 +1448,9 @@ function isSectionFilled(id: SectionId, s: WizardStateV1): boolean {
       return Boolean(n || s.personal.email.trim());
     }
     case "summary":
-      return Boolean(s.summary.headline.trim() || s.summary.summary.trim());
+      return Boolean(
+        s.summary.headline.trim() || !isProfileDescriptionEmpty(s.summary.summary),
+      );
     case "experience":
       return s.experience.entries.some((e) => e.title.trim() || e.company.trim());
     case "education":
@@ -1472,16 +1482,18 @@ function SectionBody({
   section,
   state,
   setState,
+  loginHref,
 }: {
   section: SectionId;
   state: WizardStateV1;
   setState: Dispatch<SetStateAction<WizardStateV1>>;
+  loginHref: string;
 }) {
   switch (section) {
     case "personal":
       return <PersonalBody state={state} setState={setState} />;
     case "summary":
-      return <SummaryBody state={state} setState={setState} />;
+      return <SummaryBody state={state} setState={setState} loginHref={loginHref} />;
     case "experience":
       return <ExperienceBody state={state} setState={setState} />;
     case "education":
@@ -1642,6 +1654,8 @@ function PersonalBody({ state, setState }: { state: WizardStateV1; setState: Set
     );
   }
 
+  const hasOpenOptional = openPills.size > 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
@@ -1785,23 +1799,28 @@ function PersonalBody({ state, setState }: { state: WizardStateV1; setState: Set
         </Field>
       </div>
 
-      <div className="space-y-3">
+      <Field id="legacy-location" label="Location (short line)" className="gap-1.5">
+        <Input
+          className={softInput}
+          placeholder="Optional: Berlin · Remote (used if address is empty)"
+          value={p.location}
+          onChange={(e) => updatePersonal({ location: e.target.value })}
+        />
+        <p className="text-[0.7rem] text-neutral-500">
+          Shown on the resume if street address and city are not filled.
+        </p>
+      </Field>
+
+      <div className="space-y-3 border-t border-neutral-100 pt-5">
         <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-neutral-500">
           Optional fields
         </p>
-        <div className="flex flex-wrap gap-2">
-          <Pill pillKey="dateOfBirth" label="Date of birth" />
-          <Pill pillKey="placeOfBirth" label="Place of birth" />
-          <Pill pillKey="driversLicense" label="Driver's license" />
-          <Pill pillKey="gender" label="Gender" />
-          <Pill pillKey="nationality" label="Nationality" />
-          <Pill pillKey="civilStatus" label="Civil status" />
-          <Pill pillKey="websitePill" label="Website" />
-          <Pill pillKey="linkedInPill" label="LinkedIn" />
-          <Pill pillKey="custom" label="Custom field" />
-        </div>
-
-        <div className="space-y-4 border-t border-neutral-100 pt-4">
+        <div
+          className={cn(
+            "space-y-4",
+            hasOpenOptional && "border-b border-neutral-100 pb-4",
+          )}
+        >
           {openPills.has("dateOfBirth") ? (
             <Field id="dob" label="Date of birth" className="gap-1.5">
               <Input
@@ -1903,28 +1922,37 @@ function PersonalBody({ state, setState }: { state: WizardStateV1; setState: Set
             </div>
           ) : null}
         </div>
-      </div>
 
-      <Field id="legacy-location" label="Location (short line)" className="gap-1.5">
-        <Input
-          className={softInput}
-          placeholder="Optional: Berlin · Remote (used if address is empty)"
-          value={p.location}
-          onChange={(e) => updatePersonal({ location: e.target.value })}
-        />
-        <p className="text-[0.7rem] text-neutral-500">
-          Shown on the resume if street address and city are not filled.
-        </p>
-      </Field>
+        <div className="flex flex-wrap gap-2">
+          <Pill pillKey="dateOfBirth" label="Date of birth" />
+          <Pill pillKey="placeOfBirth" label="Place of birth" />
+          <Pill pillKey="driversLicense" label="Driver's license" />
+          <Pill pillKey="gender" label="Gender" />
+          <Pill pillKey="nationality" label="Nationality" />
+          <Pill pillKey="civilStatus" label="Civil status" />
+          <Pill pillKey="websitePill" label="Website" />
+          <Pill pillKey="linkedInPill" label="LinkedIn" />
+          <Pill pillKey="custom" label="Custom field" />
+        </div>
+      </div>
     </div>
   );
 }
 
-function SummaryBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
+function SummaryBody({
+  state,
+  setState,
+  loginHref,
+}: {
+  state: WizardStateV1;
+  setState: Setter;
+  loginHref: string;
+}) {
   return (
     <div className="space-y-4">
-      <Field id="headline" label="Headline">
+      <Field id="headline" label="Headline" className="gap-1.5">
         <Input
+          className={softInput}
           placeholder="Product designer · Design systems · B2B SaaS"
           value={state.summary.headline}
           onChange={(e) =>
@@ -1932,20 +1960,25 @@ function SummaryBody({ state, setState }: { state: WizardStateV1; setState: Sett
           }
         />
       </Field>
-      <Field
-        id="summary"
-        label="Professional summary"
-        description="3–5 sentences: strengths, scope, and what you're looking for next."
-      >
-        <Textarea
-          className="min-h-[8rem]"
-          placeholder="Write in first person. Focus on outcomes and scope — not buzzwords."
+      <div className="space-y-1.5">
+        <label
+          htmlFor="guest-profile-description"
+          className="text-[0.7rem] font-medium text-neutral-500"
+        >
+          Description
+        </label>
+        <ProfileDescriptionEditor
+          id="guest-profile-description"
           value={state.summary.summary}
-          onChange={(e) =>
-            setState((s) => ({ ...s, summary: { ...s.summary, summary: e.target.value } }))
+          onChange={(summary) =>
+            setState((s) => ({ ...s, summary: { ...s.summary, summary } }))
           }
+          loginHref={loginHref}
         />
-      </Field>
+        <p className="text-[0.7rem] text-neutral-500">
+          3–5 sentences: strengths, scope, and what you are looking for next.
+        </p>
+      </div>
     </div>
   );
 }

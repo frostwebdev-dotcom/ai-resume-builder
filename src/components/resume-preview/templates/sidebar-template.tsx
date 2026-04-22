@@ -12,6 +12,8 @@ import { mergeTemplateWithStyle } from "@/lib/resume-preview/resume-style";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import { nameShowsInResumeHeader } from "@/lib/resume-preview/name-placement";
+import { resumePageBreakBeforeClass } from "@/lib/resume-preview/page-breaks";
+import { ResumeProfileSummary } from "@/components/resume-preview/resume-profile-summary";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -116,7 +118,10 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
           ) : null}
 
           {hasSkills ? (
-            <section aria-label="Skills">
+            <section
+              aria-label="Skills"
+              className={doc.pageBreakBefore?.skills ? resumePageBreakBeforeClass : undefined}
+            >
               <SidebarHeading accent={effective.accent}>Skills</SidebarHeading>
               <ul className="mt-2 space-y-1 text-[10px]">
                 {doc.skills.map((s, i) => (
@@ -134,7 +139,12 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
           ) : null}
 
           {hasCerts ? (
-            <section aria-label="Certifications">
+            <section
+              aria-label="Certifications"
+              className={
+                doc.pageBreakBefore?.certifications ? resumePageBreakBeforeClass : undefined
+              }
+            >
               <SidebarHeading accent={effective.accent}>Certifications</SidebarHeading>
               <ul className="mt-2 space-y-1.5 text-[10px]">
                 {doc.certifications.map((c) => (
@@ -166,16 +176,26 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
             }}
           >
             {doc.summary ? (
-              <section className="space-y-2">
+              <section
+                className={cn(
+                  "space-y-2",
+                  doc.pageBreakBefore?.summary && resumePageBreakBeforeClass,
+                )}
+              >
                 <ResumeSectionTitle variant={sectionTitle} accent={effective.accentStrong}>
                   Summary
                 </ResumeSectionTitle>
-                <p className="whitespace-pre-wrap text-neutral-800">{doc.summary}</p>
+                <ResumeProfileSummary text={doc.summary} />
               </section>
             ) : null}
 
             {doc.experience.some((e) => e.title || e.company || e.highlights.length) ? (
-              <section className="space-y-3">
+              <section
+                className={cn(
+                  "space-y-3",
+                  doc.pageBreakBefore?.experience && resumePageBreakBeforeClass,
+                )}
+              >
                 <ResumeSectionTitle variant={sectionTitle} accent={effective.accentStrong}>
                   Experience
                 </ResumeSectionTitle>
@@ -223,7 +243,12 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
             ) : null}
 
             {doc.education.some((e) => e.school || e.degreeLine !== "Education") ? (
-              <section className="space-y-2">
+              <section
+                className={cn(
+                  "space-y-2",
+                  doc.pageBreakBefore?.education && resumePageBreakBeforeClass,
+                )}
+              >
                 <ResumeSectionTitle variant={sectionTitle} accent={effective.accentStrong}>
                   Education
                 </ResumeSectionTitle>
@@ -253,7 +278,12 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
             ) : null}
 
             {doc.projects.some((p) => p.name || p.description) ? (
-              <section className="space-y-2">
+              <section
+                className={cn(
+                  "space-y-2",
+                  doc.pageBreakBefore?.projects && resumePageBreakBeforeClass,
+                )}
+              >
                 <ResumeSectionTitle variant={sectionTitle} accent={effective.accentStrong}>
                   Projects
                 </ResumeSectionTitle>
@@ -289,7 +319,12 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
             ) : null}
 
             {doc.additional ? (
-              <section className="space-y-2">
+              <section
+                className={cn(
+                  "space-y-2",
+                  doc.pageBreakBefore?.additional && resumePageBreakBeforeClass,
+                )}
+              >
                 <ResumeSectionTitle variant={sectionTitle} accent={effective.accentStrong}>
                   Additional
                 </ResumeSectionTitle>

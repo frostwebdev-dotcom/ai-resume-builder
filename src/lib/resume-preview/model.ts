@@ -39,6 +39,18 @@ export type ResumeProjectBlock = {
   technologies: string;
 };
 
+/** Hard page breaks before these blocks (preview print + PDF). */
+export type ResumePreviewPageBreakKey =
+  | "summary"
+  | "experience"
+  | "education"
+  | "skills"
+  | "certifications"
+  | "projects"
+  | "additional";
+
+export type ResumePreviewPageBreaks = Partial<Record<ResumePreviewPageBreakKey, boolean>>;
+
 export type ResumePreviewDocument = {
   v: 1;
   identity: {
@@ -65,6 +77,8 @@ export type ResumePreviewDocument = {
   certifications: ResumeCertificationBlock[];
   projects: ResumeProjectBlock[];
   additional: string | null;
+  /** When set, forces a new page before the given body section (if that section renders). */
+  pageBreakBefore?: ResumePreviewPageBreaks | null;
   completeness: {
     hasName: boolean;
     filledSections: string[];

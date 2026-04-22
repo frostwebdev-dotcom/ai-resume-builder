@@ -92,6 +92,30 @@ export type AdditionalInfo = {
   notes: string;
 };
 
+/** Accordion section ids in the guest studio (layout hints use the same keys). */
+export type WizardEditorSectionId =
+  | "personal"
+  | "summary"
+  | "education"
+  | "experience"
+  | "skills"
+  | "languages"
+  | "hobbies"
+  | "courses"
+  | "internships"
+  | "certifications"
+  | "projects"
+  | "additional";
+
+export type WizardLayoutV1 = {
+  v: 1;
+  /**
+   * When true, the mapped preview/PDF block starts on a new page (browser print + PDF export).
+   * Guest-only rows (languages, …) map to the `additional` export block.
+   */
+  pageBreakBefore: Partial<Record<WizardEditorSectionId, boolean>>;
+};
+
 export type WizardStateV1 = {
   v: 1;
   personal: PersonalDetails;
@@ -108,4 +132,5 @@ export type WizardStateV1 = {
   certifications: { entries: CertificationEntry[] };
   projects: { entries: ProjectEntry[] };
   additional: AdditionalInfo;
+  layout: WizardLayoutV1;
 };

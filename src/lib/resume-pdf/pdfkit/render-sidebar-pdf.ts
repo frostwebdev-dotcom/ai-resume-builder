@@ -1,5 +1,9 @@
 import type PDFDocument from "pdfkit";
 
+import {
+  isProfileDescriptionEmpty,
+  profileHtmlToPlainText,
+} from "@/lib/profile-description-html";
 import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
 import type { PdfLayout } from "@/lib/resume-pdf/pdfkit/layouts";
 
@@ -221,7 +225,7 @@ export function renderSidebarPdf(
     state.onOverflow();
   });
 
-  drawMain(pdf, layout, doc, state);
+  drawMain(pdf, layout, doc, state, mainPad);
 }
 
 type MainState = {
@@ -230,6 +234,20 @@ type MainState = {
   pageBottom: number;
   onOverflow: () => void;
 };
+
+function applyMainHardPageBreak(
+  pdf: Pdf,
+  state: MainState,
+  mainPad: number,
+  breaks: ResumePreviewDocument["pageBreakBefore"],
+  key: keyof NonNullable<typeof breaks>,
+  willRender: boolean,
+): void {
+  if (!willRender || !breaks?.[key]) return;
+  pdf.addPage();
+  pdf.x = state.left;
+  pdf.y = mainPad;
+}
 
 function drawSidebarHeading(
   pdf: Pdf,
@@ -335,11 +353,15 @@ function drawMain(
   layout: PdfLayout,
   docData: ResumePreviewDocument,
   state: MainState,
+  mainPad: number,
 ): void {
+  const pb = docData.pageBreakBefore;
+
   // Summary
-  if (docData.summary?.trim()) {
+  if (docData.summary && !isProfileDescriptionEmpty(docData.summary)) {
+    applyMainHardPageBreak(pdf, state, mainPad, pb, "summary", true);
     mainSectionTitle(pdf, layout, state, "Summary");
-    mainParagraph(pdf, layout, state, docData.summary.trim());
+    mainParagraph(pdf, layout, state, profileHtmlToPlainText(docData.summary));
     pdf.moveDown(0.25);
   }
 
@@ -348,6 +370,7 @@ function drawMain(
     (e) => e.title || e.company || e.highlights.length,
   );
   if (hasExp) {
+    applyMainHardPageBreak(pdf, state, mainPad, pb, "experience", true);
     mainSectionTitle(pdf, layout, state, "Experience");
     for (const ex of docData.experience) {
       if (!ex.title && !ex.company && ex.highlights.length === 0) continue;
@@ -402,6 +425,7 @@ function drawMain(
     (e) => e.school || e.degreeLine !== "Education" || e.dateRange,
   );
   if (hasEdu) {
+    applyMainHardPageBreak(pdf, state, mainPad, pb, "education", true);
     mainSectionTitle(pdf, layout, state, "Education");
     for (const ed of docData.education) {
       if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
@@ -444,6 +468,7 @@ function drawMain(
   // Projects
   const hasProj = docData.projects.some((p) => p.name || p.description);
   if (hasProj) {
+    applyMainHardPageBreak(pdf, state, mainPad, pb, "projects", true);
     mainSectionTitle(pdf, layout, state, "Projects");
     for (const p of docData.projects) {
       if (!p.name && !p.description) continue;
@@ -476,6 +501,7 @@ function drawMain(
   }
 
   if (docData.additional?.trim()) {
+    applyMainHardPageBreak(pdf, state, mainPad, pb, "additional", true);
     mainSectionTitle(pdf, layout, state, "Additional");
     mainParagraph(pdf, layout, state, docData.additional.trim());
   }

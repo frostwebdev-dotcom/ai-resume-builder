@@ -14,6 +14,8 @@ import {
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme, type TemplateTheme } from "@/lib/resume-preview/template-theme";
 import { nameShowsInResumeHeader } from "@/lib/resume-preview/name-placement";
+import { resumePageBreakBeforeClass } from "@/lib/resume-preview/page-breaks";
+import { ResumeProfileSummary } from "@/components/resume-preview/resume-profile-summary";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -361,16 +363,28 @@ function Body({
       }}
     >
       {doc.summary ? (
-        <section className="space-y-2" style={{ lineHeight: effective.lineHeight }}>
+        <section
+          className={cn(
+            "space-y-2",
+            doc.pageBreakBefore?.summary && resumePageBreakBeforeClass,
+          )}
+          style={{ lineHeight: effective.lineHeight }}
+        >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Summary
           </ResumeSectionTitle>
-          <p className="whitespace-pre-wrap text-neutral-800">{doc.summary}</p>
+          <ResumeProfileSummary text={doc.summary} />
         </section>
       ) : null}
 
       {doc.experience.some((e) => e.title || e.company || e.highlights.length) ? (
-        <section className="space-y-3" style={{ lineHeight: effective.lineHeight }}>
+        <section
+          className={cn(
+            "space-y-3",
+            doc.pageBreakBefore?.experience && resumePageBreakBeforeClass,
+          )}
+          style={{ lineHeight: effective.lineHeight }}
+        >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Experience
           </ResumeSectionTitle>
@@ -430,7 +444,9 @@ function Body({
       ) : null}
 
       {doc.education.some((e) => e.school || e.degreeLine !== "Education") ? (
-        <section className="space-y-2">
+        <section
+          className={cn("space-y-2", doc.pageBreakBefore?.education && resumePageBreakBeforeClass)}
+        >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Education
           </ResumeSectionTitle>
@@ -460,7 +476,9 @@ function Body({
       {twoCol ? (
         <div className="grid gap-5 sm:grid-cols-2 sm:gap-6">
           {doc.skills.length > 0 ? (
-            <section className="space-y-2">
+            <section
+              className={cn("space-y-2", doc.pageBreakBefore?.skills && resumePageBreakBeforeClass)}
+            >
               <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
                 Skills
               </ResumeSectionTitle>
@@ -470,7 +488,12 @@ function Body({
             </section>
           ) : null}
           {doc.certifications.some((c) => c.name || c.issuer) ? (
-            <section className="space-y-2">
+            <section
+              className={cn(
+                "space-y-2",
+                doc.pageBreakBefore?.certifications && resumePageBreakBeforeClass,
+              )}
+            >
               <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
                 Certifications
               </ResumeSectionTitle>
@@ -495,7 +518,9 @@ function Body({
       ) : (
         <>
           {doc.skills.length > 0 ? (
-            <section className="space-y-2">
+            <section
+              className={cn("space-y-2", doc.pageBreakBefore?.skills && resumePageBreakBeforeClass)}
+            >
               <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
                 Skills
               </ResumeSectionTitle>
@@ -503,7 +528,12 @@ function Body({
             </section>
           ) : null}
           {doc.certifications.some((c) => c.name || c.issuer) ? (
-            <section className="space-y-2">
+            <section
+              className={cn(
+                "space-y-2",
+                doc.pageBreakBefore?.certifications && resumePageBreakBeforeClass,
+              )}
+            >
               <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
                 Certifications
               </ResumeSectionTitle>
@@ -528,7 +558,9 @@ function Body({
       )}
 
       {doc.projects.some((p) => p.name || p.description) ? (
-        <section className="space-y-2">
+        <section
+          className={cn("space-y-2", doc.pageBreakBefore?.projects && resumePageBreakBeforeClass)}
+        >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Projects
           </ResumeSectionTitle>
@@ -564,7 +596,9 @@ function Body({
       ) : null}
 
       {doc.additional ? (
-        <section className="space-y-2">
+        <section
+          className={cn("space-y-2", doc.pageBreakBefore?.additional && resumePageBreakBeforeClass)}
+        >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Additional
           </ResumeSectionTitle>

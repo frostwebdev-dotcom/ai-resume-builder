@@ -197,6 +197,12 @@ export const wizardStateSchema = z.object({
   additional: z.object({
     notes: z.string().trim().max(6000),
   }),
+  layout: z
+    .object({
+      v: z.literal(1),
+      pageBreakBefore: z.record(z.string(), z.boolean()).optional().default({}),
+    })
+    .default({ v: 1, pageBreakBefore: {} }),
 });
 
 /** Stricter validation for step 1 (before leaving Personal). */

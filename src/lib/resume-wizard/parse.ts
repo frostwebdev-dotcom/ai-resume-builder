@@ -94,6 +94,21 @@ export function hydrateWizardState(raw: unknown): WizardStateV1 {
         ? (o.additional as WizardStateV1["additional"])
         : {}),
     },
+    layout: {
+      ...defaults.layout,
+      ...(typeof o.layout === "object" && o.layout !== null
+        ? (o.layout as WizardStateV1["layout"])
+        : {}),
+      pageBreakBefore: {
+        ...defaults.layout.pageBreakBefore,
+        ...(typeof o.layout === "object" &&
+        o.layout !== null &&
+        typeof (o.layout as { pageBreakBefore?: unknown }).pageBreakBefore === "object" &&
+        (o.layout as { pageBreakBefore?: unknown }).pageBreakBefore !== null
+          ? ((o.layout as { pageBreakBefore: Record<string, boolean> }).pageBreakBefore ?? {})
+          : {}),
+      },
+    },
   };
 
   const parsed = wizardStateSchema.safeParse(merged);

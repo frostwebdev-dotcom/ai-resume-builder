@@ -1,5 +1,9 @@
 import PDFDocument from "pdfkit";
 
+import {
+  isProfileDescriptionEmpty,
+  profileHtmlToPlainText,
+} from "@/lib/profile-description-html";
 import type { ResumeContactLine, ResumePreviewDocument } from "@/lib/resume-preview/model";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
@@ -28,6 +32,20 @@ function ensureSpace(doc: Pdf, layout: PdfLayout, minHeight: number): void {
     doc.addPage();
     doc.y = layout.pageMargin;
   }
+}
+
+/** User-requested page break before a body section (ignored if that section does not render). */
+function applyHardPageBreak(
+  doc: Pdf,
+  layout: PdfLayout,
+  breaks: ResumePreviewDocument["pageBreakBefore"],
+  key: keyof NonNullable<typeof breaks>,
+  willRender: boolean,
+): void {
+  if (!willRender || !breaks?.[key]) return;
+  doc.addPage();
+  doc.y = layout.pageMargin;
+  doc.x = layout.pageMargin;
 }
 
 function normaliseUrl(raw: string): string | null {
@@ -364,9 +382,12 @@ function renderHeader(
 }
 
 function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument): void {
-  if (docData.summary?.trim()) {
+  const pb = docData.pageBreakBefore;
+
+  if (docData.summary && !isProfileDescriptionEmpty(docData.summary)) {
+    applyHardPageBreak(doc, layout, pb, "summary", true);
     writeSectionTitle(doc, layout, "Summary");
-    writeParagraph(doc, layout, docData.summary.trim());
+    writeParagraph(doc, layout, profileHtmlToPlainText(docData.summary));
     doc.moveDown(0.25);
   }
 
@@ -374,6 +395,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
     (e) => e.title || e.company || e.highlights.length,
   );
   if (hasExp) {
+    applyHardPageBreak(doc, layout, pb, "experience", true);
     writeSectionTitle(doc, layout, "Experience");
     for (const ex of docData.experience) {
       if (!ex.title && !ex.company && ex.highlights.length === 0) continue;
@@ -425,6 +447,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
     (e) => e.school || e.degreeLine !== "Education" || e.dateRange,
   );
   if (hasEdu) {
+    applyHardPageBreak(doc, layout, pb, "education", true);
     writeSectionTitle(doc, layout, "Education");
     for (const ed of docData.education) {
       if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
@@ -466,12 +489,14 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
   }
 
   if (docData.skills.length) {
+    applyHardPageBreak(doc, layout, pb, "skills", true);
     writeSectionTitle(doc, layout, "Skills");
     writeParagraph(doc, layout, docData.skills.join("  ·  "));
   }
 
   const hasCert = docData.certifications.some((c) => c.name || c.issuer);
   if (hasCert) {
+    applyHardPageBreak(doc, layout, pb, "certifications", true);
     writeSectionTitle(doc, layout, "Certifications");
     for (const c of docData.certifications) {
       if (!c.name && !c.issuer) continue;
@@ -504,6 +529,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
 
   const hasProj = docData.projects.some((p) => p.name || p.description);
   if (hasProj) {
+    applyHardPageBreak(doc, layout, pb, "projects", true);
     writeSectionTitle(doc, layout, "Projects");
     for (const p of docData.projects) {
       if (!p.name && !p.description) continue;
@@ -552,6 +578,7 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
   }
 
   if (docData.additional?.trim()) {
+    applyHardPageBreak(doc, layout, pb, "additional", true);
     writeSectionTitle(doc, layout, "Additional");
     writeParagraph(doc, layout, docData.additional.trim());
   }

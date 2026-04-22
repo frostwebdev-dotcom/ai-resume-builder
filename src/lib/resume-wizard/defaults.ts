@@ -95,5 +95,9 @@ export function createEmptyWizardState(): WizardStateV1 {
       ],
     },
     additional: { notes: "" },
+    layout: {
+      v: 1,
+      pageBreakBefore: {},
+    },
   };
 }

@@ -1,4 +1,6 @@
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
+import { isProfileDescriptionEmpty } from "@/lib/profile-description-html";
+import { buildPageBreaksFromWizard } from "@/lib/resume-preview/page-breaks";
 
 import {
   formatCertDate,
@@ -38,7 +40,8 @@ export function mapWizardToPreviewDocument(
   const fullName = composedFullName(p);
   const fromJob = p.useJobPositionAsHeadline && p.desiredJobPosition.trim();
   const headline = (fromJob ? p.desiredJobPosition : wizard.summary.headline).trim();
-  const summary = wizard.summary.summary.trim() || null;
+  const summaryBody = wizard.summary.summary.trim();
+  const summary = isProfileDescriptionEmpty(summaryBody) ? null : summaryBody;
 
   const placement = p.showNameIn ?? "title";
   const contactLines: ResumePreviewDocument["contact"]["lines"] = [];
@@ -162,6 +165,8 @@ export function mapWizardToPreviewDocument(
   if (wizard.internships?.lines?.trim()) filledSections.push("internships");
   if (additional) filledSections.push("additional");
 
+  const pageBreakBefore = buildPageBreaksFromWizard(wizard);
+
   return {
     v: 1,
     identity: {
@@ -180,6 +185,7 @@ export function mapWizardToPreviewDocument(
     certifications,
     projects,
     additional,
+    ...(pageBreakBefore ? { pageBreakBefore } : {}),
     completeness: {
       hasName: Boolean(fullName),
       filledSections,
