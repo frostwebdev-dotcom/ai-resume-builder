@@ -49,7 +49,10 @@ import {
 import { createEmptyWizardState } from "@/lib/resume-wizard/defaults";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 import { CREATE_RESUME_POST_AUTH_NEXT, ROUTES } from "@/lib/constants";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  createSupabaseBrowserClient,
+  hasSupabaseBrowserConfig,
+} from "@/lib/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
@@ -187,6 +190,7 @@ export function GuestCreateClient() {
   const [browserHasSession, setBrowserHasSession] = useState(false);
 
   useEffect(() => {
+    if (!hasSupabaseBrowserConfig()) return;
     const supabase = createSupabaseBrowserClient();
     void supabase.auth.getSession().then(({ data }) => setBrowserHasSession(Boolean(data.session)));
     const {
@@ -201,6 +205,10 @@ export function GuestCreateClient() {
     if (postAuthHandled.current) return;
     if (searchParams.get("signedIn") !== "1") return;
     postAuthHandled.current = true;
+    if (!hasSupabaseBrowserConfig()) {
+      router.replace(ROUTES.create, { scroll: false });
+      return;
+    }
     const supabase = createSupabaseBrowserClient();
     void supabase.auth.getUser().then(({ data: { user } }) => {
       router.replace(ROUTES.create, { scroll: false });
