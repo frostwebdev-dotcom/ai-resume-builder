@@ -22,6 +22,8 @@ type UserMenuProps = {
   email: string;
   isAdmin: boolean;
   variant?: "default" | "icon";
+  /** Dark sidebar trigger (dashboard shell). */
+  tone?: "default" | "inverse";
 };
 
 function LogoutItem() {
@@ -40,8 +42,14 @@ function LogoutItem() {
   );
 }
 
-export function UserMenu({ email, isAdmin, variant = "default" }: UserMenuProps) {
+export function UserMenu({
+  email,
+  isAdmin,
+  variant = "default",
+  tone = "default",
+}: UserMenuProps) {
   const display = email.length > 28 ? `${email.slice(0, 26)}…` : email;
+  const inverse = tone === "inverse";
 
   return (
     <DropdownMenu>
@@ -51,6 +59,8 @@ export function UserMenu({ email, isAdmin, variant = "default" }: UserMenuProps)
           buttonVariants({ variant: "outline", size: variant === "icon" ? "icon-sm" : "sm" }),
           variant === "default" && "max-w-full justify-start gap-2",
           variant === "icon" && "shrink-0",
+          inverse &&
+            "border-white/25 bg-white/5 text-zinc-100 hover:bg-white/10 hover:text-white dark:border-white/25 dark:bg-white/5",
         )}
         aria-label="Account menu"
       >

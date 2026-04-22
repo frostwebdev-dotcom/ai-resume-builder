@@ -1,4 +1,4 @@
-import { AppShell } from "@/components/layout/app-shell";
+import { AppAreaShell } from "@/components/layout/app-area-shell";
 import { requireUser } from "@/lib/auth/guards";
 
 export const dynamic = "force-dynamic";
@@ -11,13 +11,13 @@ export default async function AppAreaLayout({
   const { user, profile } = await requireUser();
 
   return (
-    <AppShell
+    <AppAreaShell
       user={{
         email: user.email ?? "",
         isAdmin: profile.role === "admin",
       }}
     >
       {children}
-    </AppShell>
+    </AppAreaShell>
   );
 }

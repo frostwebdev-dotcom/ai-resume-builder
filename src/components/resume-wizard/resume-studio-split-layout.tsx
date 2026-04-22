@@ -31,11 +31,11 @@ export function ResumeStudioSplitLayout({
   mobileFab,
 }: ResumeStudioSplitLayoutProps) {
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+    <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
       {/* Left: editor */}
       <div
         className={cn(
-          "min-h-0 overflow-y-auto border-border/70 bg-white lg:border-r",
+          "min-h-0 overflow-y-auto overscroll-y-contain border-border/70 bg-white lg:border-r",
           // On mobile the preview is a separate toggle-able pane — show
           // the editor full height by default so there is no outer scroll.
           focusMode ? "hidden" : "block",
@@ -48,7 +48,7 @@ export function ResumeStudioSplitLayout({
       {/* Right: preview */}
       <div
         className={cn(
-          "relative flex min-h-0 flex-col transition-[background-color] duration-300 ease-out",
+          "relative flex min-h-0 flex-col overflow-y-auto overscroll-y-contain transition-[background-color] duration-300 ease-out",
           focusMode ? "col-span-full" : "",
           !mobilePreviewOpen && !focusMode ? "hidden lg:flex" : "flex",
         )}

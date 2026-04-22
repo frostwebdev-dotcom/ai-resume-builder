@@ -2,18 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UserRound } from "lucide-react";
+import { Briefcase, FileText, LayoutDashboard, UserRound } from "lucide-react";
 
+import { dashboardSidebarActive } from "@/components/projects/dashboard-cv-wizard-grid";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 
 const items = [
-  { href: ROUTES.app.root, label: "Dashboard", icon: LayoutDashboard },
+  { href: ROUTES.app.root, label: "Home", icon: LayoutDashboard },
+  { href: ROUTES.app.resumes, label: "Resumes", icon: FileText },
+  { href: ROUTES.app.jobs, label: "Jobs", icon: Briefcase },
   { href: ROUTES.app.account, label: "Account", icon: UserRound },
 ] as const;
 
 /**
- * Thumb-zone navigation — Account opens profile shell.
+ * Thumb-zone navigation — subset of desktop sidebar for small screens.
  */
 export function AppBottomNav() {
   const pathname = usePathname();
@@ -23,20 +26,19 @@ export function AppBottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/85 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))] pt-2 backdrop-blur-md supports-[backdrop-filter]:bg-background/75 md:hidden"
       aria-label="Primary"
     >
-      <ul className="mx-auto flex max-w-md items-stretch justify-around px-2">
+      <ul className="mx-auto flex max-w-lg items-stretch justify-around px-1">
         {items.map(({ href, label, icon: Icon }) => {
           const active =
-            href === ROUTES.app.root
-              ? pathname === ROUTES.app.root ||
-                pathname.startsWith("/app/projects/")
-              : pathname === href || pathname.startsWith(`${href}/`);
+            href === ROUTES.app.account
+              ? pathname === href || pathname.startsWith(`${href}/`)
+              : dashboardSidebarActive(pathname, href);
           return (
             <li key={href} className="flex min-w-0 flex-1 justify-center">
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-[3.25rem] min-w-[3.25rem] flex-col items-center justify-center gap-1 rounded-xl px-3 py-2 text-[0.7rem] font-medium transition-all",
+                  "flex min-h-[3.25rem] min-w-0 max-w-[5.5rem] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-[0.65rem] font-medium leading-tight transition-all",
                   active
                     ? "bg-brand-muted text-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -44,12 +46,12 @@ export function AppBottomNav() {
               >
                 <Icon
                   className={cn(
-                    "size-6 transition-colors",
+                    "size-5 shrink-0 transition-colors",
                     active ? "text-brand" : "opacity-70",
                   )}
                   aria-hidden
                 />
-                <span className="truncate">{label}</span>
+                <span className="line-clamp-2 text-center">{label}</span>
               </Link>
             </li>
           );

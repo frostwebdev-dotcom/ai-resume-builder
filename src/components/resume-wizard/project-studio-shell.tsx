@@ -11,17 +11,17 @@ import {
   useTransition,
   type SetStateAction,
 } from "react";
-import { ArrowLeft, Eye, Loader2, Redo2, Undo2 } from "lucide-react";
+import { Download, Loader2, Redo2, Undo2 } from "lucide-react";
 
 import { AutosaveStatusChip } from "@/components/resume-wizard/autosave-status-chip";
 import { GuestStudioEditor } from "@/components/resume-wizard/guest-studio-editor";
-import { JobTargetPanel } from "@/components/resume-wizard/job-target-panel";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { FeedbackBanner } from "@/components/ui/feedback-banner";
 import { useCoalescedHistory } from "@/hooks/use-guest-studio-store";
 import { useUnsavedWarning } from "@/hooks/use-unsaved-warning";
 import { useWizardAutosave } from "@/hooks/use-wizard-autosave";
 import { ROUTES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import type { TailoringCompareV1 } from "@/lib/job-target/types";
 import type { JobTargetClientView } from "@/lib/job-target/client-types";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
@@ -40,8 +40,8 @@ export type ProjectStudioShellProps = {
 };
 
 /**
- * Signed-in project draft using the same studio UI as `/create`, with draft JSON persisted via
- * `useWizardAutosave` / `saveWizardDraftAction` and template + appearance via existing project actions.
+ * Signed-in project draft: same studio chrome as public `/create` (dark top bar + white editor),
+ * with draft JSON persisted via `useWizardAutosave` and template + appearance via project actions.
  */
 export function ProjectStudioShell({
   projectId,
@@ -59,11 +59,6 @@ export function ProjectStudioShell({
   const [templateSlug, setTemplateSlug] = useState<TemplateSlug>(serverTemplateSlug);
   const [resumeStyle, setResumeStyle] = useState<ResumeStyleV1>(initialResumeStyle);
 
-  const [jobSnapshot, setJobSnapshot] = useState({
-    title: initialJobTarget?.title ?? null,
-    company: initialJobTarget?.company ?? null,
-    jobDescription: initialJobTarget?.jobDescription ?? null,
-  });
   const [tailoringCompare, setTailoringCompare] = useState<TailoringCompareV1 | null>(
     initialJobTarget?.tailoringCompare ?? null,
   );
@@ -73,14 +68,8 @@ export function ProjectStudioShell({
   }, [content]);
 
   useEffect(() => {
-    setJobSnapshot({
-      title: initialJobTarget?.title ?? null,
-      company: initialJobTarget?.company ?? null,
-      jobDescription: initialJobTarget?.jobDescription ?? null,
-    });
     setTailoringCompare(initialJobTarget?.tailoringCompare ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset job snapshot when switching projects
-  }, [projectId]);
+  }, [projectId, initialJobTarget?.tailoringCompare]);
 
   useEffect(() => {
     setTemplateSlug(serverTemplateSlug);
@@ -98,7 +87,7 @@ export function ProjectStudioShell({
 
   useUnsavedWarning(isDirty);
 
-  const hasSavedJobTarget = (jobSnapshot.jobDescription?.trim().length ?? 0) > 0;
+  const hasSavedJobTarget = (initialJobTarget?.jobDescription?.trim().length ?? 0) > 0;
 
   const updateContentWithHistory = useCallback(
     (updater: SetStateAction<WizardStateV1>) => {
@@ -201,71 +190,84 @@ export function ProjectStudioShell({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="space-y-5 border-b border-border/70 pb-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <header className="shrink-0 border-b border-black/30 bg-[#17191d] pt-[env(safe-area-inset-top,0px)] text-white">
+        <div className="grid h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 px-2 sm:h-14 sm:gap-x-3 sm:px-4">
+          <div className="flex min-w-0 items-center justify-self-start">
             <Link
               href={ROUTES.app.project(projectId)}
-              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline sm:min-h-0"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "h-8 gap-1.5 rounded-full px-3 text-xs text-slate-200 hover:bg-white/10 hover:text-white",
+              )}
+              aria-label="Back to project"
             >
-              <ArrowLeft className="size-4" aria-hidden />
-              Back to project
+              <span className="text-base leading-none">←</span>
+              Project
             </Link>
+          </div>
+
+          <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100vw-7.5rem))] justify-self-center sm:max-w-[min(32rem,calc(100vw-11rem))]">
+            <div className="flex w-full min-w-0 items-end justify-center gap-2.5 sm:gap-3">
+              <p
+                className="min-w-0 max-w-full truncate border-b-2 border-[#3b82f6] px-0.5 pb-0.5 text-center text-xs font-normal text-slate-100 sm:text-sm"
+                title={projectTitle}
+                id="project-draft-title"
+              >
+                {projectTitle}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-wrap items-center justify-end justify-self-end gap-x-1 gap-y-1.5 sm:gap-x-2">
+            <div className="order-first flex min-w-0 basis-full justify-end sm:order-last sm:basis-auto sm:justify-end">
+              <AutosaveStatusChip
+                context="project"
+                status={saveStatus}
+                lastError={lastError}
+                onRetry={retry}
+                surface="dark"
+                className="max-w-[min(11rem,calc(100vw-8rem))] sm:max-w-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleUndoContent}
+              disabled={!contentHistory.canUndo}
+              className="inline-flex size-8 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+              aria-label="Undo"
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 className="size-4" aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={handleRedoContent}
+              disabled={!contentHistory.canRedo}
+              className="inline-flex size-8 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+              aria-label="Redo"
+              title="Redo (Ctrl+Shift+Z)"
+            >
+              <Redo2 className="size-4" aria-hidden />
+            </button>
             <Link
               href={previewHref}
-              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand underline-offset-4 transition-colors hover:underline sm:min-h-0"
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "h-8 gap-1.5 rounded-full bg-[#2268d7] px-3 text-xs font-semibold hover:bg-[#1f5fca]",
+              )}
+              aria-label="Open Preview and export"
             >
-              <Eye className="size-4" aria-hidden />
+              <Download className="size-3.5" aria-hidden />
               Preview &amp; export
             </Link>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0 gap-1.5"
-              disabled={!contentHistory.canUndo}
-              onClick={handleUndoContent}
-              aria-label="Undo edit"
-            >
-              <Undo2 className="size-4" aria-hidden />
-              <span className="hidden sm:inline">Undo</span>
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0 gap-1.5"
-              disabled={!contentHistory.canRedo}
-              onClick={handleRedoContent}
-              aria-label="Redo edit"
-            >
-              <Redo2 className="size-4" aria-hidden />
-              <span className="hidden sm:inline">Redo</span>
-            </Button>
-            <AutosaveStatusChip
-              context="project"
-              status={saveStatus}
-              lastError={lastError}
-              onRetry={retry}
-            />
-          </div>
         </div>
-        <div>
-          <p className="text-eyebrow">Draft</p>
-          <h1 className="mt-2 text-headline text-foreground">{projectTitle}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Edit in studio view with a live preview. When you are ready, open Preview &amp; export to
-            choose a template and export a PDF.
-          </p>
-        </div>
-      </div>
+      </header>
 
       {templatePending ? (
         <p
-          className="mt-4 inline-flex items-center gap-2 text-sm text-muted-foreground"
+          className="inline-flex shrink-0 items-center gap-2 border-b border-border/60 bg-muted/30 px-4 py-2 text-sm text-muted-foreground"
           role="status"
           aria-live="polite"
         >
@@ -275,28 +277,18 @@ export function ProjectStudioShell({
       ) : null}
 
       {templateError ? (
-        <div className="mt-4">
+        <div className="shrink-0 border-b border-border/60 px-4 py-3">
           <FeedbackBanner tone="error" title="Could not update template" description={templateError} />
         </div>
       ) : null}
 
       {styleError ? (
-        <div className="mt-4">
+        <div className="shrink-0 border-b border-border/60 px-4 py-3">
           <FeedbackBanner tone="error" title="Could not save appearance" description={styleError} />
         </div>
       ) : null}
 
-      <div className="mt-6 min-h-0 flex-1 border-y border-border/70 bg-white">
-        <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:max-w-none lg:px-8">
-          <JobTargetPanel
-            key={projectId}
-            projectId={projectId}
-            initialTitle={jobSnapshot.title}
-            initialCompany={jobSnapshot.company}
-            initialJobDescription={jobSnapshot.jobDescription}
-            onSaved={(payload) => setJobSnapshot(payload)}
-          />
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <GuestStudioEditor
           content={content}
           onContentChange={updateContentWithHistory}

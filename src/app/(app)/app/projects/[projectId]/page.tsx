@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Eye, NotebookPen } from "lucide-react";
+import { ArrowLeft, NotebookPen } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { ProjectDetailActions } from "@/components/projects/project-detail-actions";
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: detail.project.title,
     description:
-      "Resume project hub: Draft opens the studio editor (same layout as the public builder), or use Preview & export for template, appearance, and PDF.",
+      "Resume project hub: open Draft for the studio editor with live preview and autosave to this project.",
   };
 }
 
@@ -80,10 +80,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             <ProjectDetailActions detail={detail} />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="max-w-xl">
             <Link
               href={ROUTES.app.projectBuild(projectId)}
-              className="group/card relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-soft transition-all hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevated sm:p-7"
+              className="group/card relative block overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-soft transition-all hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevated sm:p-7"
             >
               <div
                 className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand/8 blur-3xl transition-opacity group-hover/card:opacity-100"
@@ -99,8 +99,8 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 <div className="min-w-0">
                   <h2 className="text-subhead text-foreground">Draft</h2>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    Studio editor with live preview—the same experience as before you sign in. Autosaves to this
-                    project; use Preview &amp; export for template and PDF.
+                    Studio editor with live preview—the same experience as before you sign in. Your work autosaves to
+                    this project.
                   </p>
                   <span
                     className={cn(
@@ -109,37 +109,6 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                     )}
                   >
                     Open draft →
-                  </span>
-                </div>
-              </div>
-            </Link>
-            <Link
-              href={ROUTES.app.projectPreview(projectId)}
-              className="group/card relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-soft transition-all hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-elevated sm:p-7"
-            >
-              <div
-                className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-info/10 blur-3xl"
-                aria-hidden
-              />
-              <div className="relative flex items-start gap-4">
-                <span
-                  className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-info/10 text-info ring-1 ring-info/20"
-                  aria-hidden
-                >
-                  <Eye className="size-5" />
-                </span>
-                <div className="min-w-0">
-                  <h2 className="text-subhead text-foreground">Preview &amp; export</h2>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    Choose a template and appearance, then export a PDF when you are ready.
-                  </p>
-                  <span
-                    className={cn(
-                      buttonVariants({ size: "sm", variant: "outline" }),
-                      "mt-5 group-hover/card:border-brand/40 group-hover/card:text-brand",
-                    )}
-                  >
-                    Open Preview &amp; export →
                   </span>
                 </div>
               </div>
