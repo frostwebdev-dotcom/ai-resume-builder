@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Briefcase, FileText, LayoutDashboard, UserRound } from "lucide-react";
 
+import { useAppLoginPanel } from "@/components/layout/app-login-panel";
 import { dashboardSidebarActive } from "@/components/projects/dashboard-workspace-grid";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
@@ -25,6 +26,7 @@ type AppBottomNavProps = {
  */
 export function AppBottomNav({ guest = false }: AppBottomNavProps) {
   const pathname = usePathname();
+  const { openLogin } = useAppLoginPanel();
 
   return (
     <nav
@@ -33,35 +35,51 @@ export function AppBottomNav({ guest = false }: AppBottomNavProps) {
     >
       <ul className="mx-auto flex max-w-lg items-stretch justify-around px-1">
         {items.map(({ href, label, icon: Icon }) => {
-          const resolvedHref =
-            guest && href === ROUTES.app.account
-              ? `${ROUTES.auth.login}?next=${encodeURIComponent(ROUTES.app.account)}`
-              : href;
+          const accountGuest = guest && href === ROUTES.app.account;
           const active =
             href === ROUTES.app.account
               ? pathname === href || pathname.startsWith(`${href}/`)
               : dashboardSidebarActive(pathname, href);
+          const itemClass = cn(
+            "flex min-h-[3.25rem] min-w-0 max-w-[5.5rem] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-[0.65rem] font-medium leading-tight transition-all",
+            active
+              ? "bg-brand-muted text-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          );
           return (
             <li key={href} className="flex min-w-0 flex-1 justify-center">
-              <Link
-                href={resolvedHref}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex min-h-[3.25rem] min-w-0 max-w-[5.5rem] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-[0.65rem] font-medium leading-tight transition-all",
-                  active
-                    ? "bg-brand-muted text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Icon
-                  className={cn(
-                    "size-5 shrink-0 transition-colors",
-                    active ? "text-brand" : "opacity-70",
-                  )}
-                  aria-hidden
-                />
-                <span className="line-clamp-2 text-center">{label}</span>
-              </Link>
+              {accountGuest ? (
+                <button
+                  type="button"
+                  onClick={() => openLogin(ROUTES.app.account)}
+                  aria-current={active ? "page" : undefined}
+                  className={itemClass}
+                >
+                  <Icon
+                    className={cn(
+                      "size-5 shrink-0 transition-colors",
+                      active ? "text-brand" : "opacity-70",
+                    )}
+                    aria-hidden
+                  />
+                  <span className="line-clamp-2 text-center">{label}</span>
+                </button>
+              ) : (
+                <Link
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={itemClass}
+                >
+                  <Icon
+                    className={cn(
+                      "size-5 shrink-0 transition-colors",
+                      active ? "text-brand" : "opacity-70",
+                    )}
+                    aria-hidden
+                  />
+                  <span className="line-clamp-2 text-center">{label}</span>
+                </Link>
+              )}
             </li>
           );
         })}

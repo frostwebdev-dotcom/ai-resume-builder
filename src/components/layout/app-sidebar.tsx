@@ -6,6 +6,7 @@ import { CircleHelp, Plus, UserRound } from "lucide-react";
 
 import { UserMenu } from "@/components/auth/user-menu";
 import type { AppShellUser } from "@/components/layout/app-shell";
+import { useAppLoginPanel } from "@/components/layout/app-login-panel";
 import {
   SidebarToggleButton,
   useSidebarVisibility,
@@ -24,6 +25,7 @@ type AppSidebarProps = {
 export function AppSidebar({ user }: AppSidebarProps) {
   const pathname = usePathname();
   const { collapsed: isCollapsed } = useSidebarVisibility();
+  const { openLogin } = useAppLoginPanel();
 
   return (
     <aside
@@ -111,14 +113,15 @@ export function AppSidebar({ user }: AppSidebarProps) {
           {user ? (
             <UserMenu email={user.email} isAdmin={user.isAdmin} tone="inverse" />
           ) : (
-            <Link
-              href={`${ROUTES.auth.login}?next=${encodeURIComponent(ROUTES.app.root)}`}
+            <button
+              type="button"
+              onClick={() => openLogin(ROUTES.app.root)}
               aria-label="Log in to your account"
-              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-100"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-100"
             >
               <UserRound className="size-4 shrink-0 opacity-90" aria-hidden />
               Log in
-            </Link>
+            </button>
           )}
         </div>
       </div>
