@@ -1,5 +1,6 @@
 import PDFDocument from "pdfkit";
 
+import { APP_NAME } from "@/lib/constants";
 import {
   isProfileDescriptionEmpty,
   profileHtmlToPlainText,
@@ -611,7 +612,7 @@ export function renderResumePdfBuffer(
       info: {
         Title: docData.identity.fullName.trim() || "Resume",
         Author: docData.identity.fullName.trim() || "Resume",
-        Creator: "AI Resume Builder",
+        Creator: APP_NAME,
         Subject: docData.identity.headline.trim() || "Resume",
       },
     });

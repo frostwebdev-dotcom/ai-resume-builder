@@ -6,17 +6,18 @@ import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ROUTES } from "@/lib/constants";
+import { APP_NAME, ROUTES } from "@/lib/constants";
 
-export const metadata: Metadata = {
-  title: "FAQ",
-  description:
-    "Frequently asked questions about AI Resume Builder — pricing, privacy, ATS, exports, and account basics.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "FAQ",
+    description: `Frequently asked questions about ${APP_NAME} — pricing, privacy, ATS, exports, and account basics.`,
+  };
+}
 
 const faqs = [
   {
-    q: "Is AI Resume Builder free to try?",
+    q: `Is ${APP_NAME} free to try?`,
     a: "Yes. You can build and preview your resume without paying. You only pay when you export your final PDF.",
   },
   {
@@ -43,7 +44,7 @@ const faqs = [
     q: "How do refunds work?",
     a: "We aim to be fair if something breaks on export. Contact support with your order details and we will review. Final policy language will live in our Terms as checkout goes live.",
   },
-] as const;
+];
 
 export default function FaqPage() {
   return (

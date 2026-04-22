@@ -2,6 +2,7 @@ import "server-only";
 
 import { Resend } from "resend";
 
+import { APP_NAME } from "@/lib/constants";
 import { serverEnv } from "@/lib/env";
 
 let resend: Resend | null = null;
@@ -21,7 +22,7 @@ export function isEmailSendingConfigured(): boolean {
 }
 
 /** Default Resend test sender; replace with EMAIL_FROM after domain verification. */
-export const DEFAULT_EMAIL_FROM = "AI Resume Builder <onboarding@resend.dev>";
+export const DEFAULT_EMAIL_FROM = `${APP_NAME} <onboarding@resend.dev>`;
 
 export function getEmailFrom(): string {
   return serverEnv.EMAIL_FROM?.trim() || DEFAULT_EMAIL_FROM;

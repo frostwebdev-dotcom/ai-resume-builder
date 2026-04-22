@@ -37,7 +37,7 @@ export function MarketingFooter() {
           <div className="max-w-sm">
             <div className="flex items-center gap-2.5">
               <span className="brand-mark" aria-hidden>
-                R
+                S
               </span>
               <p className="text-sm font-semibold tracking-tight">{APP_NAME}</p>
             </div>

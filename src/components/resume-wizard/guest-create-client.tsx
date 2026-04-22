@@ -345,7 +345,7 @@ function TopBar({
       <div className="grid h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 px-2 sm:h-14 sm:gap-x-3 sm:px-4">
         <div className="flex min-w-0 items-center justify-self-start">
           <Link
-            href={ROUTES.home}
+            href={ROUTES.app.root}
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
               "h-8 gap-1.5 rounded-full px-3 text-xs text-slate-200 hover:bg-white/10 hover:text-white",

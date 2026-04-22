@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleHelp, Plus } from "lucide-react";
+import { CircleHelp, Plus, UserRound } from "lucide-react";
 
 import { UserMenu } from "@/components/auth/user-menu";
 import type { AppShellUser } from "@/components/layout/app-shell";
@@ -13,12 +13,12 @@ import {
 import {
   DASHBOARD_NAV_DESKTOP,
   dashboardSidebarActive,
-} from "@/components/projects/dashboard-cv-wizard-grid";
+} from "@/components/projects/dashboard-workspace-grid";
 import { cn } from "@/lib/utils";
-import { APP_DASHBOARD_WORDMARK, ROUTES } from "@/lib/constants";
+import { APP_NAME, ROUTES } from "@/lib/constants";
 
 type AppSidebarProps = {
-  user: AppShellUser;
+  user: AppShellUser | null;
 };
 
 export function AppSidebar({ user }: AppSidebarProps) {
@@ -44,17 +44,17 @@ export function AppSidebar({ user }: AppSidebarProps) {
         <div className="flex h-14 items-center justify-between gap-2 px-4 pr-2 pt-[max(0.25rem,env(safe-area-inset-top,0px))]">
           <Link
             href={ROUTES.app.root}
-            aria-label={`${APP_DASHBOARD_WORDMARK} — dashboard`}
+            aria-label={`${APP_NAME} — dashboard`}
             className="group flex min-w-0 items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             <span
               className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-bold tracking-tight text-white ring-1 ring-white/15"
               aria-hidden
             >
-              CV
+              S
             </span>
-            <span className="truncate text-sm font-semibold uppercase tracking-[0.12em] text-white">
-              {APP_DASHBOARD_WORDMARK}
+            <span className="line-clamp-2 text-left text-[0.7rem] font-semibold leading-snug tracking-tight text-white sm:text-xs">
+              {APP_NAME}
             </span>
           </Link>
           <div className="flex shrink-0 items-center gap-0.5">
@@ -108,7 +108,18 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </nav>
 
         <div className="border-t border-white/10 p-3">
-          <UserMenu email={user.email} isAdmin={user.isAdmin} tone="inverse" />
+          {user ? (
+            <UserMenu email={user.email} isAdmin={user.isAdmin} tone="inverse" />
+          ) : (
+            <Link
+              href={`${ROUTES.auth.login}?next=${encodeURIComponent(ROUTES.app.root)}`}
+              aria-label="Log in to your account"
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-100"
+            >
+              <UserRound className="size-4 shrink-0 opacity-90" aria-hidden />
+              Log in
+            </Link>
+          )}
         </div>
       </div>
     </aside>

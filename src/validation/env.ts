@@ -35,7 +35,7 @@ export const serverEnvSchema = z.object({
   ),
 
   RESEND_API_KEY: optionalSecret,
-  /** e.g. "AI Resume Builder <mail@yourdomain.com>" — required for production sends once Resend domain is verified */
+  /** e.g. "Smart Resume Builder <mail@yourdomain.com>" — required for production sends once Resend domain is verified */
   EMAIL_FROM: z.preprocess(
     emptyToUndefined,
     z.string().min(3).optional(),

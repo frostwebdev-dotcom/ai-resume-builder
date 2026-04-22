@@ -24,14 +24,14 @@ import {
 } from "@/components/ui/card";
 import { TrackedLink } from "@/components/analytics/tracked-link";
 import { cn } from "@/lib/utils";
-import { ROUTES } from "@/lib/constants";
+import { APP_NAME, ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "ATS-friendly resumes in minutes",
   description:
     "Create a professional ATS-friendly resume in minutes. Preview free, pay only to export your PDF. Mobile-first editor built for real job searches.",
   openGraph: {
-    title: "AI Resume Builder — ATS-friendly resumes in minutes",
+    title: `${APP_NAME} — ATS-friendly resumes in minutes`,
     description:
       "Create a professional ATS-friendly resume in minutes. Preview free, pay only to export your PDF.",
   },

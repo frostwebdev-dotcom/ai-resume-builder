@@ -14,13 +14,14 @@ import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ROUTES } from "@/lib/constants";
+import { APP_NAME, ROUTES } from "@/lib/constants";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description:
-    "Contact AI Resume Builder for product questions, partnerships, and support.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Contact",
+    description: `Contact ${APP_NAME} for product questions, partnerships, and support.`,
+  };
+}
 
 function getContactEmail(): string {
   return (
@@ -48,9 +49,7 @@ const topics = [
 
 export default function ContactPage() {
   const email = getContactEmail();
-  const mailto = `mailto:${email}?subject=${encodeURIComponent(
-    "AI Resume Builder — inquiry",
-  )}`;
+  const mailto = `mailto:${email}?subject=${encodeURIComponent(`${APP_NAME} — inquiry`)}`;
 
   return (
     <MktSection className="pt-12 sm:pt-20">

@@ -1,8 +1,5 @@
 /** Application-wide constants (no secrets). */
-export const APP_NAME = "AI Resume Builder";
-
-/** Sidebar / dashboard wordmark (matches product dashboard chrome). */
-export const APP_DASHBOARD_WORDMARK = "CV Wizard";
+export const APP_NAME = "Smart Resume Builder";
 
 /** Sentinel `projectId` for the browser-only guest builder — never sent to the server. */
 export const GUEST_RESUME_PROJECT_ID = "__guest__" as const;

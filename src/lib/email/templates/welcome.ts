@@ -1,3 +1,4 @@
+import { APP_NAME } from "@/lib/constants";
 import { emailParagraph, emailPrimaryButton, renderEmailLayout } from "@/lib/email/layout";
 export function buildWelcomeEmail(params: { dashboardUrl: string }): { html: string; text: string } {
   const dashboard = params.dashboardUrl;
@@ -14,7 +15,7 @@ export function buildWelcomeEmail(params: { dashboardUrl: string }): { html: str
   });
 
   const text = [
-    "Welcome to AI Resume Builder",
+    `Welcome to ${APP_NAME}`,
     "",
     "Thanks for creating an account. You can build and preview your resume for free; when you are ready, you can unlock a print-ready PDF from the preview screen.",
     "",
@@ -27,5 +28,5 @@ export function buildWelcomeEmail(params: { dashboardUrl: string }): { html: str
 }
 
 export function welcomeEmailSubject(): string {
-  return "Welcome to AI Resume Builder";
+  return `Welcome to ${APP_NAME}`;
 }

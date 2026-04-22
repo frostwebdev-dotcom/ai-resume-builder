@@ -15,7 +15,13 @@ function isProjectBuildPath(pathname: string | null): boolean {
  * Authenticated `/app/*` tree: normal pages use {@link AppShell}; project draft
  * (`/app/projects/:id/build`) uses the same fixed full-viewport shell as public `/create`.
  */
-export function AppAreaShell({ user, children }: { user: AppShellUser; children: ReactNode }) {
+export function AppAreaShell({
+  user,
+  children,
+}: {
+  user: AppShellUser | null;
+  children: ReactNode;
+}) {
   const pathname = usePathname();
 
   if (isProjectBuildPath(pathname)) {

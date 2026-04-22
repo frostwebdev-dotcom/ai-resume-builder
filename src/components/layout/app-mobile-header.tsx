@@ -11,7 +11,7 @@ import { APP_NAME, ROUTES } from "@/lib/constants";
 type AppMobileHeaderProps = {
   title?: string;
   showBack?: boolean;
-  user: AppShellUser;
+  user: AppShellUser | null;
 };
 
 /**
@@ -45,7 +45,7 @@ export function AppMobileHeader({
               className="inline-flex min-h-10 items-center gap-2 px-2"
             >
               <span className="brand-mark !size-7 !text-[0.65rem]" aria-hidden>
-                R
+                S
               </span>
             </Link>
           )}
@@ -58,7 +58,19 @@ export function AppMobileHeader({
           )}
         </h1>
         <div className="flex justify-end">
-          <UserMenu email={user.email} isAdmin={user.isAdmin} variant="icon" />
+          {user ? (
+            <UserMenu email={user.email} isAdmin={user.isAdmin} variant="icon" />
+          ) : (
+            <Link
+              href={`${ROUTES.auth.login}?next=${encodeURIComponent(ROUTES.app.root)}`}
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "gap-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Log in
+            </Link>
+          )}
         </div>
       </div>
     </header>

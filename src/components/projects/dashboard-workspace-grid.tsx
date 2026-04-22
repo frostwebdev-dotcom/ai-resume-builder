@@ -102,9 +102,9 @@ type Props = {
 };
 
 /**
- * Dashboard home: 2×2 hub inspired by CV-style workspace (resumes + placeholders).
+ * Signed-in dashboard home: 2×2 workspace hub (resumes + placeholders).
  */
-export function DashboardCvWizardGrid({ projects }: Props) {
+export function DashboardWorkspaceGrid({ projects }: Props) {
   const topProjects = projects.slice(0, 6);
 
   return (
@@ -147,7 +147,7 @@ export function DashboardCvWizardGrid({ projects }: Props) {
         <ul className="space-y-0 divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/50">
           {[
             { title: "Saved roles will appear here", company: "Link postings from the Jobs tab" },
-            { title: "Track status at a glance", company: "Coming soon in " + APP_NAME },
+            { title: "Track status at a glance", company: `Coming soon in ${APP_NAME}` },
             { title: "Open Jobs to learn more", company: "We’re building this workspace" },
           ].map((row, i) => (
             <li key={i} className="flex items-center gap-3 p-3">
@@ -186,7 +186,7 @@ export function dashboardSidebarActive(pathname: string, href: string): boolean 
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** @public — used by mobile nav */
+/** Used by desktop sidebar and shared nav helpers. */
 export const DASHBOARD_NAV_DESKTOP = [
   { href: ROUTES.app.root, label: "Dashboard", icon: LayoutDashboard },
   { href: ROUTES.app.resumes, label: "Resumes", icon: FileText },

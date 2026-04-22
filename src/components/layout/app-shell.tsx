@@ -16,7 +16,8 @@ export type AppShellUser = {
 
 type AppShellProps = {
   children: React.ReactNode;
-  user: AppShellUser;
+  /** `null` = guest (e.g. dashboard preview from `/create`); signed-in areas still call `requireUser` per page. */
+  user: AppShellUser | null;
 };
 
 /**
@@ -55,7 +56,7 @@ function AppShellInner({ children, user }: AppShellProps) {
         <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain scroll-pb-28 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:scroll-pb-0 md:pb-8">
           {children}
         </main>
-        <AppBottomNav />
+        <AppBottomNav guest={user === null} />
       </div>
     </div>
   );
