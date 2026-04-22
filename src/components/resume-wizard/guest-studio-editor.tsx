@@ -125,6 +125,10 @@ const COLOR_SWATCHES = [
   "#334155",
 ];
 
+/** Soft inputs used in the accordion header and section bodies. */
+const softInput =
+  "border-0 bg-neutral-100 shadow-inner shadow-black/[0.04] transition-colors focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#2268d7]/25";
+
 type StudioEditorProps = {
   content: WizardStateV1;
   onContentChange: Dispatch<SetStateAction<WizardStateV1>>;
@@ -175,10 +179,35 @@ export function GuestStudioEditor({
   const [pageBreakBeforeSection, setPageBreakBeforeSection] = useState<
     Partial<Record<SectionId, boolean>>
   >({});
+  const [editingSectionTitleId, setEditingSectionTitleId] = useState<SectionId | null>(null);
+  const [sectionTitleDraft, setSectionTitleDraft] = useState("");
 
   const toggleSection = useCallback((id: SectionId) => {
     setOpenSection((cur) => (cur === id ? null : id));
   }, []);
+
+  const commitSectionTitle = useCallback((sectionId: SectionId, defaultLabel: string) => {
+    const trimmed = sectionTitleDraft.trim();
+    setSectionLabelOverrides((prev) => {
+      if (!trimmed || trimmed === defaultLabel) {
+        const { [sectionId]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [sectionId]: trimmed };
+    });
+    setEditingSectionTitleId(null);
+  }, [sectionTitleDraft]);
+
+  const cancelSectionTitleEdit = useCallback(() => {
+    setEditingSectionTitleId(null);
+  }, []);
+
+  useEffect(() => {
+    if (editingSectionTitleId === null) return;
+    if (openSection !== editingSectionTitleId) {
+      setEditingSectionTitleId(null);
+    }
+  }, [openSection, editingSectionTitleId]);
 
   /** Append a module block to Additional information and open that section. */
   const appendAdditionalModule = useCallback(
@@ -338,19 +367,18 @@ export function GuestStudioEditor({
                 open={openSection === section.id}
                 onToggle={() => toggleSection(section.id)}
                 filled={isSectionFilled(section.id, state)}
+                titleEditing={editingSectionTitleId === section.id}
+                titleDraft={sectionTitleDraft}
+                onTitleDraftChange={setSectionTitleDraft}
+                onTitleCommit={() => commitSectionTitle(section.id, section.label)}
+                onTitleCancel={cancelSectionTitleEdit}
                 headerMenu={
                   openSection === section.id ? (
                     <SectionOverflowMenu
                       section={section}
-                      currentLabel={sectionLabelOverrides[section.id] ?? section.label}
-                      onRename={(label) => {
-                        setSectionLabelOverrides((prev) => {
-                          if (!label.trim() || label.trim() === section.label) {
-                            const { [section.id]: _, ...rest } = prev;
-                            return rest;
-                          }
-                          return { ...prev, [section.id]: label.trim() };
-                        });
+                      onBeginRename={() => {
+                        setEditingSectionTitleId(section.id);
+                        setSectionTitleDraft(sectionLabelOverrides[section.id] ?? section.label);
                       }}
                       pageBreak={pageBreakBeforeSection[section.id] ?? false}
                       onPageBreakChange={(next) =>
@@ -1149,8 +1177,7 @@ function SaveBadge({
 
 function SectionOverflowMenu({
   section,
-  currentLabel,
-  onRename,
+  onBeginRename,
   pageBreak,
   onPageBreakChange,
   showNameIn,
@@ -1159,8 +1186,7 @@ function SectionOverflowMenu({
   onRemovePhoto,
 }: {
   section: SectionDef;
-  currentLabel: string;
-  onRename: (label: string) => void;
+  onBeginRename: () => void;
   pageBreak: boolean;
   onPageBreakChange: (next: boolean) => void;
   showNameIn: WizardStateV1["personal"]["showNameIn"];
@@ -1168,12 +1194,6 @@ function SectionOverflowMenu({
   canRemovePhoto: boolean;
   onRemovePhoto: () => void;
 }) {
-  const handleRename = () => {
-    const next = window.prompt("Section name", currentLabel);
-    if (next === null) return;
-    onRename(next.trim());
-  };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -1196,7 +1216,7 @@ function SectionOverflowMenu({
             className="cursor-pointer gap-2.5 rounded-md px-2.5 py-2.5 text-[0.9375rem] focus:bg-neutral-100/90"
             onClick={(e) => {
               e.stopPropagation();
-              handleRename();
+              onBeginRename();
             }}
           >
             <Tag className="size-4 shrink-0 text-neutral-500" aria-hidden />
@@ -1295,6 +1315,11 @@ function SectionCard({
   open,
   onToggle,
   filled,
+  titleEditing,
+  titleDraft,
+  onTitleDraftChange,
+  onTitleCommit,
+  onTitleCancel,
   headerMenu,
   children,
 }: {
@@ -1303,9 +1328,16 @@ function SectionCard({
   open: boolean;
   onToggle: () => void;
   filled: boolean;
+  titleEditing: boolean;
+  titleDraft: string;
+  onTitleDraftChange: (value: string) => void;
+  onTitleCommit: () => void;
+  onTitleCancel: () => void;
   headerMenu: ReactNode;
   children: ReactNode;
 }) {
+  const skipBlurCommitRef = useRef(false);
+
   return (
     <section
       className={cn(
@@ -1314,21 +1346,57 @@ function SectionCard({
       )}
     >
       <div className="flex w-full items-center gap-2 px-4 py-[1.05rem] sm:py-[1.15rem] sm:pl-5 sm:pr-4">
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={open}
-          className="min-w-0 flex-1 truncate text-left text-[0.95rem] font-semibold tracking-tight transition-colors"
-        >
-          <span
-            className={cn(
-              open ? "text-[#2268d7]" : "text-neutral-500",
-              filled && !open && "text-neutral-600",
-            )}
+        {titleEditing ? (
+          <div
+            className="min-w-0 flex-1"
+            onPointerDown={(e) => e.stopPropagation()}
           >
-            {displayLabel}
-          </span>
-        </button>
+            <Input
+              autoFocus
+              value={titleDraft}
+              onChange={(e) => onTitleDraftChange(e.target.value)}
+              onBlur={() => {
+                if (skipBlurCommitRef.current) {
+                  skipBlurCommitRef.current = false;
+                  return;
+                }
+                onTitleCommit();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  onTitleCommit();
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  skipBlurCommitRef.current = true;
+                  onTitleCancel();
+                }
+              }}
+              aria-label="Section title"
+              className={cn(
+                softInput,
+                "h-9 rounded-lg px-3 text-[0.95rem] font-semibold tracking-tight ring-1 ring-[#2268d7]/35",
+              )}
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            className="min-w-0 flex-1 truncate text-left text-[0.95rem] font-semibold tracking-tight transition-colors"
+          >
+            <span
+              className={cn(
+                open ? "text-[#2268d7]" : "text-neutral-500",
+                filled && !open && "text-neutral-600",
+              )}
+            >
+              {displayLabel}
+            </span>
+          </button>
+        )}
         <div className="flex shrink-0 items-center gap-1">
           {open ? headerMenu : null}
           <button
@@ -1476,9 +1544,6 @@ function SectionBody({
 }
 
 type Setter = Dispatch<SetStateAction<WizardStateV1>>;
-
-const softInput =
-  "border-0 bg-neutral-100 shadow-inner shadow-black/[0.04] transition-colors focus-visible:bg-white focus-visible:ring-2 focus-visible:ring-[#2268d7]/25";
 
 type PersonalPillKey =
   | "dateOfBirth"
