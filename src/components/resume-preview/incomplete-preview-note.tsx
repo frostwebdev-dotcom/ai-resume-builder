@@ -21,10 +21,10 @@ export function IncompletePreviewNote({ hasName, filledCount, className }: Props
     >
       <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
       <div className="space-y-1">
-        <p className="font-medium">Preview is a draft</p>
+        <p className="font-medium">Resume still incomplete</p>
         <p className="text-caption leading-relaxed text-muted-foreground">
           {!hasName
-            ? "Add your name in the builder so your resume looks complete."
+            ? "Add your name in Draft so the header looks complete."
             : "Add a headline, summary, or experience — empty sections stay hidden until you fill them."}
         </p>
       </div>

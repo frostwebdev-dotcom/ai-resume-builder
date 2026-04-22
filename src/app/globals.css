@@ -332,18 +332,18 @@
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
   }
-  /** Subtle step change in wizard — motion-safe avoids distraction for reduced-motion users */
-  .animate-wizard-step {
-    animation: app-wizard-step 0.22s ease-out;
+  /** Subtle section change on Draft — motion-safe for reduced-motion users */
+  .animate-draft-step {
+    animation: app-draft-section 0.22s ease-out;
   }
   @media (prefers-reduced-motion: reduce) {
-    .animate-wizard-step {
+    .animate-draft-step {
       animation: none;
     }
   }
 }
 
-@keyframes app-wizard-step {
+@keyframes app-draft-section {
   from {
     opacity: 0.92;
     transform: translateY(3px);

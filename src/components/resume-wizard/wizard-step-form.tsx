@@ -22,6 +22,13 @@ import {
   SkillsJobTailorSection,
   SummaryJobTailorSection,
 } from "@/components/resume-wizard/job-tailor-sections";
+import {
+  SectionEmptyHint,
+  showCertificationsEmptyHint,
+  showEducationEmptyHint,
+  showExperienceEmptyHint,
+  showProjectsEmptyHint,
+} from "@/components/resume-wizard/section-empty-hint";
 
 type WizardStepFormProps = {
   projectId: string;
@@ -105,8 +112,33 @@ function PersonalStep({
   setState: WizardStepFormProps["setState"];
 }) {
   const p = state.personal;
+  const personalSparse = !p.fullName.trim() && !p.email.trim();
   return (
     <div className="space-y-6">
+      {personalSparse ? (
+        <SectionEmptyHint
+          purpose="This section powers your resume header—recruiters look for your name and a reliable way to reach you."
+          primary={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setState((s) => ({
+                  ...s,
+                  personal: {
+                    ...s.personal,
+                    fullName: s.personal.fullName.trim() || "Alex Morgan",
+                  },
+                }))
+              }
+            >
+              Use example name
+            </Button>
+          }
+          secondaryHint="Swap in your professional name, then add the email you actually check."
+        />
+      ) : null}
       <Field id="fullName" label="Full name" required>
         <Input
           name="fullName"
@@ -232,8 +264,35 @@ function SummaryStep({
   tailoringCompare: TailoringCompareV1 | null;
   setTailoringCompare: WizardStepFormProps["setTailoringCompare"];
 }) {
+  const summaryEmpty =
+    !state.summary.headline.trim() && !state.summary.summary.trim();
   return (
     <div className="space-y-6">
+      {summaryEmpty ? (
+        <SectionEmptyHint
+          purpose="Your headline and profile tell someone in seconds who you are, what you are strong at, and what you want next."
+          primary={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setState((s) => ({
+                  ...s,
+                  summary: {
+                    headline: "Product designer · Systems · B2B SaaS",
+                    summary:
+                      "I turn messy workflows into clear experiences for teams and customers. I work end to end with PM and engineering—from discovery through delivery. Looking for a senior role where I can own quality across the journey.",
+                  },
+                }))
+              }
+            >
+              Insert example headline & profile
+            </Button>
+          }
+          secondaryHint="Edit or delete any part; keep it in your own voice before you export."
+        />
+      ) : null}
       <Field
         id="headline"
         label="Headline"
@@ -253,7 +312,7 @@ function SummaryStep({
       </Field>
       <Field
         id="summary"
-        label="Professional summary"
+        label="Profile"
         description="3–5 sentences: strengths, scope, and what you are looking for next."
       >
         <Textarea
@@ -300,9 +359,38 @@ function ExperienceStep({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Add each role separately. Expand a card to edit details — keeps long forms manageable on phones.
-      </p>
+      {showExperienceEmptyHint(state) ? (
+        <SectionEmptyHint
+          purpose="Each role backs up your story with titles, dates, and a few outcome-focused bullets."
+          primary={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setState((s) => {
+                  if (!showExperienceEmptyHint(s)) return s;
+                  const next = [...s.experience.entries];
+                  next[0] = {
+                    ...next[0],
+                    highlights: [
+                      "Cut onboarding drop-off 18% by redesigning the first-run checklist and in-product hints (Figma → React).",
+                    ],
+                  };
+                  return { ...s, experience: { entries: next } };
+                })
+              }
+            >
+              Add a sample impact bullet
+            </Button>
+          }
+          secondaryHint="Fill job title, employer, and dates in the card below, then add more bullets—or add another role when you are ready."
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Add each role separately. Expand a card to edit details—keeps your draft manageable on phones.
+        </p>
+      )}
       {entries.map((entry, index) => (
         <details
           key={entry.id}
@@ -346,7 +434,7 @@ function ExperienceStep({
                   placeholder="Senior Product Designer"
                 />
               </Field>
-              <Field id={`company-${entry.id}`} label="Company">
+              <Field id={`company-${entry.id}`} label="Employer">
                 <Input
                   value={entry.company}
                   onChange={(e) => {
@@ -566,6 +654,37 @@ function EducationStep({
   const entries = state.education.entries;
   return (
     <div className="space-y-4">
+      {showEducationEmptyHint(state) ? (
+        <SectionEmptyHint
+          purpose="Education shows formal training—school, program, dates, and optional honors or coursework."
+          primary={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setState((s) => {
+                  if (!showEducationEmptyHint(s)) return s;
+                  const next = [...s.education.entries];
+                  next[0] = {
+                    ...next[0],
+                    school: "State University",
+                    degree: "B.Sc. Computer Science",
+                    field: "Human–computer interaction",
+                    startDate: "2018",
+                    endDate: "2022",
+                    details: "Dean's list, senior capstone on accessible mobile patterns.",
+                  };
+                  return { ...s, education: { entries: next } };
+                })
+              }
+            >
+              Insert example program
+            </Button>
+          }
+          secondaryHint="Replace with your real institution and dates; trim the details line if you do not need it."
+        />
+      ) : null}
       {entries.map((entry, index) => (
         <details
           key={entry.id}
@@ -776,8 +895,33 @@ function SkillsStep({
   tailoringCompare: TailoringCompareV1 | null;
   setTailoringCompare: WizardStepFormProps["setTailoringCompare"];
 }) {
+  const skillsEmpty = !state.skills.lines.trim();
   return (
     <div>
+      {skillsEmpty ? (
+        <SectionEmptyHint
+          className="mb-4"
+          purpose="Skills help a reader match you to the role—list tools, stacks, and strengths you want to be known for."
+          primary={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setState((s) => ({
+                  ...s,
+                  skills: {
+                    lines: "TypeScript\nReact\nProduct discovery\nDesign systems\nSQL",
+                  },
+                }))
+              }
+            >
+              Insert example skills (one per line)
+            </Button>
+          }
+          secondaryHint="Reorder or delete lines anytime; a short, honest list beats a long generic one."
+        />
+      ) : null}
       <Field
         id="skills"
         label="Skills"
@@ -824,13 +968,42 @@ function CertificationsStep({
   const entries = state.certifications.entries;
   return (
     <div className="space-y-4">
+      {showCertificationsEmptyHint(state) ? (
+        <SectionEmptyHint
+          purpose="Certifications capture formal credentials—course completions, cloud badges, or licenses worth naming."
+          primary={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setState((s) => {
+                  if (!showCertificationsEmptyHint(s)) return s;
+                  const next = [...s.certifications.entries];
+                  next[0] = {
+                    ...next[0],
+                    name: "AWS Certified Cloud Practitioner",
+                    issuer: "Amazon Web Services",
+                    issued: "Apr 2024",
+                    expires: "",
+                  };
+                  return { ...s, certifications: { entries: next } };
+                })
+              }
+            >
+              Insert example certificate
+            </Button>
+          }
+          secondaryHint="Use the real title from the certificate; add expiry only when it applies."
+        />
+      ) : null}
       {entries.map((entry, index) => (
         <div
           key={entry.id}
           className="rounded-xl border border-border bg-card p-4 ring-1 ring-foreground/5 sm:p-5"
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field id={`cert-name-${entry.id}`} label="Certification">
+            <Field id={`cert-name-${entry.id}`} label="Certificate">
               <Input
                 value={entry.name}
                 onChange={(e) => {
@@ -938,7 +1111,7 @@ function CertificationsStep({
         }
       >
         <Plus className="size-4" aria-hidden />
-        Add certification
+        Add certificate
       </Button>
     </div>
   );
@@ -954,6 +1127,36 @@ function ProjectsStep({
   const entries = state.projects.entries;
   return (
     <div className="space-y-4">
+      {showProjectsEmptyHint(state) ? (
+        <SectionEmptyHint
+          purpose="Projects show what you have built outside a day job—side work, open source, or a portfolio piece with a clear outcome."
+          primary={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setState((s) => {
+                  if (!showProjectsEmptyHint(s)) return s;
+                  const next = [...s.projects.entries];
+                  next[0] = {
+                    ...next[0],
+                    name: "Customer dashboard redesign",
+                    url: "",
+                    technologies: "React, TypeScript, REST",
+                    description:
+                      "Led UI refresh for a B2B analytics dashboard; reduced time-to-first-insight for weekly active users.",
+                  };
+                  return { ...s, projects: { entries: next } };
+                })
+              }
+            >
+              Insert example project
+            </Button>
+          }
+          secondaryHint="Swap in a real link when you have one; the description can be one tight sentence."
+        />
+      ) : null}
       {entries.map((entry, index) => (
         <details
           key={entry.id}
@@ -1091,11 +1294,37 @@ function AdditionalStep({
   state: WizardStateV1;
   setState: WizardStepFormProps["setState"];
 }) {
+  const additionalEmpty = !state.additional.notes.trim();
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Optional: languages, volunteering, awards, or anything else that strengthens your story.
-      </p>
+      {additionalEmpty ? (
+        <SectionEmptyHint
+          purpose="Use this space for anything that did not fit above—languages, volunteering, awards, or short context."
+          primary={
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setState((s) => ({
+                  ...s,
+                  additional: {
+                    notes:
+                      "Volunteer: Code mentor at local nonprofit, 2022–2024.\nLanguages: English (native), Spanish (professional).",
+                  },
+                }))
+              }
+            >
+              Insert example lines
+            </Button>
+          }
+          secondaryHint="Optional section—leave blank if the rest of your resume already covers everything."
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Optional: languages, volunteering, awards, or anything else that strengthens your story.
+        </p>
+      )}
       <Field id="additional" label="Additional information">
         <Textarea
           value={state.additional.notes}
@@ -1106,6 +1335,7 @@ function AdditionalStep({
             }))
           }
           className="min-h-[12rem] text-base sm:min-h-[10rem] sm:text-sm"
+          placeholder="One idea per short paragraph works well here."
         />
       </Field>
       <AdditionalAiPanel

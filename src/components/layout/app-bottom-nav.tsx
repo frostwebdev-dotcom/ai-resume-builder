@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 
 const items = [
-  { href: ROUTES.app.root, label: "Home", icon: LayoutDashboard },
+  { href: ROUTES.app.root, label: "Dashboard", icon: LayoutDashboard },
   { href: ROUTES.app.account, label: "Account", icon: UserRound },
 ] as const;
 

@@ -216,7 +216,7 @@ export default function MarketingHomePage() {
               <h2 className="mt-3 text-headline">Preview before you pay</h2>
               <p className="mt-3 text-body-muted">
                 See your resume as hiring managers will — on desktop and on the phone. When you are
-                happy with the content, unlock PDF export in one step.
+                happy with the content, unlock PDF export at checkout.
               </p>
               <ul className="mt-6 space-y-3 text-sm text-foreground">
                 <li className="flex gap-2">

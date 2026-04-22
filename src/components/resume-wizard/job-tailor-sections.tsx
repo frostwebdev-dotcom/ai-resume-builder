@@ -17,20 +17,28 @@ import {
   tailorSkillsToJobAction,
   tailorSummaryToJobAction,
 } from "@/services/job-target/actions";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  AI_JOB_POSTING_TAILOR_DISCLAIMER,
+  AI_MATCH_SAVED_POSTING_LINE,
+  formatAiAssistClientMessage,
+} from "@/lib/ai/assist-client-copy";
 import { cn } from "@/lib/utils";
+
+function tailorFailureMessage(res: { ok: false; error: string; code?: string }): string {
+  return formatAiAssistClientMessage(res.error, res.code);
+}
 
 export function JobTailorDisclaimer({ className }: { className?: string }) {
   return (
     <p
       className={cn(
-        "rounded-lg border border-border/80 bg-muted/40 px-3 py-2 text-caption text-muted-foreground",
+        "rounded-lg border border-border/80 bg-muted/40 px-3 py-2 text-[0.7rem] leading-snug text-muted-foreground",
         className,
       )}
     >
-      <span className="font-medium text-foreground/90">About AI tailoring: </span>
-      Suggestions are meant to better match your real experience to the posting. They are not a promise of
-      interviews or job offers — always double-check facts and tone before you apply.
+      {AI_JOB_POSTING_TAILOR_DISCLAIMER}
     </p>
   );
 }
@@ -117,7 +125,7 @@ export function SummaryJobTailorSection({
         if (res.ok) {
           setTailoringCompare(res.data.tailoringCompare);
         } else {
-          setError(res.error);
+          setError(tailorFailureMessage(res));
         }
       })();
     });
@@ -139,7 +147,7 @@ export function SummaryJobTailorSection({
           }));
           setTailoringCompare((c) => dropSummary(c));
         } else {
-          setError(res.error);
+          setError(tailorFailureMessage(res));
         }
       })();
     });
@@ -153,7 +161,7 @@ export function SummaryJobTailorSection({
         if (res.ok) {
           setTailoringCompare((c) => dropSummary(c));
         } else {
-          setError(res.error);
+          setError(tailorFailureMessage(res));
         }
       })();
     });
@@ -162,15 +170,13 @@ export function SummaryJobTailorSection({
   return (
     <div className="mt-6 space-y-3 rounded-xl border border-border/80 bg-muted/20 p-4 ring-1 ring-foreground/5">
       <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Match saved job</p>
-        <p className="mt-1 text-caption text-muted-foreground">
-          Uses the job you saved at the top of this page — not your headline fields above.
-        </p>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Match saved posting</p>
+        <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">{AI_MATCH_SAVED_POSTING_LINE}</p>
       </div>
       {error ? (
-        <p className="text-sm font-medium text-destructive" role="alert">
-          {error}
-        </p>
+        <Alert variant="destructive" className="py-2">
+          <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+        </Alert>
       ) : null}
 
       {!slice ? (
@@ -179,19 +185,19 @@ export function SummaryJobTailorSection({
           disabled={!hasSavedJobTarget}
           onClick={runTailor}
         >
-          Tailor summary to job
+          Align profile to posting
         </TailorButton>
       ) : null}
 
       {!hasSavedJobTarget ? (
-        <p className="text-caption text-muted-foreground">Save a job description in Target job first.</p>
+        <p className="text-caption text-muted-foreground">Save a job posting in Job posting (optional) first.</p>
       ) : null}
 
       {slice ? (
         <div className="space-y-3">
           <CompareGrid
             labelBefore="Your current version"
-            labelAfter="Suggested for this job"
+            labelAfter="Suggested for this posting"
             before={
               <>
                 <p className="font-medium">{slice.before.headline || "—"}</p>
@@ -252,7 +258,7 @@ export function SkillsJobTailorSection({
         if (res.ok) {
           setTailoringCompare(res.data.tailoringCompare);
         } else {
-          setError(res.error);
+          setError(tailorFailureMessage(res));
         }
       })();
     });
@@ -268,7 +274,7 @@ export function SkillsJobTailorSection({
           setLines(slice.after.lines);
           setTailoringCompare((c) => dropSkills(c));
         } else {
-          setError(res.error);
+          setError(tailorFailureMessage(res));
         }
       })();
     });
@@ -282,7 +288,7 @@ export function SkillsJobTailorSection({
         if (res.ok) {
           setTailoringCompare((c) => dropSkills(c));
         } else {
-          setError(res.error);
+          setError(tailorFailureMessage(res));
         }
       })();
     });
@@ -290,28 +296,31 @@ export function SkillsJobTailorSection({
 
   return (
     <div className="mt-6 space-y-3 rounded-xl border border-border/80 bg-muted/20 p-4 ring-1 ring-foreground/5">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Match saved job</p>
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Match saved posting</p>
+        <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">{AI_MATCH_SAVED_POSTING_LINE}</p>
+      </div>
       {error ? (
-        <p className="text-sm font-medium text-destructive" role="alert">
-          {error}
-        </p>
+        <Alert variant="destructive" className="py-2">
+          <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+        </Alert>
       ) : null}
 
       {!slice ? (
         <TailorButton pending={pending} disabled={!hasSavedJobTarget} onClick={runTailor}>
-          Tailor skills to job
+          Align skills to posting
         </TailorButton>
       ) : null}
 
       {!hasSavedJobTarget ? (
-        <p className="text-caption text-muted-foreground">Save a job description in Target job first.</p>
+        <p className="text-caption text-muted-foreground">Save a job posting in Job posting (optional) first.</p>
       ) : null}
 
       {slice ? (
         <div className="space-y-3">
           <CompareGrid
             labelBefore="Your current list"
-            labelAfter="Suggested order & wording"
+            labelAfter="Suggested order and wording"
             before={<pre className="whitespace-pre-wrap font-mono text-sm">{slice.before.lines || "—"}</pre>}
             after={<pre className="whitespace-pre-wrap font-mono text-sm">{slice.after.lines}</pre>}
           />
@@ -370,7 +379,7 @@ export function ExperienceJobTailorSection({
         if (res.ok) {
           setTailoringCompare(res.data.tailoringCompare);
         } else {
-          setError(res.error);
+          setError(tailorFailureMessage(res));
         }
       })();
     });
@@ -386,7 +395,7 @@ export function ExperienceJobTailorSection({
           onApplyBullets(slice.after.bullets.length ? slice.after.bullets : [""]);
           setTailoringCompare((c) => dropExperienceEntry(c, entry.id));
         } else {
-          setError(res.error);
+          setError(tailorFailureMessage(res));
         }
       })();
     });
@@ -400,7 +409,7 @@ export function ExperienceJobTailorSection({
         if (res.ok) {
           setTailoringCompare((c) => dropExperienceEntry(c, entry.id));
         } else {
-          setError(res.error);
+          setError(tailorFailureMessage(res));
         }
       })();
     });
@@ -408,28 +417,31 @@ export function ExperienceJobTailorSection({
 
   return (
     <div className="mt-4 space-y-3 rounded-lg border border-border/80 bg-muted/30 p-3">
-      <p className="text-xs font-medium text-muted-foreground">Match saved job — this role</p>
+      <div>
+        <p className="text-xs font-medium text-muted-foreground">Match saved posting — this role</p>
+        <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">{AI_MATCH_SAVED_POSTING_LINE}</p>
+      </div>
       {error ? (
-        <p className="text-sm font-medium text-destructive" role="alert">
-          {error}
-        </p>
+        <Alert variant="destructive" className="py-2">
+          <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+        </Alert>
       ) : null}
 
       {!slice ? (
         <TailorButton pending={pending} disabled={!hasSavedJobTarget} onClick={runTailor}>
-          Tailor bullets to job
+          Align bullets to posting
         </TailorButton>
       ) : null}
 
       {!hasSavedJobTarget ? (
-        <p className="text-caption text-muted-foreground">Save a job description in Target job first.</p>
+        <p className="text-caption text-muted-foreground">Save a job posting in Job posting (optional) first.</p>
       ) : null}
 
       {slice ? (
         <div className="space-y-3">
           <CompareGrid
             labelBefore="Your bullets"
-            labelAfter="Suggested for this job"
+            labelAfter="Suggested for this posting"
             before={
               <ul className="list-inside list-disc space-y-1">
                 {slice.before.bullets.map((b, i) => (

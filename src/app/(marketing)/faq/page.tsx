@@ -20,6 +20,10 @@ const faqs = [
     a: "Yes. You can build and preview your resume without paying. You only pay when you export your final PDF.",
   },
   {
+    q: "I started without an account — where is my draft saved?",
+    a: "While you are signed out, your draft autosaves in this browser only. After you sign in, create a resume project on your dashboard, then open Draft—you get the same studio editor as the public builder, with autosave to your account. PDF export (paid once per project) is under Preview & export on that project. Clearing this site's stored data or using another browser removes only that local draft—not work you already saved to your account.",
+  },
+  {
     q: "Will this work with applicant tracking systems (ATS)?",
     a: "We design layouts and headings to be machine-readable: clear section titles, consistent date formats, and minimal layout tricks that confuse parsers. No tool can guarantee every employer’s system — but we optimize for common ATS behavior.",
   },

@@ -1,20 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  CloudAlert,
-  CloudCheck,
-  Eye,
-  EyeOff,
-  FileUp,
-  Loader2,
-} from "lucide-react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Eye, EyeOff, FileUp } from "lucide-react";
 
+import { AutosaveStatusChip } from "@/components/resume-wizard/autosave-status-chip";
 import { WIZARD_STEPS } from "@/lib/resume-wizard/steps";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 import { validateStepForNavigation } from "@/lib/resume-wizard/validate-step";
@@ -56,6 +46,10 @@ type ResumeWizardProps = {
   avatarSignedUrl: string | null;
 };
 
+/**
+ * @deprecated Legacy step-by-step draft UI. Product `/build` uses `ProjectStudioShell` (studio).
+ * Still here for reuse or tests—delete only after confirming no imports.
+ */
 export function ResumeWizard({
   guestMode = false,
   projectId,
@@ -129,14 +123,17 @@ export function ResumeWizard({
     setStepIndex((i) => Math.max(0, i - 1));
   }, []);
 
-  const stepItems = WIZARD_STEPS.map((s) => ({ id: s.id, label: s.short }));
+  const stepItems = useMemo(
+    () => WIZARD_STEPS.map((s) => ({ id: s.id, label: s.short })),
+    [],
+  );
 
-  // Local preview is derived purely from the wizard state — no network, no
-  // autosave coupling. Every keystroke flows into this document, so the
-  // sticky live preview updates in lockstep with what the user is typing.
+  // Defer mapping the full preview document so rapid typing keeps the wizard
+  // thread responsive; the preview catches up on the next paint (React 18+).
+  const deferredState = useDeferredValue(state);
   const previewDocument = useMemo(
-    () => mapWizardToPreviewDocument(state, { avatarUrl: avatarSignedUrl }),
-    [state, avatarSignedUrl],
+    () => mapWizardToPreviewDocument(deferredState, { avatarUrl: avatarSignedUrl }),
+    [deferredState, avatarSignedUrl],
   );
 
   // On small screens the live preview is a toggleable drawer so the wizard
@@ -161,24 +158,32 @@ export function ResumeWizard({
                 className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-brand underline-offset-4 transition-colors hover:underline sm:min-h-0"
               >
                 <Eye className="size-4" aria-hidden />
-                Full preview &amp; export
+                Preview &amp; export
               </Link>
             </div>
-            <SaveStatusLabel status={saveStatus} onRetry={retry} />
+            <AutosaveStatusChip
+              context="project"
+              status={saveStatus}
+              lastError={lastError}
+              onRetry={retry}
+            />
           </div>
           <div>
-            <p className="text-eyebrow">Resume builder</p>
+            <p className="text-eyebrow">Draft</p>
             <h1 className="mt-2 text-headline text-foreground">{projectTitle}</h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              When your content is ready, open Preview &amp; export to choose a template and export a PDF.
+            </p>
           </div>
           <div className="rounded-xl border border-border/70 bg-card p-4 shadow-soft sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                Progress
+                Sections
               </p>
               <span className="inline-flex items-center gap-1 rounded-full bg-brand-muted px-2.5 py-0.5 text-[0.7rem] font-semibold text-brand ring-1 ring-brand/15">
-                Step{" "}
+                Section{" "}
                 <span className="tabular-nums">
-                  {stepIndex + 1}/{WIZARD_STEPS.length}
+                  {stepIndex + 1} of {WIZARD_STEPS.length}
                 </span>
               </span>
             </div>
@@ -193,31 +198,17 @@ export function ResumeWizard({
       {guestMode ? (
         <div className="mb-3 flex items-center justify-between gap-3 px-4 py-3 text-xs sm:px-6">
           <div className="inline-flex items-center gap-2 rounded-full bg-background px-2.5 py-1 font-semibold text-muted-foreground ring-1 ring-border">
-            Step
+            Section
             <span className="tabular-nums text-foreground">
-              {stepIndex + 1}/{WIZARD_STEPS.length}
+              {stepIndex + 1} of {WIZARD_STEPS.length}
             </span>
           </div>
-          <SaveStatusLabel guestMode status={saveStatus} onRetry={retry} />
-        </div>
-      ) : null}
-
-      {lastError ? (
-        <div className="mt-4">
-          <FeedbackBanner
-            tone="error"
-            title="Could not save your changes"
-            description={lastError}
+          <AutosaveStatusChip
+            context="guestDevice"
+            status={saveStatus}
+            lastError={lastError}
+            onRetry={retry}
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="touch"
-            className="mt-3 w-full sm:h-9 sm:min-h-0 sm:w-auto sm:px-3 sm:text-sm"
-            onClick={retry}
-          >
-            Try again
-          </Button>
         </div>
       ) : null}
 
@@ -229,10 +220,8 @@ export function ResumeWizard({
 
       {/*
         Workshop layout.
-        - xl+: the wizard is on the left and the live preview is pinned to
-          the right so users can always see how each edit lands on the page.
-        - Below xl: single column. The preview is still reachable via a
-          toggleable drawer so phone/tablet users don't lose it.
+        - xl+: draft column on the left, preview pinned on the right.
+        - Below xl: single column; preview via toggleable drawer on small screens.
       */}
       <div
         className={cn(
@@ -249,7 +238,7 @@ export function ResumeWizard({
               : "pb-44 md:pb-6",
           )}
         >
-          <div key={current.id} className="animate-wizard-step space-y-6">
+          <div key={current.id} className="animate-draft-step space-y-6">
             {guestMode ? <GuestIntakeShortcuts /> : null}
             {!guestMode ? (
               <JobTargetPanel
@@ -276,11 +265,9 @@ export function ResumeWizard({
           </div>
 
           {/*
-            Wizard action bar.
-            - Mobile: fixed edge-to-edge, sitting above the bottom nav.
-            - Desktop: sticky inside the wizard column so it respects the
-              sidebar and the preview column, never hides the last form field,
-              and stays pinned while scrolling.
+            Draft navigation bar.
+            - Mobile: fixed above bottom nav.
+            - Desktop: sticky in the draft column while scrolling.
           */}
           <div
             className={cn(
@@ -327,7 +314,7 @@ export function ResumeWizard({
                     className="min-w-[44%] flex-1 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:flex-none"
                     onClick={() => void flushSave()}
                   >
-                    Save now
+                    Save to project
                   </Button>
                 )}
               </div>
@@ -336,10 +323,7 @@ export function ResumeWizard({
         </div>
 
         {/*
-          Sticky live preview aside: visible always on xl+, collapsible drawer
-          below xl. The aside has its own internal scroller so tall resumes
-          don't push the preview off-screen — users can always see where
-          their edits land.
+          Sticky preview aside (xl+); drawer below xl. Internal scroll for tall resumes.
         */}
         <aside
           className={cn(
@@ -358,12 +342,12 @@ export function ResumeWizard({
             // Below xl we let the user toggle visibility.
             mobilePreviewOpen ? "block" : guestMode ? "hidden lg:block" : "hidden xl:block",
           )}
-          aria-labelledby="wizard-live-heading"
+          aria-labelledby="draft-preview-heading"
         >
           {guestMode ? (
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 id="wizard-live-heading" className="text-sm font-semibold text-foreground">
-                Resume preview
+              <h2 id="draft-preview-heading" className="text-sm font-semibold text-foreground">
+                Preview
               </h2>
               <span className="inline-flex items-center gap-1 rounded-full bg-brand-muted px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-brand ring-1 ring-brand/20">
                 Live
@@ -371,8 +355,8 @@ export function ResumeWizard({
             </div>
           ) : (
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 id="wizard-live-heading" className="text-subhead text-foreground">
-                Live preview
+              <h2 id="draft-preview-heading" className="text-subhead text-foreground">
+                Preview
               </h2>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-success ring-1 ring-success/25">
                 Live
@@ -380,7 +364,7 @@ export function ResumeWizard({
             </div>
           )}
           <p className={cn("mb-2 text-caption text-muted-foreground", guestMode ? "lg:hidden" : "xl:hidden")}>
-            Every change you make above appears here instantly. Your full export and template controls live on the preview page.
+            Updates as you type. Template, appearance, and PDF export are on Preview &amp; export.
           </p>
           <PreviewViewport compactFrame={!guestMode}>
             <ResumePreviewRenderer
@@ -392,14 +376,12 @@ export function ResumeWizard({
         </aside>
       </div>
 
-      {/* Mobile-only floating toggle: lets phone/tablet users peek at the
-          live preview without leaving the wizard. On xl+ the preview is
-          already visible so this button is hidden. */}
+      {/* Mobile-only: show/hide preview panel; hidden on xl+ where preview is always visible. */}
       <button
         type="button"
         onClick={() => setMobilePreviewOpen((v) => !v)}
         aria-pressed={mobilePreviewOpen}
-        aria-label={mobilePreviewOpen ? "Hide live preview" : "Show live preview"}
+        aria-label={mobilePreviewOpen ? "Hide preview panel" : "Show preview panel"}
         className={cn(
           "fixed right-4 bottom-[calc(7.5rem+env(safe-area-inset-bottom,0px))] z-50",
           "inline-flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-2 text-sm font-semibold text-brand-foreground shadow-elevated ring-1 ring-brand/40",
@@ -423,62 +405,7 @@ export function ResumeWizard({
   );
 }
 
-function SaveStatusLabel({
-  guestMode: isGuest,
-  status,
-  onRetry,
-}: {
-  guestMode?: boolean;
-  status: "idle" | "saving" | "saved" | "error";
-  onRetry: () => void;
-}) {
-  const baseChip =
-    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset";
-
-  if (status === "saving") {
-    return (
-      <span
-        className={cn(baseChip, "bg-muted/60 text-muted-foreground ring-border")}
-      >
-        <Loader2 className="size-3.5 animate-spin" aria-hidden />
-        {isGuest ? "Saving locally…" : "Saving…"}
-      </span>
-    );
-  }
-  if (status === "saved") {
-    return (
-      <span className={cn(baseChip, "bg-success/12 text-success ring-success/25")}>
-        <CheckCircle2 className="size-3.5" aria-hidden />
-        {isGuest ? "Saved on this device" : "Saved"}
-      </span>
-    );
-  }
-  if (status === "error") {
-    return (
-      <button
-        type="button"
-        onClick={onRetry}
-        className={cn(
-          baseChip,
-          "min-h-11 bg-destructive/12 text-destructive ring-destructive/25 transition-colors hover:bg-destructive/20 sm:min-h-0",
-        )}
-      >
-        <CloudAlert className="size-3.5" aria-hidden />
-        Save failed — retry
-      </button>
-    );
-  }
-  return (
-    <span
-      className={cn(baseChip, "bg-brand-muted text-brand ring-brand/15")}
-    >
-      <CloudCheck className="size-3.5" aria-hidden />
-      {isGuest ? "Local draft" : "Autosave on"}
-    </span>
-  );
-}
-
-function GuestIntakeShortcuts() {
+const GuestIntakeShortcuts = memo(function GuestIntakeShortcuts() {
   return (
     <section className="rounded-xl border border-border/70 bg-card p-2 shadow-sm sm:p-3">
       <div className="grid gap-2 sm:grid-cols-2">
@@ -501,4 +428,4 @@ function GuestIntakeShortcuts() {
       </div>
     </section>
   );
-}
+});

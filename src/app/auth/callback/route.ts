@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const nextRaw = url.searchParams.get("next");
+  // `next` is a same-origin path, optionally with query (e.g. `/create?signedIn=1` after guest sign-in).
   const next = sanitizeNextPath(nextRaw);
   const redirectTo = new URL(next, request.url);
 

@@ -24,7 +24,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!detail) return { title: "Resume project" };
   return {
     title: detail.project.title,
-    description: "Edit and preview your resume project.",
+    description:
+      "Resume project hub: Draft opens the studio editor (same layout as the public builder), or use Preview & export for template, appearance, and PDF.",
   };
 }
 
@@ -96,9 +97,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   <NotebookPen className="size-5" />
                 </span>
                 <div className="min-w-0">
-                  <h2 className="text-subhead text-foreground">Resume builder</h2>
+                  <h2 className="text-subhead text-foreground">Draft</h2>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    Guided wizard for each section. Autosaves as you edit.
+                    Studio editor with live preview—the same experience as before you sign in. Autosaves to this
+                    project; use Preview &amp; export for template and PDF.
                   </p>
                   <span
                     className={cn(
@@ -106,7 +108,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                       "mt-5 group-hover/card:border-brand/40 group-hover/card:text-brand",
                     )}
                   >
-                    Open builder →
+                    Open draft →
                   </span>
                 </div>
               </div>
@@ -127,9 +129,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   <Eye className="size-5" />
                 </span>
                 <div className="min-w-0">
-                  <h2 className="text-subhead text-foreground">Preview &amp; templates</h2>
+                  <h2 className="text-subhead text-foreground">Preview &amp; export</h2>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                    Pick a template and see exactly how your resume reads before export.
+                    Choose a template and appearance, then export a PDF when you are ready.
                   </p>
                   <span
                     className={cn(
@@ -137,7 +139,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                       "mt-5 group-hover/card:border-brand/40 group-hover/card:text-brand",
                     )}
                   >
-                    Open preview →
+                    Open Preview &amp; export →
                   </span>
                 </div>
               </div>

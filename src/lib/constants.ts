@@ -46,3 +46,10 @@ export const ROUTES = {
     incomplete: "/auth/incomplete",
   },
 } as const;
+
+/**
+ * `next` value for login from the guest `/create` flow. After OAuth/magic link, `/auth/callback`
+ * redirects here; `/create` reads `signedIn=1` client-side and shows a short banner (draft stays
+ * localStorage until the user creates a project, then opens Draft—the same studio UI—on that project).
+ */
+export const CREATE_RESUME_POST_AUTH_NEXT = `${ROUTES.create}?signedIn=1`;

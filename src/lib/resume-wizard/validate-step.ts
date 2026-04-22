@@ -3,7 +3,7 @@ import type { WizardStepId } from "@/lib/resume-wizard/steps";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 
 /**
- * Block "Next" only when the current step has blocking issues (step 1: name + email).
+ * Block "Next" only when the current section has blocking issues (Personal: name + email).
  */
 export function validateStepForNavigation(
   stepId: WizardStepId,
@@ -20,7 +20,7 @@ export function validateStepForNavigation(
         e.location?.[0] ??
         e.linkedIn?.[0] ??
         e.website?.[0] ??
-        "Check this step before continuing.";
+        "Check this section before continuing.";
       return { ok: false, message: first };
     }
   }

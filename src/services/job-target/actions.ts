@@ -147,7 +147,7 @@ export async function tailorSummaryToJobAction(
   raw: unknown,
 ): Promise<ActionResult<{ tailoringCompare: TailoringCompareV1 | null }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
 
   const parsed = tailorSummaryJobActionInput.safeParse(raw);
   if (!parsed.success) {
@@ -213,7 +213,7 @@ export async function tailorSkillsToJobAction(
   raw: unknown,
 ): Promise<ActionResult<{ tailoringCompare: TailoringCompareV1 | null }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
 
   const parsed = tailorSkillsJobActionInput.safeParse(raw);
   if (!parsed.success) {
@@ -278,7 +278,7 @@ export async function tailorExperienceToJobAction(
   raw: unknown,
 ): Promise<ActionResult<{ tailoringCompare: TailoringCompareV1 | null }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
 
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
@@ -357,7 +357,7 @@ export async function acceptTailoredSummaryAction(
   raw: unknown,
 ): Promise<ActionResult<{ ok: true }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
 
   const parsed = acceptRejectSchema.safeParse(raw);
   if (!parsed.success) {
@@ -411,7 +411,7 @@ export async function rejectTailoredSummaryAction(
   raw: unknown,
 ): Promise<ActionResult<{ ok: true }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
 
   const parsed = acceptRejectSchema.safeParse(raw);
   if (!parsed.success) {
@@ -448,7 +448,7 @@ export async function acceptTailoredSkillsAction(
   raw: unknown,
 ): Promise<ActionResult<{ ok: true }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
 
   const parsed = acceptRejectSchema.safeParse(raw);
   if (!parsed.success) {
@@ -499,7 +499,7 @@ export async function rejectTailoredSkillsAction(
   raw: unknown,
 ): Promise<ActionResult<{ ok: true }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
 
   const parsed = acceptRejectSchema.safeParse(raw);
   if (!parsed.success) {
@@ -536,7 +536,7 @@ export async function acceptTailoredExperienceAction(
   raw: unknown,
 ): Promise<ActionResult<{ ok: true }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
 
   const parsed = acceptExperienceSchema.safeParse(raw);
   if (!parsed.success) {
@@ -592,7 +592,7 @@ export async function rejectTailoredExperienceAction(
   raw: unknown,
 ): Promise<ActionResult<{ ok: true }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to continue.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
 
   const parsed = acceptExperienceSchema.safeParse(raw);
   if (!parsed.success) {

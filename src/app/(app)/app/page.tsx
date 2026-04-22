@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FileText, Sparkles } from "lucide-react";
 
@@ -12,6 +13,12 @@ import { requireUser } from "@/lib/auth/guards";
 import { getDashboardProjects } from "@/services/projects/queries";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description:
+    "Your resume projects: open Draft for the studio editor (same as /create), then Preview & export for template, appearance, and PDF export.",
+};
 
 export default async function AppHomePage() {
   const { user } = await requireUser();
@@ -35,10 +42,11 @@ export default async function AppHomePage() {
                 Welcome back, {firstName}
               </p>
               <h1 className="mt-1 text-headline text-foreground">
-                Your resumes
+                Dashboard
               </h1>
               <p className="text-sm text-muted-foreground">
-                Private until you export. Preview stays in sync with PDF.
+                Each row is one resume project: open Draft for the studio editor, then Preview &amp; export for
+                template and PDF.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -49,7 +57,7 @@ export default async function AppHomePage() {
                   "text-muted-foreground",
                 )}
               >
-                Browse templates
+                Browse Templates
               </Link>
               <Link
                 href={ROUTES.pricing}
@@ -74,11 +82,11 @@ export default async function AppHomePage() {
                 <FileText className="size-5 text-brand" aria-hidden />
               </div>
               <h2 className="mt-4 text-subhead text-foreground">
-                No resumes yet
+                No projects yet
               </h2>
               <p className="mt-1 max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
-                Create your first resume above. You can duplicate it later for
-                different job targets — each keeps its own version history.
+                Create a project above to start a resume. You can duplicate it later for different job
+                targets—each project keeps its own history.
               </p>
             </div>
           ) : (

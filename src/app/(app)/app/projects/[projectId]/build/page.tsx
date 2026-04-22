@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PageContainer } from "@/components/layout/page-container";
-import { ResumeWizard } from "@/components/resume-wizard/resume-wizard";
+import { ProjectStudioShell } from "@/components/resume-wizard/project-studio-shell";
 import { ROUTES } from "@/lib/constants";
 import { getOptionalAuth, requireUser } from "@/lib/auth/guards";
 import { parseProjectMetadata } from "@/lib/projects/metadata";
@@ -28,12 +28,13 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { projectId } = await params;
   const ctx = await getOptionalAuth();
-  if (!ctx) return { title: "Build resume" };
+  if (!ctx) return { title: "Draft resume" };
   const detail = await getProjectDetailForUser(ctx.user.id, projectId);
-  if (!detail) return { title: "Build resume" };
+  if (!detail) return { title: "Draft resume" };
   return {
-    title: `Build · ${detail.project.title}`,
-    description: "Step-by-step resume builder with live preview and autosave.",
+    title: `Draft · ${detail.project.title}`,
+    description:
+      "Studio resume draft with live preview (same editor as the public builder). Open Preview & export to choose a template and export a PDF.",
   };
 }
 
@@ -70,11 +71,11 @@ export default async function ProjectBuildPage({ params }: PageProps) {
   return (
     <section className="min-h-0 flex-1 py-4 sm:py-8">
       <PageContainer className="max-w-[1400px] xl:px-6 2xl:px-8">
-        <ResumeWizard
+        <ProjectStudioShell
           key={projectId}
           projectId={projectId}
           projectTitle={detail.project.title}
-          initialState={wizard}
+          initialWizard={wizard}
           initialJobTarget={initialJobTarget}
           templateSlug={templateSlug}
           initialResumeStyle={initialResumeStyle}

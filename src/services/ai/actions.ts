@@ -34,7 +34,7 @@ export async function aiGenerateSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryGenerateInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Check your inputs and try again.", code: "VALIDATION" };
@@ -48,7 +48,7 @@ export async function aiTailorSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryTailorInput.safeParse(raw);
   if (!parsed.success) {
     const msg = parsed.error.flatten().fieldErrors.targetRole?.[0];
@@ -67,7 +67,7 @@ export async function aiShortenSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryTextOpInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
@@ -81,7 +81,7 @@ export async function aiExpandSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryTextOpInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
@@ -95,7 +95,7 @@ export async function aiGrammarSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryTextOpInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
@@ -109,7 +109,7 @@ export async function aiRewriteExperienceBulletsAction(
   raw: unknown,
 ): Promise<AiResult<{ bullets: string[] }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
@@ -123,7 +123,7 @@ export async function aiStrengthenExperienceBulletsAction(
   raw: unknown,
 ): Promise<AiResult<{ bullets: string[] }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
@@ -137,7 +137,7 @@ export async function aiShortenExperienceBulletsAction(
   raw: unknown,
 ): Promise<AiResult<{ bullets: string[] }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
@@ -151,7 +151,7 @@ export async function aiExpandExperienceBulletsAction(
   raw: unknown,
 ): Promise<AiResult<{ bullets: string[] }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
@@ -165,7 +165,7 @@ export async function aiRephraseSkillsAction(
   raw: unknown,
 ): Promise<AiResult<{ lines: string }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = skillsTextInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid skills text.", code: "VALIDATION" };
@@ -179,7 +179,7 @@ export async function aiShortenSkillsAction(
   raw: unknown,
 ): Promise<AiResult<{ lines: string }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = skillsTextInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid skills text.", code: "VALIDATION" };
@@ -193,7 +193,7 @@ export async function aiGrammarAdditionalAction(
   raw: unknown,
 ): Promise<AiResult<{ text: string }>> {
   const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign in to use AI.", code: "AUTH" };
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = additionalTextInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid text.", code: "VALIDATION" };
