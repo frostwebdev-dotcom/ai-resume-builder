@@ -80,7 +80,7 @@ export function JobsBoard({ guest = false }: Props) {
   }
 
   return (
-    <section className="min-h-0 flex-1 bg-slate-100 pb-10 pt-6 sm:pb-12 sm:pt-8">
+    <section className="bg-slate-100 pb-10 pt-6 sm:pb-12 sm:pt-8">
       <PageContainer>
         {guest ? (
           <div className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm sm:px-5">

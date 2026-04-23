@@ -9,7 +9,7 @@ export function isPublicPath(pathname: string): boolean {
   }
   if (pathname === "/") return true;
   if (pathname.startsWith("/create")) return true;
-  /** Guest dashboard, resumes, cover-letters, and jobs index (other `/app/*` routes stay protected). */
+  /** Guest dashboard, resumes, cover-letters, jobs, and applications index (other `/app/*` routes stay protected). */
   if (pathname === ROUTES.app.root || pathname === `${ROUTES.app.root}/`) {
     return true;
   }
@@ -20,6 +20,9 @@ export function isPublicPath(pathname: string): boolean {
     return true;
   }
   if (pathname === ROUTES.app.jobs || pathname === `${ROUTES.app.jobs}/`) {
+    return true;
+  }
+  if (pathname === ROUTES.app.applications || pathname === `${ROUTES.app.applications}/`) {
     return true;
   }
   if (
