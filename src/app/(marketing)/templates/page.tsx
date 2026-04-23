@@ -3,18 +3,10 @@ import Link from "next/link";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
-import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
+import { TemplatesCatalog } from "@/components/templates/templates-catalog";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
-import { ALL_TEMPLATE_THEMES } from "@/lib/resume-preview/template-theme";
 
 export const metadata: Metadata = {
   title: "Templates",
@@ -33,49 +25,13 @@ export default function TemplatesPage() {
               Resume templates
             </h1>
             <p className="mt-4 text-body-muted">
-              Forty ATS-friendly layouts built for readability. Browse here, then—after you create a
+              ATS-friendly layouts built for readability. Browse and preview here, then—after you create a
               project—open <span className="font-medium text-foreground/90">Preview &amp; export</span> on
               that project to apply a template and continue to PDF export.
             </p>
           </div>
 
-          <ul className="mx-auto mt-14 grid max-w-6xl gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {ALL_TEMPLATE_THEMES.map((theme) => (
-              <li key={theme.slug}>
-                <Card interactive className="h-full overflow-hidden">
-                  <CardContent className="pt-5">
-                    <div
-                      className="overflow-hidden rounded-md ring-1 ring-border/60"
-                      style={{
-                        background:
-                          "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,1) 100%)",
-                      }}
-                    >
-                      <div className="p-2">
-                        <TemplateThumbnail slug={theme.slug} />
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardHeader className="pt-2">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <span
-                        className="inline-block size-2.5 rounded-full ring-1 ring-black/5"
-                        style={{ backgroundColor: theme.accent }}
-                        aria-hidden
-                      />
-                      {theme.name}
-                    </CardTitle>
-                    <CardDescription className="text-sm leading-relaxed">
-                      {theme.pickerTagline}
-                    </CardDescription>
-                    <p className="mt-1 text-caption text-muted-foreground/80">
-                      {theme.bestFor}
-                    </p>
-                  </CardHeader>
-                </Card>
-              </li>
-            ))}
-          </ul>
+          <TemplatesCatalog surface="marketing" className="mx-auto mt-10 max-w-6xl" />
 
           <div className="mx-auto mt-16 grid max-w-4xl gap-6 rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-10 md:grid-cols-2 md:gap-10">
             <div>

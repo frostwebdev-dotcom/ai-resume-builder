@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { DashboardWorkspaceGrid } from "@/components/projects/dashboard-workspace-grid";
+import { DashboardHome } from "@/components/projects/dashboard-home";
 import { getOptionalAuth } from "@/lib/auth/guards";
-import { ROUTES } from "@/lib/constants";
 import { getDashboardProjects } from "@/services/projects/queries";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Dashboard",
   description:
-    "Workspace overview: resumes, cover letters, jobs, and applications. Open Resumes to manage saved projects and the studio editor.",
+    "Workspace overview: resumes, templates, jobs, and applications. Open Resumes to manage saved projects and the studio editor.",
 };
 
 export default async function AppHomePage() {
@@ -24,27 +22,10 @@ export default async function AppHomePage() {
         "there")
     : "there";
 
-  const welcomeTitle = ctx ? `Welcome back, ${firstName}` : "Welcome";
-
   return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-100">
-      <div className="border-b border-slate-200/80 bg-slate-100 px-4 py-4 sm:px-6 sm:py-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Dashboard</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-          {welcomeTitle}
-        </h1>
-        {!ctx ? (
-          <p className="mt-2 max-w-xl text-sm text-slate-600">
-            You&apos;re browsing as a guest. Sign in to save projects and sync your resume. Your draft on{" "}
-            <Link className="font-medium text-brand underline-offset-2 hover:underline" href={ROUTES.create}>
-              Create
-            </Link>{" "}
-            stays in this browser until you sign in.
-          </p>
-        ) : null}
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-6 sm:py-5">
-        <DashboardWorkspaceGrid projects={projects} />
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-100">
+      <div className="min-h-0 flex-1 basis-0 overflow-y-auto overflow-x-hidden overscroll-y-auto px-4 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-8">
+        <DashboardHome projects={projects} firstName={firstName} isGuest={!ctx} />
       </div>
     </section>
   );

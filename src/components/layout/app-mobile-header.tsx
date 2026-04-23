@@ -42,8 +42,8 @@ export function AppMobileHeader({
             </Link>
           ) : (
             <Link
-              href={ROUTES.app.root}
-              aria-label={`${APP_NAME} — dashboard`}
+              href={ROUTES.home}
+              aria-label={`${APP_NAME} — home`}
               className="inline-flex min-h-10 items-center gap-2 px-2"
             >
               <span className="brand-mark !size-7 !text-[0.65rem]" aria-hidden>
@@ -54,7 +54,12 @@ export function AppMobileHeader({
         </div>
         <h1 className="min-w-0 truncate text-center text-base font-semibold leading-tight">
           {isDefaultTitle ? (
-            <span className="text-foreground">{title}</span>
+            <Link
+              href={ROUTES.home}
+              className="text-foreground outline-none hover:text-foreground/90 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 rounded-sm"
+            >
+              {title}
+            </Link>
           ) : (
             title
           )}

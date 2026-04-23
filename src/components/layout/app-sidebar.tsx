@@ -45,8 +45,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
       <div className="flex h-full w-[15.5rem] flex-col lg:w-60">
         <div className="flex h-14 items-center justify-between gap-2 px-4 pr-2 pt-[max(0.25rem,env(safe-area-inset-top,0px))]">
           <Link
-            href={ROUTES.app.root}
-            aria-label={`${APP_NAME} — dashboard`}
+            href={ROUTES.home}
+            aria-label={`${APP_NAME} — home`}
             className="group flex min-w-0 items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             <span

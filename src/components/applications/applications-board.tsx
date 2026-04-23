@@ -79,8 +79,9 @@ export function ApplicationsBoard({ guest = false }: Props) {
   const statusFilterLabel = statusFilter === "all" ? "All statuses" : statusFilter;
 
   return (
-    <section className="bg-slate-100 pb-10 pt-6 sm:pb-12 sm:pt-8">
-      <PageContainer>
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-100">
+      <div className="min-h-0 flex-1 basis-0 overflow-y-auto overflow-x-hidden overscroll-y-auto pb-10 pt-6 sm:pb-12 sm:pt-8">
+        <PageContainer>
         {guest ? (
           <div className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm sm:px-5">
             <span className="text-slate-700">
@@ -233,7 +234,8 @@ export function ApplicationsBoard({ guest = false }: Props) {
             .
           </p>
         ) : null}
-      </PageContainer>
+        </PageContainer>
+      </div>
     </section>
   );
 }

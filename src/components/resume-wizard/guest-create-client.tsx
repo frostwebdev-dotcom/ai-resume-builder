@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -55,7 +56,7 @@ import {
 } from "@/lib/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
-import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
+import { isTemplateSlug, type TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { cn } from "@/lib/utils";
 
 type Snapshot = {
@@ -187,7 +188,18 @@ export function GuestCreateClient() {
   const searchParams = useSearchParams();
   const [postAuthBanner, setPostAuthBanner] = useState(false);
   const postAuthHandled = useRef(false);
+  const templateFromUrlApplied = useRef(false);
   const [browserHasSession, setBrowserHasSession] = useState(false);
+
+  useLayoutEffect(() => {
+    const raw = searchParams.get("template");
+    if (!raw || templateFromUrlApplied.current) return;
+    const slug = decodeURIComponent(raw.trim());
+    if (!isTemplateSlug(slug)) return;
+    templateFromUrlApplied.current = true;
+    setPresentation((p) => ({ ...p, templateSlug: slug }));
+    router.replace(ROUTES.create, { scroll: false });
+  }, [router, searchParams]);
 
   useEffect(() => {
     if (!hasSupabaseBrowserConfig()) return;

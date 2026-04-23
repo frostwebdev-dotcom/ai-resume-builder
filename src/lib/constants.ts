@@ -19,7 +19,8 @@ export const ROUTES = {
   app: {
     root: "/app",
     resumes: "/app/resumes",
-    coverLetters: "/app/cover-letters",
+    /** In-app template browser (workspace). Public catalog: {@link ROUTES.templates}. */
+    templates: "/app/templates",
     jobs: "/app/jobs",
     applications: "/app/applications",
     /** @deprecated Use dashboard (`/app`) or a project URL. */

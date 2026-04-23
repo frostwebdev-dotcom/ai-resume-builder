@@ -7,7 +7,11 @@ import { redirect } from "next/navigation";
 
 import { mergeProjectMetadata, parseProjectMetadata } from "@/lib/projects/metadata";
 import { slugifyTitle } from "@/lib/projects/slug";
-import { DEFAULT_TEMPLATE_ID, TEMPLATE_IDS } from "@/lib/resume-preview/template-ids";
+import {
+  DEFAULT_TEMPLATE_ID,
+  isTemplateSlug,
+  TEMPLATE_IDS,
+} from "@/lib/resume-preview/template-ids";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { ROUTES } from "@/lib/constants";
@@ -66,9 +70,16 @@ export async function createProjectAction(
 ): Promise<ProjectActionState> {
   const parsed = createProjectSchema.safeParse({
     title: formData.get("title"),
+    templateSlug: formData.get("templateSlug") ?? undefined,
   });
   if (!parsed.success) {
-    return { error: parsed.error.flatten().fieldErrors.title?.[0] ?? "Invalid name." };
+    const flat = parsed.error.flatten();
+    return {
+      error:
+        flat.fieldErrors.title?.[0] ??
+        flat.fieldErrors.templateSlug?.[0] ??
+        "Invalid project details.",
+    };
   }
 
   const userId = await getSessionUserId();
@@ -77,6 +88,10 @@ export async function createProjectAction(
   const supabase = await createSupabaseServerClient();
   const slug = await ensureUniqueSlug(userId, parsed.data.title);
 
+  const ts = parsed.data.templateSlug;
+  const templateId =
+    ts !== undefined && isTemplateSlug(ts) ? TEMPLATE_IDS[ts] : DEFAULT_TEMPLATE_ID;
+
   const { data: created, error } = await supabase
     .from("resume_projects")
     .insert({
@@ -84,7 +99,7 @@ export async function createProjectAction(
       title: parsed.data.title,
       slug,
       status: "draft",
-      template_id: DEFAULT_TEMPLATE_ID,
+      template_id: templateId,
       metadata: {},
     })
     .select("id")
@@ -100,8 +115,17 @@ export async function createProjectAction(
 
   revalidatePath(ROUTES.app.root);
   revalidatePath(ROUTES.app.resumes);
+  revalidatePath(ROUTES.app.templates);
   // Land in the same studio editor as the public `/create` flow so the handoff feels continuous.
   redirect(ROUTES.app.projectBuild(created.id));
+}
+
+/**
+ * `<form action>` entry (single `FormData`) for progressive enhancement and Next.js typing.
+ * Delegates to {@link createProjectAction} (redirects on success).
+ */
+export async function createProjectFormAction(formData: FormData): Promise<void> {
+  await createProjectAction({}, formData);
 }
 
 export async function renameProjectAction(

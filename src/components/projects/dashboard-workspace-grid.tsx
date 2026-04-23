@@ -2,7 +2,15 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Briefcase, ClipboardList, FileText, LayoutDashboard, Mail, Plus } from "lucide-react";
+import {
+  ArrowRight,
+  Briefcase,
+  ClipboardList,
+  FileText,
+  LayoutDashboard,
+  LayoutTemplate,
+  Plus,
+} from "lucide-react";
 
 import type { DashboardProject } from "@/services/projects/queries";
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
@@ -133,13 +141,13 @@ export function DashboardWorkspaceGrid({ projects }: Props) {
         ) : null}
       </PanelChrome>
 
-      <PanelChrome title="Cover Letters" href={ROUTES.app.coverLetters} icon={Mail}>
+      <PanelChrome title="Templates" href={ROUTES.app.templates} icon={LayoutTemplate}>
         <Link
-          href={ROUTES.app.coverLetters}
+          href={ROUTES.app.templates}
           className="flex min-h-[10.5rem] flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/80 text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900"
         >
           <Plus className="size-8 stroke-[1.25]" aria-hidden />
-          <span className="mt-2 text-center text-xs font-semibold">Create new cover letter</span>
+          <span className="mt-2 text-center text-xs font-semibold">Browse templates</span>
         </Link>
       </PanelChrome>
 
@@ -190,7 +198,7 @@ export function dashboardSidebarActive(pathname: string, href: string): boolean 
 export const DASHBOARD_NAV_DESKTOP = [
   { href: ROUTES.app.root, label: "Dashboard", icon: LayoutDashboard },
   { href: ROUTES.app.resumes, label: "Resumes", icon: FileText },
-  { href: ROUTES.app.coverLetters, label: "Cover Letters", icon: Mail },
+  { href: ROUTES.app.templates, label: "Templates", icon: LayoutTemplate },
   { href: ROUTES.app.jobs, label: "Jobs", icon: Briefcase },
   { href: ROUTES.app.applications, label: "Applications", icon: ClipboardList },
 ] as const;

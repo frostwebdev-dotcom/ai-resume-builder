@@ -9,14 +9,14 @@ export function isPublicPath(pathname: string): boolean {
   }
   if (pathname === "/") return true;
   if (pathname.startsWith("/create")) return true;
-  /** Guest dashboard, resumes, cover-letters, jobs, and applications index (other `/app/*` routes stay protected). */
+  /** Guest dashboard, resumes, in-app templates, jobs, and applications index (other `/app/*` routes stay protected). */
   if (pathname === ROUTES.app.root || pathname === `${ROUTES.app.root}/`) {
     return true;
   }
   if (pathname === ROUTES.app.resumes || pathname === `${ROUTES.app.resumes}/`) {
     return true;
   }
-  if (pathname === ROUTES.app.coverLetters || pathname === `${ROUTES.app.coverLetters}/`) {
+  if (pathname === ROUTES.app.templates || pathname === `${ROUTES.app.templates}/`) {
     return true;
   }
   if (pathname === ROUTES.app.jobs || pathname === `${ROUTES.app.jobs}/`) {
