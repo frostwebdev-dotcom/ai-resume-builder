@@ -99,6 +99,7 @@ export async function createProjectAction(
   });
 
   revalidatePath(ROUTES.app.root);
+  revalidatePath(ROUTES.app.resumes);
   // Land in the same studio editor as the public `/create` flow so the handoff feels continuous.
   redirect(ROUTES.app.projectBuild(created.id));
 }

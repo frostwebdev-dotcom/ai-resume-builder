@@ -9,8 +9,17 @@ export function isPublicPath(pathname: string): boolean {
   }
   if (pathname === "/") return true;
   if (pathname.startsWith("/create")) return true;
-  /** Guest dashboard (signed-in sub-routes under `/app/*` stay protected in `proxy.ts` + per-page `requireUser`). */
+  /** Guest dashboard, resumes, cover-letters, and jobs index (other `/app/*` routes stay protected). */
   if (pathname === ROUTES.app.root || pathname === `${ROUTES.app.root}/`) {
+    return true;
+  }
+  if (pathname === ROUTES.app.resumes || pathname === `${ROUTES.app.resumes}/`) {
+    return true;
+  }
+  if (pathname === ROUTES.app.coverLetters || pathname === `${ROUTES.app.coverLetters}/`) {
+    return true;
+  }
+  if (pathname === ROUTES.app.jobs || pathname === `${ROUTES.app.jobs}/`) {
     return true;
   }
   if (
