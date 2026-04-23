@@ -15,15 +15,18 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-import type { ComponentType, SVGProps } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { ComponentType, CSSProperties, SVGProps } from "react";
 
 import { useAppLoginPanel } from "@/components/layout/app-login-panel";
+import {
+  dashboardResumeStripFrameClass,
+  ProjectResumePreviewCard,
+} from "@/components/projects/project-resume-preview-card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { DEMO_APPLICATIONS, type ApplicationStatus } from "@/lib/applications/demo-applications";
 import { APP_NAME, ROUTES } from "@/lib/constants";
 import { DEMO_JOB_LISTINGS } from "@/lib/jobs/demo-listings";
-import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
-import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import type { DashboardProject } from "@/services/projects/queries";
 import { cn } from "@/lib/utils";
 
@@ -32,23 +35,6 @@ type Props = {
   firstName: string;
   isGuest: boolean;
 };
-
-function formatEdited(iso: string) {
-  try {
-    const d = new Date(iso);
-    const diff = Date.now() - d.getTime();
-    const h = Math.floor(diff / 3600000);
-    if (h < 1) return "Just now";
-    if (h === 1) return "1 hour ago";
-    if (h < 24) return `${h} hours ago`;
-    const days = Math.floor(h / 24);
-    if (days === 1) return "1 day ago";
-    if (days < 7) return `${days} days ago`;
-    return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(d);
-  } catch {
-    return "";
-  }
-}
 
 function statusBadgeClass(status: ApplicationStatus) {
   switch (status) {
@@ -110,58 +96,139 @@ function StatCard({ label, value, sub, href, icon: Icon, iconClass }: StatCardPr
   );
 }
 
-function ResumeTile({ project }: { project: DashboardProject }) {
-  const slug = templateIdToSlug(project.templateId);
-  const theme = getTemplateTheme(slug);
-  const href = project.isArchived
-    ? ROUTES.app.project(project.id)
-    : ROUTES.app.projectBuild(project.id);
+const dashboardCreateResumeClass = cn(
+  dashboardResumeStripFrameClass,
+  "flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-100/90 p-4 text-slate-400 shadow-none transition-[color,background-color,border-color] duration-200",
+  "hover:border-slate-400 hover:bg-slate-100 hover:text-slate-500",
+  "outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+);
 
+function CreateTile({ label, href }: { label: string; href: string }) {
   return (
-    <Link
-      href={href}
-      className="group/thumb relative flex w-[10.5rem] shrink-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md sm:w-[11.5rem]"
-    >
-      <div className="relative h-[7rem] bg-slate-50">
-        <div
-          className="absolute bottom-0 left-0 top-0 w-[22%] min-w-[10px]"
-          style={{ backgroundColor: theme.accent }}
-          aria-hidden
-        />
-        <div className="absolute inset-0 flex flex-col gap-1 p-2 pl-[28%] pt-2">
-          <span className="h-1 w-3/4 rounded bg-slate-300/90" />
-          <span className="h-0.5 w-full rounded bg-slate-200" />
-          <span className="h-0.5 w-5/6 rounded bg-slate-200" />
-          <span className="h-0.5 w-full rounded bg-slate-200" />
-          <span className="mt-auto h-1.5 w-1/3 rounded bg-slate-200" />
-        </div>
-      </div>
-      <div className="border-t border-slate-100 p-2.5">
-        <p className="line-clamp-2 text-xs font-semibold leading-snug text-slate-900">{project.title}</p>
-        <p className="mt-0.5 text-[0.65rem] text-slate-500">Edited {formatEdited(project.updatedAt)}</p>
-      </div>
+    <Link href={href} className={dashboardCreateResumeClass}>
+      <span className="text-center text-sm font-normal leading-snug">{label}</span>
+      <Plus className="size-10 stroke-[1.35] text-slate-400" aria-hidden />
     </Link>
   );
 }
 
-function CreateTile({ label, href }: { label: string; href: string }) {
+function RecentResumesRow({
+  recentResumes,
+  isGuest,
+}: {
+  recentResumes: DashboardProject[];
+  isGuest: boolean;
+}) {
+  const shellRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [overflowing, setOverflowing] = useState(false);
+  const resumeSig = useMemo(() => recentResumes.map((p) => p.id).join(","), [recentResumes]);
+
+  useLayoutEffect(() => {
+    if (isGuest || typeof ResizeObserver === "undefined") {
+      setOverflowing(false);
+      return;
+    }
+
+    const shellEl = shellRef.current;
+    const measureEl = measureRef.current;
+    if (!shellEl || !measureEl) return;
+
+    function update() {
+      const s = shellRef.current;
+      const m = measureRef.current;
+      if (!s || !m) return;
+      if (recentResumes.length === 0) {
+        setOverflowing(false);
+        return;
+      }
+      setOverflowing(m.offsetWidth > s.clientWidth + 1);
+    }
+
+    update();
+    const ro = new ResizeObserver(() => update());
+    ro.observe(shellEl);
+    ro.observe(measureEl);
+    return () => ro.disconnect();
+  }, [isGuest, resumeSig, recentResumes.length]);
+
+  const resumeMarqueeDuration = `${Math.max(32, recentResumes.length * 5)}s`;
+
+  if (isGuest) {
+    return (
+      <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin] sm:gap-4">
+        <CreateTile label="Create new resume" href={ROUTES.create} />
+      </div>
+    );
+  }
+
   return (
-    <Link
-      href={href}
-      className="group flex h-[10.5rem] w-[10.5rem] shrink-0 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#2268d7]/40 bg-sky-50/40 p-3 text-[#2268d7] transition-colors hover:border-[#2268d7] hover:bg-sky-50/80 hover:text-[#1a56b8] sm:h-[11.5rem] sm:w-[11.5rem]"
-    >
-      <span className="flex size-10 items-center justify-center rounded-full bg-white/80 ring-1 ring-[#2268d7]/20 transition-transform group-hover:scale-105">
-        <Plus className="size-5" aria-hidden />
-      </span>
-      <span className="text-center text-xs font-semibold leading-snug">{label}</span>
-    </Link>
+    <div ref={shellRef} className="relative w-full">
+      <div
+        ref={measureRef}
+        className="pointer-events-none invisible absolute inset-x-0 top-0 -z-10 flex w-max gap-3 sm:gap-4"
+        aria-hidden
+      >
+        <div className={dashboardCreateResumeClass} />
+        {recentResumes.map((p) => (
+          <div
+            key={p.id}
+            className={cn(dashboardResumeStripFrameClass, "shrink-0 rounded-sm bg-transparent")}
+            aria-hidden
+          />
+        ))}
+      </div>
+
+      {overflowing ? (
+        <div className="flex gap-3 sm:gap-4">
+          <CreateTile label="Create new resume" href={ROUTES.create} />
+          <div
+            className="dashboard-marquee-viewport relative min-h-0 min-w-0 flex-1"
+            role="list"
+            aria-label="Recent resume projects, scrolling"
+          >
+            <div
+              className="flex w-max gap-3 animate-dashboard-resumes-marquee sm:gap-4"
+              style={
+                {
+                  "--dashboard-marquee-duration": resumeMarqueeDuration,
+                } as CSSProperties
+              }
+            >
+              {[...recentResumes, ...recentResumes].map((p, i) => (
+                <div key={`${p.id}-${i}`} className="shrink-0" role="listitem">
+                  <ProjectResumePreviewCard project={p} strip />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin] sm:gap-4">
+          <CreateTile label="Create new resume" href={ROUTES.create} />
+          {recentResumes.map((p) => (
+            <ProjectResumePreviewCard key={p.id} project={p} strip />
+          ))}
+          {recentResumes.length === 0 ? (
+            <div
+              className={cn(
+                dashboardResumeStripFrameClass,
+                "flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-100/80 p-3 text-center text-xs text-slate-500",
+              )}
+            >
+              No saved projects yet. Use Create new resume to begin.
+            </div>
+          ) : null}
+        </div>
+      )}
+    </div>
   );
 }
 
 export function DashboardHome({ projects, firstName, isGuest }: Props) {
   const { openLogin } = useAppLoginPanel();
 
-  const recent = projects.slice(0, 6);
+  const recentResumes = projects;
 
   const activeApplications = isGuest
     ? 0
@@ -310,17 +377,7 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
             <ArrowRight className="size-4" aria-hidden />
           </Link>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin] sm:gap-4">
-          <CreateTile label="Create new resume" href={ROUTES.create} />
-          {recent.map((p) => (
-            <ResumeTile key={p.id} project={p} />
-          ))}
-          {recent.length === 0 && !isGuest ? (
-            <div className="flex w-[11.5rem] shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-3 text-center text-xs text-slate-500">
-              No saved projects yet. Use the blue card to begin.
-            </div>
-          ) : null}
-        </div>
+        <RecentResumesRow recentResumes={recentResumes} isGuest={isGuest} />
       </section>
 
       {/* Two column: pipeline + jobs */}

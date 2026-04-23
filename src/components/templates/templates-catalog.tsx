@@ -3,29 +3,32 @@
 import {
   Briefcase,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Gauge,
   IdCard,
   LayoutGrid,
+  Lightbulb,
   Loader2,
   Palette,
   PenLine,
   Search,
+  ShieldCheck,
   SlidersHorizontal,
   Star,
   ZoomIn,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
 import { TemplateCardHoverChrome } from "@/components/templates/template-card-hover-chrome";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
-  DialogContent,
+  DialogContentFlanked,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -51,6 +54,7 @@ import {
   filterTemplateThemes,
   isPopularTemplate,
 } from "@/lib/resume-preview/template-catalog-filters";
+import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import type { TemplateTheme } from "@/lib/resume-preview/template-theme";
 import { ALL_TEMPLATE_THEMES } from "@/lib/resume-preview/template-theme";
 import { createProjectFormAction } from "@/services/projects/actions";
@@ -128,12 +132,28 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
   const [criteria, setCriteria] = useState<TemplateCatalogCriteria>(() =>
     defaultTemplateCatalogCriteria(),
   );
-  const [zoomTheme, setZoomTheme] = useState<TemplateTheme | null>(null);
+  /** Slug of template shown in the zoom modal — index derived from `filtered` for prev/next. */
+  const [zoomSlug, setZoomSlug] = useState<TemplateSlug | null>(null);
+  /** Drives a short enter transition when changing templates inside the zoom modal (not on first open). */
+  const [zoomEnterDir, setZoomEnterDir] = useState<"forward" | "back" | null>(null);
 
   const filtered = useMemo(
     () => filterTemplateThemes(ALL_TEMPLATE_THEMES, criteria),
     [criteria],
   );
+
+  const zoomIndex = useMemo(() => {
+    if (!zoomSlug) return -1;
+    return filtered.findIndex((t) => t.slug === zoomSlug);
+  }, [filtered, zoomSlug]);
+
+  const zoomTheme = zoomIndex >= 0 ? filtered[zoomIndex] : null;
+
+  useEffect(() => {
+    if (zoomSlug && !filtered.some((t) => t.slug === zoomSlug)) {
+      setZoomSlug(null);
+    }
+  }, [filtered, zoomSlug]);
 
   const total = ALL_TEMPLATE_THEMES.length;
   const hasFilters = criteriaHasActiveFilters(criteria);
@@ -147,6 +167,21 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
   function resetAll() {
     setCriteria(defaultTemplateCatalogCriteria());
   }
+
+  function goZoom(delta: -1 | 1) {
+    if (zoomIndex < 0) return;
+    const next = zoomIndex + delta;
+    if (next < 0 || next >= filtered.length) return;
+    setZoomEnterDir(delta > 0 ? "forward" : "back");
+    setZoomSlug(filtered[next]!.slug);
+  }
+
+  const flankNavBtnClass = cn(
+    "flex size-11 shrink-0 items-center justify-center rounded-full border border-slate-200/90 bg-slate-200/95 text-slate-700 shadow-md",
+    "transition-[background-color,box-shadow,transform] duration-200 ease-out",
+    "hover:bg-slate-300 hover:shadow-lg active:scale-[0.97]",
+    "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500",
+  );
 
   const toolbarSurface =
     surface === "marketing"
@@ -323,18 +358,18 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
 
       <ul
         className={cn(
-          "mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+          "mt-6 grid items-start gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4",
           surface === "marketing" && "text-left",
         )}
       >
         {filtered.map((theme) => (
-          <li key={theme.slug} className="h-full">
+          <li key={theme.slug} className="min-w-0">
             <TemplateCatalogCard
               theme={theme}
               popular={isPopularTemplate(theme)}
               ringOffsetClass={ringOffsetClass}
               signedInApp={signedInApp}
-              onPreview={() => setZoomTheme(theme)}
+              onPreview={() => setZoomSlug(theme.slug)}
               createHref={`${ROUTES.create}?template=${encodeURIComponent(theme.slug)}`}
             />
           </li>
@@ -355,70 +390,176 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
         </p>
       ) : null}
 
-      <Dialog open={zoomTheme !== null} onOpenChange={(open) => !open && setZoomTheme(null)}>
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg" showCloseButton>
+      <Dialog
+        open={zoomTheme !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setZoomSlug(null);
+            setZoomEnterDir(null);
+          }
+        }}
+      >
+        <DialogContentFlanked
+          showCloseButton
+          leftSlot={
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+              {filtered.length > 1 && zoomIndex > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => goZoom(-1)}
+                  className={flankNavBtnClass}
+                  aria-label="Previous template"
+                >
+                  <ChevronLeft className="size-5" strokeWidth={2} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          }
+          rightSlot={
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+              {filtered.length > 1 && zoomIndex >= 0 && zoomIndex < filtered.length - 1 ? (
+                <button
+                  type="button"
+                  onClick={() => goZoom(1)}
+                  className={flankNavBtnClass}
+                  aria-label="Next template"
+                >
+                  <ChevronRight className="size-5" strokeWidth={2} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          }
+          className={cn(
+            "max-h-[min(92vh,880px)] gap-0 overflow-hidden p-0 md:max-h-[85vh]",
+            "rounded-xl bg-white text-slate-900 shadow-xl ring-1 ring-slate-200/80",
+          )}
+        >
           {zoomTheme ? (
             <>
-              <DialogHeader className="border-b border-slate-100 px-5 py-4 text-left">
-                <DialogTitle className="flex items-center gap-2 text-lg">
-                  <span
-                    className="inline-block size-2.5 rounded-full ring-1 ring-black/5"
-                    style={{ backgroundColor: zoomTheme.accent }}
-                    aria-hidden
-                  />
+              <DialogDescription className="sr-only">
+                Preview of the {zoomTheme.name} resume template. Use Edit this template to start, or arrow
+                buttons to browse other templates in the current list.
+              </DialogDescription>
+
+              <div
+                key={zoomTheme.slug}
+                className={cn(
+                  "grid min-h-0 md:grid-cols-2 md:grid-rows-1",
+                  zoomEnterDir === "forward" &&
+                    "animate-in fade-in-0 slide-in-from-right-4 duration-200 ease-out motion-reduce:animate-none motion-reduce:opacity-100",
+                  zoomEnterDir === "back" &&
+                    "animate-in fade-in-0 slide-in-from-left-4 duration-200 ease-out motion-reduce:animate-none motion-reduce:opacity-100",
+                )}
+              >
+                <div className="flex min-h-0 flex-col overflow-y-auto border-b border-slate-200/80 p-6 sm:p-8 md:border-b-0 md:border-r">
+                <DialogTitle className="text-left font-serif text-2xl font-bold leading-snug tracking-tight text-slate-900 sm:text-[1.65rem]">
                   {zoomTheme.name}
                 </DialogTitle>
-              </DialogHeader>
-              <div
-                className="px-6 py-5"
-                style={{
-                  background:
-                    "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,1) 100%)",
-                }}
-              >
-                <div className="mx-auto max-w-sm overflow-hidden rounded-lg ring-1 ring-border/60">
-                  <div className="p-3">
-                    <TemplateThumbnail slug={zoomTheme.slug} />
+                <p className="mt-2 text-left text-sm font-normal leading-relaxed text-slate-600">
+                  {zoomTheme.pickerTagline}
+                </p>
+
+                <div className="mt-6">
+                  {signedInApp ? (
+                    <form key={zoomTheme.slug} action={createProjectFormAction} className="w-full max-w-md">
+                      <input type="hidden" name="title" value="Untitled resume" />
+                      <input type="hidden" name="templateSlug" value={zoomTheme.slug} />
+                      <Button
+                        type="submit"
+                        className="h-11 w-full rounded-full bg-[#0f766e] px-6 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(15,118,110,0.35)] hover:bg-[#0d6660]"
+                      >
+                        <CreateProjectPendingInline />
+                        <span className="inline-flex items-center gap-2">Edit this template</span>
+                      </Button>
+                    </form>
+                  ) : (
+                    <Link
+                      href={`${ROUTES.create}?template=${encodeURIComponent(zoomTheme.slug)}`}
+                      className={cn(
+                        buttonVariants({ size: "default" }),
+                        "inline-flex h-11 w-full max-w-md items-center justify-center rounded-full border-0 bg-[#0f766e] px-6 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(15,118,110,0.35)] hover:bg-[#0d6660]",
+                      )}
+                    >
+                      Edit this template
+                    </Link>
+                  )}
+                </div>
+
+                <div className="mt-8 border-t border-slate-200 pt-6">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    {total} ATS-friendly layouts include:
+                  </p>
+                  <ul className="mt-4 space-y-4 text-sm leading-relaxed text-slate-700">
+                    <li className="flex gap-3">
+                      <Gauge className="mt-0.5 size-5 shrink-0 text-slate-500" strokeWidth={1.5} aria-hidden />
+                      <span>
+                        <strong className="font-semibold text-slate-900">Customizable</strong> accents and
+                        structure so your resume matches your story.
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <Lightbulb className="mt-0.5 size-5 shrink-0 text-slate-500" strokeWidth={1.5} aria-hidden />
+                      <span>
+                        <strong className="font-semibold text-slate-900">Clear</strong> “best for” cues to pick
+                        the right look for your path.
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <ShieldCheck className="mt-0.5 size-5 shrink-0 text-slate-500" strokeWidth={1.5} aria-hidden />
+                      <span>
+                        <strong className="font-semibold text-slate-900">ATS-linear</strong> reading order and
+                        predictable headings for screeners.
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <PenLine className="mt-0.5 size-5 shrink-0 text-slate-500" strokeWidth={1.5} aria-hidden />
+                      <span>
+                        <strong className="font-semibold text-slate-900">Unlimited</strong> template switches in
+                        the studio — your content stays put.
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                {filtered.length > 1 ? (
+                  <div className="mt-6 flex items-center justify-center gap-3 border-t border-slate-100 pt-4 md:hidden">
+                    <button
+                      type="button"
+                      disabled={zoomIndex <= 0}
+                      onClick={() => goZoom(-1)}
+                      className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-slate-200/95 text-slate-700 shadow transition-[opacity,transform] duration-150 disabled:opacity-40"
+                      aria-label="Previous template"
+                    >
+                      <ChevronLeft className="size-5" aria-hidden />
+                    </button>
+                    <span className="text-xs text-slate-500">
+                      {zoomIndex + 1} / {filtered.length}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={zoomIndex >= filtered.length - 1}
+                      onClick={() => goZoom(1)}
+                      className="inline-flex size-10 items-center justify-center rounded-full border border-slate-200 bg-slate-200/95 text-slate-700 shadow transition-[opacity,transform] duration-150 disabled:opacity-40"
+                      aria-label="Next template"
+                    >
+                      <ChevronRight className="size-5" aria-hidden />
+                    </button>
                   </div>
+                ) : null}
+                </div>
+
+                <div className="flex min-h-[220px] flex-col items-center justify-center bg-[#E0F2F1] p-6 sm:min-h-[280px] sm:p-8 md:min-h-0 md:py-10">
+                  <div className="w-full max-w-[min(100%,280px)] overflow-hidden rounded-lg bg-white/40 p-3 shadow-sm ring-1 ring-teal-900/10 sm:max-w-[300px] sm:p-4">
+                    <TemplateThumbnail slug={zoomTheme.slug} className="w-full" />
+                  </div>
+                  <p className="mt-4 max-w-sm text-center text-xs leading-relaxed text-teal-900/75">
+                    {zoomTheme.bestFor}
+                  </p>
                 </div>
               </div>
-              <div className="border-t border-slate-100 bg-white px-5 py-4 text-left">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  Description
-                </p>
-                <DialogDescription className="mt-2 space-y-3 text-sm leading-relaxed text-slate-700">
-                  <p className="font-medium text-slate-900">{zoomTheme.pickerTagline}</p>
-                  <p className="font-normal text-slate-600">{zoomTheme.bestFor}</p>
-                </DialogDescription>
-              </div>
-              <DialogFooter className="border-t border-slate-100 bg-slate-50/80 px-5 py-4 sm:justify-center">
-                {signedInApp ? (
-                  <form action={createProjectFormAction} className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
-                    <input type="hidden" name="title" value="Untitled resume" />
-                    <input type="hidden" name="templateSlug" value={zoomTheme.slug} />
-                    <Button
-                      type="submit"
-                      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-[#2268d7] text-white hover:bg-[#1a56b8] sm:w-auto sm:min-w-[12rem]"
-                    >
-                      <CreateProjectPendingInline />
-                      Use this template
-                    </Button>
-                  </form>
-                ) : (
-                  <Link
-                    href={`${ROUTES.create}?template=${encodeURIComponent(zoomTheme.slug)}`}
-                    className={cn(
-                      buttonVariants({ size: "default" }),
-                      "h-10 w-full rounded-full border-0 bg-[#2268d7] text-white hover:bg-[#1a56b8] sm:w-auto sm:min-w-[12rem]",
-                    )}
-                  >
-                    Use this template
-                  </Link>
-                )}
-              </DialogFooter>
             </>
           ) : null}
-        </DialogContent>
+        </DialogContentFlanked>
       </Dialog>
     </div>
   );
@@ -446,15 +587,15 @@ function TemplateZoomPreviewButton({
       type="button"
       aria-label={`Zoom — preview ${templateName}`}
       className={cn(
-        "group/zoom absolute bottom-3 right-3 z-40",
-        "flex size-9 items-center justify-center rounded-full",
-        "bg-white text-[#2268d7]",
-        "ring-1 ring-slate-200/90",
-        "shadow-[0_1px_2px_rgba(15,23,42,0.05),0_2px_8px_rgba(15,23,42,0.06)]",
-        "transition-[transform,box-shadow,background-color] duration-200 ease-out",
-        "hover:bg-slate-50 hover:shadow-[0_2px_6px_rgba(15,23,42,0.07),0_4px_14px_rgba(34,104,215,0.1)] hover:ring-slate-300/80",
+        "group/zoom absolute bottom-2 right-2 z-40",
+        "flex size-10 items-center justify-center rounded-full",
+        "bg-sky-200 text-blue-900",
+        "ring-2 ring-sky-100/90",
+        "shadow-[0_2px_10px_rgba(15,23,42,0.14)]",
+        "transition-[transform,box-shadow,background-color,color] duration-200 ease-out",
+        "hover:bg-sky-100 hover:text-blue-950 hover:shadow-[0_3px_12px_rgba(15,23,42,0.16)] hover:ring-sky-300/90",
         "active:scale-[0.96]",
-        "focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+        "focus-visible:ring-2 focus-visible:ring-blue-700/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
       )}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => {
@@ -480,7 +621,7 @@ function TemplateZoomPreviewButton({
           aria-hidden
         />
       </span>
-      <ZoomIn className="size-[17px]" strokeWidth={2} aria-hidden />
+      <ZoomIn className="size-5" strokeWidth={2} aria-hidden />
     </button>
   );
 }
@@ -495,51 +636,44 @@ function TemplateCatalogCard({
 }: CardProps) {
   const cardBody = (
     <div className="relative">
-      <Card className="h-full overflow-hidden border-slate-200/90 bg-white text-left shadow-sm transition-shadow duration-200 group-hover:shadow-md">
-        <CardContent className="pt-5">
+      <Card className="gap-0 overflow-hidden border-0 bg-white py-0 text-left shadow-none transition-shadow duration-200 group-hover:shadow-none">
+        <CardContent className="p-0">
           <div
-            className="relative overflow-hidden rounded-md ring-1 ring-border/60"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,1) 100%)",
-            }}
+            className={cn(
+              "relative overflow-hidden rounded-md bg-white p-1.5",
+              "shadow-[0_1px_2px_rgba(15,23,42,0.05),0_4px_14px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.85)]",
+              "ring-1 ring-slate-200/50",
+              "transition-[box-shadow,ring-color] duration-200 ease-out",
+              "group-hover:shadow-[0_2px_6px_rgba(15,23,42,0.07),0_10px_28px_rgba(15,23,42,0.09),inset_0_1px_0_rgba(255,255,255,0.9)]",
+              "group-hover:ring-slate-300/70",
+            )}
           >
-            <div className="p-2">
-              <TemplateThumbnail slug={theme.slug} />
+            <div className="relative z-[1]">
+              <TemplateThumbnail slug={theme.slug} className="shadow-none ring-0" />
             </div>
             {popular ? (
               <div className="pointer-events-none absolute bottom-2 left-2 z-10">
-                <span className="inline-flex items-center gap-0.5 rounded border border-amber-200/90 bg-amber-400/95 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950 shadow-sm">
-                  <Star className="size-3 shrink-0 fill-amber-950 text-amber-950" strokeWidth={1.25} aria-hidden />
-                  Popular
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-400/75 bg-[#ffe082] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-950 shadow-sm">
+                  <Star className="size-3 shrink-0 fill-amber-900 text-amber-900" strokeWidth={1.5} aria-hidden />
+                  POPULAR
                 </span>
               </div>
             ) : null}
           </div>
         </CardContent>
-        <CardHeader className="pb-4 pt-2">
-          <CardTitle className="flex items-center gap-2 text-base text-slate-900">
-            <span
-              className="inline-block size-2.5 rounded-full ring-1 ring-black/5"
-              style={{ backgroundColor: theme.accent }}
-              aria-hidden
-            />
-            {theme.name}
-          </CardTitle>
-        </CardHeader>
       </Card>
     </div>
   );
 
   const chrome = (
-    <div className="relative h-full">
+    <div className="relative">
       <TemplateCardHoverChrome>{cardBody}</TemplateCardHoverChrome>
       <TemplateZoomPreviewButton onPreview={onPreview} templateName={theme.name} />
     </div>
   );
 
   const formShell = cn(
-    "group relative block h-full rounded-xl outline-none",
+    "group relative block rounded-xl outline-none",
     "focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#2268d7]",
   );
 
@@ -560,7 +694,7 @@ function TemplateCatalogCard({
   }
 
   return (
-    <div className={cn("group relative block h-full rounded-xl", ringOffsetClass)}>
+    <div className={cn("group relative block rounded-xl", ringOffsetClass)}>
       {chrome}
       <Link
         href={createHref}

@@ -36,7 +36,11 @@ export async function MarketingHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          <MarketingAuthLinks isAuthed={Boolean(ctx)} />
+          <MarketingAuthLinks
+            isAuthed={Boolean(ctx)}
+            userEmail={ctx?.user.email ?? null}
+            isAdmin={ctx?.profile.role === "admin"}
+          />
         </div>
       </div>
     </header>

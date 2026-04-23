@@ -354,6 +354,37 @@
   }
 }
 
+/* Dashboard — Recent resumes horizontal marquee (>6 cards) */
+@keyframes dashboard-resumes-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-dashboard-resumes-marquee {
+  animation: dashboard-resumes-marquee var(--dashboard-marquee-duration, 45s) linear infinite;
+  will-change: transform;
+}
+
+.dashboard-marquee-viewport {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-dashboard-resumes-marquee {
+    animation: none;
+  }
+
+  .dashboard-marquee-viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+}
+
 /* Resume preview / future PDF export — keep screen and print aligned */
 @media print {
   .resume-paper {

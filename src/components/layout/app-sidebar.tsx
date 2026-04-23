@@ -17,6 +17,15 @@ import {
 } from "@/components/projects/dashboard-workspace-grid";
 import { cn } from "@/lib/utils";
 import { APP_NAME, ROUTES } from "@/lib/constants";
+import { NewResumeServerForm } from "@/components/projects/new-resume-server-form";
+
+const sidebarNewGuestClass =
+  "flex w-full items-center justify-center gap-2 rounded-full border border-white/35 bg-transparent py-2.5 text-sm font-semibold text-white outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/40";
+
+const sidebarNewSignedInClass = cn(
+  sidebarNewGuestClass,
+  "disabled:pointer-events-none disabled:opacity-60",
+);
 
 type AppSidebarProps = {
   user: AppShellUser | null;
@@ -72,13 +81,20 @@ export function AppSidebar({ user }: AppSidebarProps) {
         </div>
 
         <div className="px-3 pb-2">
-          <Link
-            href={ROUTES.create}
-            className="flex w-full items-center justify-center gap-2 rounded-full border border-white/35 bg-transparent py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-          >
-            <Plus className="size-4" aria-hidden />
-            New
-          </Link>
+          {user ? (
+            <NewResumeServerForm
+              formClassName="w-full"
+              buttonClassName={sidebarNewSignedInClass}
+              idleContent="New"
+              pendingText="Creating…"
+              aria-label="New resume — create a draft in your account"
+            />
+          ) : (
+            <Link href={ROUTES.create} className={sidebarNewGuestClass} aria-label="New resume — open the builder">
+              <Plus className="size-4 shrink-0" aria-hidden />
+              New
+            </Link>
+          )}
         </div>
 
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto overscroll-y-contain px-2 pb-3 pt-1">

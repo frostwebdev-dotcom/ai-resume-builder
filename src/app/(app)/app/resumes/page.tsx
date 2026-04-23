@@ -16,8 +16,10 @@ export default async function AppResumesPage() {
   const projects = ctx ? await getDashboardProjects(ctx.user.id) : [];
 
   return (
-    <section className="min-h-0 flex-1 bg-slate-50 py-0 sm:bg-slate-50">
-      <ResumesPageGallery projects={projects} guest={!ctx} />
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-50">
+      <div className="min-h-0 flex-1 basis-0 overflow-y-auto overflow-x-hidden overscroll-y-auto pb-10 pt-0 sm:pb-12">
+        <ResumesPageGallery projects={projects} guest={!ctx} />
+      </div>
     </section>
   );
 }

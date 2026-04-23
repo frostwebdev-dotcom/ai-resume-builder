@@ -4,23 +4,29 @@ import { useActionState } from "react";
 import Link from "next/link";
 import {
   Copy,
+  Download,
   Eye,
   LayoutGrid,
   List,
+  Loader2,
   MoreVertical,
   NotebookPen,
   Pencil,
   Plus,
   Trash2,
+  UserPlus,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { useAppLoginPanel } from "@/components/layout/app-login-panel";
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
-import { ProjectCard } from "@/components/projects/project-card";
+import {
+  formatProjectEdited,
+  ProjectResumePreviewCard,
+} from "@/components/projects/project-resume-preview-card";
 import { RenameProjectDialog } from "@/components/projects/rename-project-dialog";
+import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
 import { createProjectAction, duplicateProjectAction } from "@/services/projects/actions";
-import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +36,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { DashboardProject } from "@/services/projects/queries";
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
-import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -42,26 +47,14 @@ type Props = {
 
 type ViewMode = "grid" | "list";
 
-function formatEdited(iso: string) {
-  try {
-    const d = new Date(iso);
-    const diff = Date.now() - d.getTime();
-    const h = Math.floor(diff / 3600000);
-    if (h < 1) return "Just now";
-    if (h === 1) return "1 hour ago";
-    if (h < 24) return `${h} hours ago`;
-    const days = Math.floor(h / 24);
-    if (days === 1) return "1 day ago";
-    if (days < 7) return `${days} days ago`;
-    return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(d);
-  } catch {
-    return "";
-  }
-}
+const listIconLinkClass = cn(
+  "inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 outline-none transition-colors",
+  "hover:bg-slate-100 hover:text-slate-800",
+  "focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+);
 
-function ResumeGridTile({ project }: { project: DashboardProject }) {
+function ResumeListRow({ project }: { project: DashboardProject }) {
   const slug = templateIdToSlug(project.templateId);
-  const theme = getTemplateTheme(slug);
   const href = project.isArchived
     ? ROUTES.app.project(project.id)
     : ROUTES.app.projectBuild(project.id);
@@ -78,82 +71,99 @@ function ResumeGridTile({ project }: { project: DashboardProject }) {
   }
 
   return (
-    <>
-      <article className="relative w-[9.5rem] shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-all hover:border-slate-300 hover:shadow-md sm:w-[10.5rem]">
-        <div className="relative h-[6.5rem] bg-slate-100">
-          <Link href={href} className="absolute inset-0 z-0 block" aria-label={`Open ${project.title}`}>
-            <span className="sr-only">Open resume</span>
-          </Link>
-          <div
-            className="pointer-events-none absolute bottom-0 left-0 top-0 z-[1] w-[22%] min-w-[10px]"
-            style={{ backgroundColor: theme.accent }}
-            aria-hidden
-          />
-          <div className="pointer-events-none absolute inset-0 z-[1] flex flex-col gap-1 p-2 pl-[28%] pt-2">
-            <span className="h-1 w-3/4 rounded bg-slate-300/90" />
-            <span className="h-0.5 w-full rounded bg-slate-200" />
-            <span className="h-0.5 w-5/6 rounded bg-slate-200" />
-            <span className="h-0.5 w-full rounded bg-slate-200" />
-            <span className="mt-auto h-1.5 w-1/3 rounded bg-slate-200" />
-          </div>
-          <div className="absolute bottom-1.5 right-1.5 z-10">
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                type="button"
-                className={cn(
-                  buttonVariants({ variant: "secondary", size: "icon-sm" }),
-                  "size-7 rounded-full border border-slate-200/90 bg-white/95 shadow-sm hover:bg-white",
-                )}
-                aria-label={`Actions for ${project.title}`}
-              >
-                <MoreVertical className="size-3.5 text-slate-600" aria-hidden />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[11rem]">
-                <DropdownMenuItem
-                  render={
-                    <Link href={ROUTES.app.project(project.id)} className="cursor-pointer" />
-                  }
-                >
-                  <Eye className="size-4 opacity-70" aria-hidden />
-                  Open
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  render={
-                    <Link href={ROUTES.app.projectBuild(project.id)} className="cursor-pointer" />
-                  }
-                >
-                  <NotebookPen className="size-4 opacity-70" aria-hidden />
-                  Open draft
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setRenameOpen(true)} className="cursor-pointer">
-                  <Pencil className="size-4 opacity-70" aria-hidden />
-                  Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem disabled={dupPending} onClick={runDuplicate} className="cursor-pointer">
-                  <Copy className="size-4 opacity-70" aria-hidden />
-                  {dupPending ? "Duplicating…" : "Duplicate"}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  onClick={() => setDeleteOpen(true)}
-                  className="cursor-pointer"
-                >
-                  <Trash2 className="size-4 opacity-70" aria-hidden />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+    <div>
+      <div className="flex items-center gap-3 px-4 py-3 sm:gap-4 sm:px-5">
         <Link
           href={href}
-          className="block border-t border-slate-100 p-2 transition-colors hover:bg-slate-50/80"
+          className="relative h-14 w-11 shrink-0 overflow-hidden rounded-md bg-slate-100 ring-1 ring-slate-200/90 transition-opacity hover:opacity-95"
+          aria-label={`Open ${project.title}`}
         >
-          <p className="line-clamp-2 text-xs font-semibold leading-snug text-slate-900">{project.title}</p>
-          <p className="mt-0.5 text-[0.65rem] text-slate-500">Edited {formatEdited(project.updatedAt)}</p>
+          <span className="sr-only">Open resume</span>
+          <div className="absolute inset-0 flex items-center justify-center p-1">
+            <TemplateThumbnail slug={slug} compact className="max-h-full w-full scale-[0.92]" />
+          </div>
         </Link>
-      </article>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <Link
+            href={href}
+            className="min-w-0 truncate text-sm font-semibold text-slate-900 underline-offset-2 hover:underline sm:max-w-[min(100%,28rem)] sm:text-base"
+          >
+            {project.title}
+          </Link>
+          <p className="shrink-0 text-xs text-slate-400 sm:text-right sm:text-sm">
+            Edited {formatProjectEdited(project.updatedAt)}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+          <Link
+            href={ROUTES.app.project(project.id)}
+            className={listIconLinkClass}
+            aria-label={`Open ${project.title} overview`}
+          >
+            <Eye className="size-[18px]" strokeWidth={1.75} aria-hidden />
+          </Link>
+          <Link
+            href={ROUTES.app.projectBuild(project.id)}
+            className={listIconLinkClass}
+            aria-label={`Open ${project.title} in the studio`}
+          >
+            <UserPlus className="size-[18px]" strokeWidth={1.75} aria-hidden />
+          </Link>
+          <Link
+            href={ROUTES.app.projectPreview(project.id)}
+            className={listIconLinkClass}
+            aria-label={`Preview and export ${project.title}`}
+          >
+            <Download className="size-[18px]" strokeWidth={1.75} aria-hidden />
+          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              type="button"
+              className={cn(listIconLinkClass, "border-0 bg-transparent")}
+              aria-label={`More actions for ${project.title}`}
+            >
+              <MoreVertical className="size-[18px]" strokeWidth={1.75} aria-hidden />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[11rem]">
+              <DropdownMenuItem
+                render={
+                  <Link href={ROUTES.app.project(project.id)} className="cursor-pointer" />
+                }
+              >
+                <Eye className="size-4 opacity-70" aria-hidden />
+                Open
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                render={
+                  <Link href={ROUTES.app.projectBuild(project.id)} className="cursor-pointer" />
+                }
+              >
+                <NotebookPen className="size-4 opacity-70" aria-hidden />
+                Open draft
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setRenameOpen(true)} className="cursor-pointer">
+                <Pencil className="size-4 opacity-70" aria-hidden />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={dupPending} onClick={runDuplicate} className="cursor-pointer">
+                <Copy className="size-4 opacity-70" aria-hidden />
+                {dupPending ? "Duplicating…" : "Duplicate"}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => setDeleteOpen(true)}
+                className="cursor-pointer"
+              >
+                <Trash2 className="size-4 opacity-70" aria-hidden />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
       <RenameProjectDialog
         projectId={project.id}
@@ -167,18 +177,28 @@ function ResumeGridTile({ project }: { project: DashboardProject }) {
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
       />
-    </>
+    </div>
   );
 }
 
-const createResumeDashedClass =
-  "flex h-[10.5rem] w-[9.5rem] shrink-0 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#2268d7]/50 bg-sky-50/40 p-3 text-[#2268d7] shadow-none transition-colors hover:border-[#2268d7] hover:bg-sky-50/80 hover:text-[#1a56b8] sm:w-[10.5rem]";
+const createResumeDashedClass = cn(
+  "flex w-full min-w-0 max-w-[12.5rem] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-100/90 p-4 text-slate-400 shadow-none sm:max-w-[13.5rem]",
+  "aspect-[210/297] transition-[color,background-color,border-color,transform] duration-200",
+  "hover:border-slate-400 hover:bg-slate-100 hover:text-slate-500",
+);
+
+const createResumeGridSubmitClass = cn(
+  createResumeDashedClass,
+  "cursor-pointer font-medium outline-none",
+  "focus-visible:ring-2 focus-visible:ring-slate-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+  "disabled:pointer-events-none disabled:opacity-60",
+);
 
 function CreateResumeGuestCard() {
   return (
-    <Link href={ROUTES.create} className={createResumeDashedClass}>
-      <span className="text-center text-xs font-semibold leading-snug">Create new resume</span>
-      <Plus className="size-8 stroke-[1.5]" aria-hidden />
+    <Link href={ROUTES.create} className={cn(createResumeDashedClass, "outline-none focus-visible:ring-2 focus-visible:ring-slate-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white")}>
+      <span className="text-center text-sm font-normal leading-snug">Create new resume</span>
+      <Plus className="size-10 stroke-[1.35] text-slate-400" aria-hidden />
     </Link>
   );
 }
@@ -187,75 +207,69 @@ function CreateResumeCard() {
   const [state, action, pending] = useActionState(createProjectAction, {});
 
   return (
-    <form action={action} className="shrink-0">
-      <input type="hidden" name="title" value="Untitled resume" />
-      <Button
-        type="submit"
-        disabled={pending}
-        variant="ghost"
-        className={createResumeDashedClass}
-      >
-        <span className="text-center text-xs font-semibold leading-snug">
-          {pending ? "Creating…" : "Create new resume"}
-        </span>
-        <Plus className="size-8 stroke-[1.5]" aria-hidden />
-      </Button>
+    <div className="flex w-full min-w-0 max-w-[12.5rem] flex-col gap-2 sm:max-w-[13.5rem]">
+      <form action={action} className="w-full">
+        <input type="hidden" name="title" value="Untitled resume" />
+        <button type="submit" disabled={pending} className={createResumeGridSubmitClass}>
+          <span className="text-center text-sm font-normal leading-snug">
+            {pending ? "Creating…" : "Create new resume"}
+          </span>
+          {pending ? (
+            <Loader2 className="size-10 animate-spin stroke-[1.35] text-slate-400" aria-hidden />
+          ) : (
+            <Plus className="size-10 stroke-[1.35] text-slate-400" aria-hidden />
+          )}
+        </button>
+      </form>
       {state.error ? (
-        <p className="mt-2 max-w-[10.5rem] text-center text-xs font-medium text-destructive" role="alert">
+        <p className="text-xs font-medium text-destructive" role="alert">
           {state.error}
         </p>
       ) : null}
-    </form>
+    </div>
   );
 }
 
-function CreateResumeListRowGuest() {
+/** First row inside list panel — guest (link to public builder). */
+function CreateResumeListFirstRowGuest() {
   return (
     <Link
       href={ROUTES.create}
-      className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed border-[#2268d7]/50 bg-sky-50/40 px-4 py-4 text-[#2268d7] sm:px-5"
+      className="flex w-full items-center gap-3 px-4 py-3.5 text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 sm:px-5"
     >
-      <Plus className="size-6 shrink-0 stroke-[1.5]" aria-hidden />
-      <span className="min-w-0 flex-1 text-sm font-semibold">Create new resume</span>
-      <span
-        className={cn(
-          buttonVariants({ size: "sm" }),
-          "shrink-0 bg-[#2268d7] text-white hover:bg-[#1a56b8]",
-        )}
-      >
-        Open builder
-      </span>
+      <Plus className="size-5 shrink-0 stroke-[1.5]" aria-hidden />
+      <span className="text-sm font-medium">Create new resume</span>
     </Link>
   );
 }
 
-function CreateResumeListRow() {
+/** First row inside list panel — signed-in (server create). */
+function CreateResumeListFirstRow() {
   const [state, action, pending] = useActionState(createProjectAction, {});
 
   return (
-    <form
-      action={action}
-      className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed border-[#2268d7]/50 bg-sky-50/40 px-4 py-4 text-[#2268d7] sm:px-5"
-    >
-      <input type="hidden" name="title" value="Untitled resume" />
-      <Plus className="size-6 shrink-0 stroke-[1.5]" aria-hidden />
-      <span className="min-w-0 flex-1 text-sm font-semibold">
-        {pending ? "Creating…" : "Create new resume"}
-      </span>
-      <Button
-        type="submit"
-        size="sm"
-        disabled={pending}
-        className="shrink-0 bg-[#2268d7] text-white hover:bg-[#1a56b8]"
-      >
-        {pending ? "Please wait" : "Create"}
-      </Button>
+    <div>
+      <form action={action}>
+        <input type="hidden" name="title" value="Untitled resume" />
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700 disabled:opacity-60 sm:px-5"
+        >
+          {pending ? (
+            <Loader2 className="size-5 shrink-0 animate-spin stroke-[1.5]" aria-hidden />
+          ) : (
+            <Plus className="size-5 shrink-0 stroke-[1.5]" aria-hidden />
+          )}
+          <span className="text-sm font-medium">{pending ? "Creating…" : "Create new resume"}</span>
+        </button>
+      </form>
       {state.error ? (
-        <p className="w-full text-sm font-medium text-destructive" role="alert">
+        <p className="border-t border-slate-100 px-4 py-2 text-xs font-medium text-destructive sm:px-5" role="alert">
           {state.error}
         </p>
       ) : null}
-    </form>
+    </div>
   );
 }
 
@@ -284,7 +298,7 @@ export function ResumesPageGallery({ projects, guest = false }: Props) {
         </div>
       ) : null}
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Resumes</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Resumes</h1>
         <div
           className="inline-flex shrink-0 rounded-full border border-slate-200 bg-white p-0.5 shadow-sm"
           role="group"
@@ -318,24 +332,18 @@ export function ResumesPageGallery({ projects, guest = false }: Props) {
       </div>
 
       {view === "grid" ? (
-        <div className="flex flex-wrap gap-4 pb-2">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(10.75rem,1fr))] justify-items-start gap-x-6 gap-y-8 pb-2 sm:grid-cols-[repeat(auto-fill,minmax(11.75rem,1fr))]">
           {guest ? <CreateResumeGuestCard /> : <CreateResumeCard />}
           {!guest
-            ? projects.map((p) => <ResumeGridTile key={p.id} project={p} />)
+            ? projects.map((p) => <ProjectResumePreviewCard key={p.id} project={p} />)
             : null}
         </div>
       ) : (
-        <div className="space-y-6">
-          {guest ? <CreateResumeListRowGuest /> : <CreateResumeListRow />}
-          {!guest ? (
-            <ul className="grid gap-4 sm:grid-cols-2">
-              {projects.map((p) => (
-                <li key={p.id}>
-                  <ProjectCard project={p} />
-                </li>
-              ))}
-            </ul>
-          ) : null}
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="divide-y divide-slate-100">
+            {guest ? <CreateResumeListFirstRowGuest /> : <CreateResumeListFirstRow />}
+            {!guest ? projects.map((p) => <ResumeListRow key={p.id} project={p} />) : null}
+          </div>
         </div>
       )}
     </div>

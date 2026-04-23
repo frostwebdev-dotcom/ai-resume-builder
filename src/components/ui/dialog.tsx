@@ -39,6 +39,24 @@ function DialogOverlay({
   )
 }
 
+function DialogCloseControl() {
+  return (
+    <DialogPrimitive.Close
+      data-slot="dialog-close"
+      render={
+        <Button
+          variant="ghost"
+          className="absolute top-2 right-2"
+          size="icon-sm"
+        />
+      }
+    >
+      <XIcon />
+      <span className="sr-only">Close</span>
+    </DialogPrimitive.Close>
+  )
+}
+
 function DialogContent({
   className,
   children,
@@ -59,23 +77,56 @@ function DialogContent({
         {...props}
       >
         {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                size="icon-sm"
-              />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
+        {showCloseButton ? <DialogCloseControl /> : null}
       </DialogPrimitive.Popup>
+    </DialogPortal>
+  )
+}
+
+/**
+ * Centers the dialog card with optional slots to the left/right of the card
+ * (e.g. carousel arrows visually outside the modal). Outer viewport uses
+ * `pointer-events: none` so the backdrop still receives outside clicks.
+ */
+function DialogContentFlanked({
+  className,
+  children,
+  showCloseButton = true,
+  leftSlot,
+  rightSlot,
+  ...props
+}: DialogPrimitive.Popup.Props & {
+  showCloseButton?: boolean
+  leftSlot?: React.ReactNode
+  rightSlot?: React.ReactNode
+}) {
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <div
+        data-slot="dialog-flank-host"
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 pointer-events-none"
+      >
+        <div className="flex max-h-full w-full max-w-[min(100vw-2.5rem,calc(42rem+7rem))] items-center justify-center gap-2 sm:gap-3 md:max-w-[min(100vw-3rem,calc(64rem+8rem))] md:gap-4 pointer-events-auto">
+          <div className="hidden shrink-0 md:flex md:items-center md:justify-end">
+            {leftSlot}
+          </div>
+          <DialogPrimitive.Popup
+            data-slot="dialog-content"
+            className={cn(
+              "relative top-auto left-auto max-h-full w-full min-w-0 max-w-5xl translate-x-0 translate-y-0 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+              className
+            )}
+            {...props}
+          >
+            {children}
+            {showCloseButton ? <DialogCloseControl /> : null}
+          </DialogPrimitive.Popup>
+          <div className="hidden shrink-0 md:flex md:items-center md:justify-start">
+            {rightSlot}
+          </div>
+        </div>
+      </div>
     </DialogPortal>
   )
 }
@@ -150,6 +201,7 @@ export {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogContentFlanked,
   DialogDescription,
   DialogFooter,
   DialogHeader,

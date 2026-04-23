@@ -4,6 +4,9 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { Plus } from "lucide-react";
 
+import { UserMenu } from "@/components/auth/user-menu";
+import { NewResumeServerForm } from "@/components/projects/new-resume-server-form";
+import { dashboardSidebarActive } from "@/components/projects/dashboard-workspace-grid";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
@@ -85,24 +88,37 @@ export function MarketingPrimaryNav() {
 
 type AuthLinksProps = {
   isAuthed: boolean;
+  /** Present when signed in — drives the account menu in the marketing header. */
+  userEmail?: string | null;
+  isAdmin?: boolean;
 };
 
+const workspaceGhostLink = cn(
+  buttonVariants({ variant: "ghost", size: "sm" }),
+  "relative whitespace-nowrap px-2 text-xs sm:px-2.5 sm:text-sm",
+);
+
+const marketingNewResumeButtonClass = cn(
+  buttonVariants({ size: "sm" }),
+  "relative shrink-0 gap-1.5 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
+  "disabled:pointer-events-none disabled:opacity-65",
+);
+
+function isAppDashboardActive(pathname: string) {
+  return pathname === ROUTES.app.root || pathname === `${ROUTES.app.root}/`;
+}
+
 /**
- * "Create Resume" CTA — appears in the header for both authed and unauthed users.
- * - Signed out → `/create` (public builder; draft in localStorage, no account).
- * - Signed in → `/app` (dashboard quick-create + saved projects).
+ * Signed-out CTA: public `/create` builder (local draft until sign-in).
  */
-function CreateResumeButton({ isAuthed, className }: { isAuthed: boolean; className?: string }) {
+function GuestCreateResumeLink({ className }: { className?: string }) {
   const pathname = usePathname();
-  const href = isAuthed ? ROUTES.app.root : ROUTES.create;
-  const active = isAuthed
-    ? isActive(pathname, ROUTES.app.root)
-    : isActive(pathname, ROUTES.create);
+  const active = isActive(pathname, ROUTES.create);
 
   return (
     <Link
-      href={href}
-      aria-label={isAuthed ? "Create a new resume in your account" : "Create a resume without signing in"}
+      href={ROUTES.create}
+      aria-label="Create a resume without signing in"
       data-active={active || undefined}
       className={cn(
         buttonVariants({ size: "sm" }),
@@ -110,7 +126,7 @@ function CreateResumeButton({ isAuthed, className }: { isAuthed: boolean; classN
         className,
       )}
     >
-      <Plus className="size-4" aria-hidden />
+      <Plus className="size-4 shrink-0" aria-hidden />
       <span className="sm:hidden">Create</span>
       <span className="hidden sm:inline">Create Resume</span>
       <PendingBar active={active} />
@@ -118,30 +134,68 @@ function CreateResumeButton({ isAuthed, className }: { isAuthed: boolean; classN
   );
 }
 
-export function MarketingAuthLinks({ isAuthed }: AuthLinksProps) {
+export function MarketingAuthLinks({
+  isAuthed,
+  userEmail = null,
+  isAdmin = false,
+}: AuthLinksProps) {
   const pathname = usePathname();
 
   if (isAuthed) {
-    // Authed users: "My resumes" (secondary) + "Create Resume" (primary brand CTA).
+    const dashboardActive = isAppDashboardActive(pathname);
+    const resumesActive = dashboardSidebarActive(pathname, ROUTES.app.resumes);
+
     return (
-      <>
-        <Link
-          href={ROUTES.app.root}
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "relative hidden sm:inline-flex",
-          )}
-          aria-label="Go to your resumes"
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 sm:gap-1.5">
+        <nav
+          className="flex min-w-0 items-center gap-0.5 sm:gap-1"
+          aria-label="Workspace"
         >
-          My resumes
-          <PendingBar active={false} />
-        </Link>
-        <CreateResumeButton isAuthed />
-      </>
+          <Link
+            href={ROUTES.app.root}
+            aria-current={dashboardActive ? "page" : undefined}
+            data-active={dashboardActive || undefined}
+            className={cn(
+              workspaceGhostLink,
+              dashboardActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Dashboard
+            <PendingBar active={dashboardActive} />
+          </Link>
+          <Link
+            href={ROUTES.app.resumes}
+            aria-current={resumesActive ? "page" : undefined}
+            data-active={resumesActive || undefined}
+            className={cn(
+              workspaceGhostLink,
+              resumesActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Resumes
+            <PendingBar active={resumesActive} />
+          </Link>
+        </nav>
+
+        <NewResumeServerForm
+          formClassName="inline-flex w-auto shrink-0"
+          buttonClassName={cn(marketingNewResumeButtonClass, "touch-manipulation")}
+          idleContent={
+            <>
+              <span className="hidden sm:inline">New resume</span>
+              <span className="sm:hidden">New</span>
+            </>
+          }
+          pendingText="Creating…"
+        />
+
+        {userEmail ? (
+          <UserMenu email={userEmail} isAdmin={isAdmin} variant="icon" />
+        ) : null}
+      </div>
     );
   }
 
-  // Unauthed: Log In (ghost) + Create Resume (primary → public `/create`).
   const loginActive = isActive(pathname, ROUTES.auth.login);
 
   return (
@@ -159,7 +213,7 @@ export function MarketingAuthLinks({ isAuthed }: AuthLinksProps) {
         Log In
         <PendingBar active={loginActive} />
       </Link>
-      <CreateResumeButton isAuthed={false} />
+      <GuestCreateResumeLink />
     </>
   );
 }
