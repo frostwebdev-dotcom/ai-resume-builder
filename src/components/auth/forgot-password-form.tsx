@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Inbox, Mail } from "lucide-react";
 
 import { SubmitButton } from "@/components/auth/submit-button";
@@ -24,6 +25,8 @@ import {
 const initial: AuthActionState = {};
 
 export function ForgotPasswordForm() {
+  const searchParams = useSearchParams();
+  const emailFromUrl = searchParams.get("email")?.trim() ?? "";
   const [state, formAction] = useActionState(forgotPasswordAction, initial);
 
   if (state.success) {
@@ -72,10 +75,12 @@ export function ForgotPasswordForm() {
       >
         <InputWithIcon leading={<Mail />}>
           <Input
+            key={emailFromUrl || "no-email-query"}
             name="email"
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
+            defaultValue={emailFromUrl}
           />
         </InputWithIcon>
       </Field>

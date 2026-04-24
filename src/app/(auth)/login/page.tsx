@@ -59,7 +59,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <AuthCard
       title="Welcome"
-      description="New or returning — no passwords, just one click."
+      description="Sign in with email and password, Google, or a one-time email link."
     >
       <div className="flex flex-col gap-6">
         {loginErrorAlert(firstParam(sp.error))}

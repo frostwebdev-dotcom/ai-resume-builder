@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { AuthCard } from "@/components/auth/auth-card";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
@@ -7,7 +9,9 @@ export default function ForgotPasswordPage() {
       title="Reset password"
       description="Enter the email you used to register. We will email a secure link."
     >
-      <ForgotPasswordForm />
+      <Suspense fallback={null}>
+        <ForgotPasswordForm />
+      </Suspense>
     </AuthCard>
   );
 }
