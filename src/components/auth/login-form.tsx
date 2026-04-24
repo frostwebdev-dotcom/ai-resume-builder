@@ -36,7 +36,8 @@ type PendingAction = "none" | "magic" | "google" | "signup";
 
 type PanelStep = "email" | "name" | "password";
 
-type PanelEmailIntent = "password_register" | "magic_link";
+/** Panel only: name/password signup after user explicitly chooses password registration. */
+type PanelEmailIntent = "password_register";
 
 type RateLimit = {
   /** ms timestamp when the user can try again. */
@@ -102,8 +103,9 @@ function useSecondsUntil(ts: number | null): number {
  * Passwordless login: one email field, one primary button (full-page variant).
  *   • "Continue with email" — sends a one-time magic link via `signInWithOtp`.
  *     `shouldCreateUser` is true, so first-time users are auto-provisioned on click.
- *   • Panel variant (`/app` sheet): email → name → password + `signUp` (Next from email), or
- *     email → name → magic link (“Get a one-time login code”). `options.data` carries names.
+ *   • Panel variant (`/app` sheet): **Continue with email** sends a magic link immediately (new or
+ *     returning users — same as full-page). Optional **Create account with password** → name →
+ *     password + `signUp`. `options.data` carries names on password signup.
  *   • "Continue with Google" — Supabase OAuth using the browser client. The PKCE `code`
  *     lands on `/auth/callback`, which already handles `exchangeCodeForSession`.
  *
@@ -201,7 +203,7 @@ export function LoginForm({
     await sendMagicLink(parsed.data.email);
   }
 
-  function handlePanelEmailNext(e: React.FormEvent<HTMLFormElement>) {
+  async function handlePanelEmailMagicLinkSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     resetErrors();
 
@@ -212,12 +214,10 @@ export function LoginForm({
     }
 
     setInvalidEmail(false);
-    setInvalidName(false);
-    setPanelEmailIntent("password_register");
-    setPanelStep("name");
+    await sendMagicLink(parsed.data.email);
   }
 
-  function handlePanelStartOtpPath() {
+  function handlePanelPasswordRegisterClick() {
     resetErrors();
     const parsed = magicLinkSchema.safeParse({ email: emailValue });
     if (!parsed.success) {
@@ -226,7 +226,7 @@ export function LoginForm({
     }
     setInvalidEmail(false);
     setInvalidName(false);
-    setPanelEmailIntent("magic_link");
+    setPanelEmailIntent("password_register");
     setPanelStep("name");
   }
 
@@ -248,17 +248,6 @@ export function LoginForm({
     }
 
     setInvalidName(false);
-
-    if (panelEmailIntent === "magic_link") {
-      const display = `${parsedName.data.givenName} ${parsedName.data.familyName}`.trim();
-      await sendMagicLink(parsedEmail.data.email, {
-        given_name: parsedName.data.givenName,
-        family_name: parsedName.data.familyName,
-        full_name: display,
-        display_name: display,
-      });
-      return;
-    }
 
     if (panelEmailIntent === "password_register") {
       setPanelStep("password");
@@ -324,7 +313,7 @@ export function LoginForm({
           msg.includes("exists")
         ) {
           setGenericError(
-            "That email already has an account. Sign in with Google, or use “Get a one-time login code” after entering your email.",
+            "That email already has an account. Use Continue with email for a magic link, or sign in with Google.",
           );
         } else {
           setGenericError(error.message || "Could not create your account. Try again.");
@@ -409,15 +398,7 @@ export function LoginForm({
       ? isPanel
         ? "Sending…"
         : "Sending link…"
-      : isPanel
-        ? "Next"
-        : "Continue with email";
-
-  const primaryNameStepLabel = activeLimit
-    ? `Try again in ${secondsLeft}s`
-    : pending === "magic"
-      ? "Sending…"
-      : "Next";
+      : "Continue with email";
 
   const showInvalidEmailAlert =
     invalidEmail && (!isPanel || panelStep === "email");
@@ -430,7 +411,7 @@ export function LoginForm({
           <AlertDescription>
             {isPanel ? (
               <>
-                Type the email you want to use, then tap <strong>Next</strong>.
+                Type the email you want to use, then tap <strong>Continue with email</strong>.
               </>
             ) : (
               <>
@@ -576,9 +557,7 @@ export function LoginForm({
   }
 
   if (isPanel && panelStep === "name") {
-    const isOtpPath = panelEmailIntent === "magic_link";
-    const nameStepDisabled = activeLimit !== null || (isOtpPath && pending === "magic");
-    const namePrimaryLabel = isOtpPath ? primaryNameStepLabel : "Next";
+    const nameStepDisabled = activeLimit !== null;
 
     return (
       <div className="flex flex-col gap-8">
@@ -640,14 +619,9 @@ export function LoginForm({
               <Button
                 type="submit"
                 disabled={nameStepDisabled}
-                aria-busy={isOtpPath && pending === "magic"}
                 className="h-11 min-w-[5.5rem] rounded-full bg-[#0a84ff] px-8 text-sm font-semibold text-white shadow-none hover:bg-[#0077ed] disabled:opacity-60"
               >
-                {isOtpPath && pending === "magic" ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden />
-                ) : (
-                  namePrimaryLabel
-                )}
+                Next
               </Button>
             </div>
           </form>
@@ -657,7 +631,7 @@ export function LoginForm({
   }
 
   if (isPanel) {
-    const emailStepBusy = pending === "google";
+    const emailStepBusy = pending === "google" || pending === "magic";
     const emailStepDisabled = emailStepBusy || activeLimit !== null;
 
     return (
@@ -671,7 +645,7 @@ export function LoginForm({
           <form
             ref={formRef}
             id="app-panel-login-email"
-            onSubmit={handlePanelEmailNext}
+            onSubmit={handlePanelEmailMagicLinkSubmit}
             className="mt-6 flex flex-col gap-4"
           >
             <div className="flex flex-col gap-2">
@@ -699,9 +673,17 @@ export function LoginForm({
               <Button
                 type="submit"
                 disabled={emailStepDisabled}
+                aria-busy={pending === "magic"}
                 className="h-11 min-w-[5.5rem] rounded-full bg-[#0a84ff] px-8 text-sm font-semibold text-white shadow-none hover:bg-[#0077ed] disabled:opacity-60"
               >
-                {primaryEmailLabel}
+                {pending === "magic" ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                    Sending…
+                  </>
+                ) : (
+                  primaryEmailLabel
+                )}
               </Button>
             </div>
           </form>
@@ -740,10 +722,10 @@ export function LoginForm({
             type="button"
             variant="outline"
             disabled={emailStepDisabled}
-            onClick={handlePanelStartOtpPath}
+            onClick={handlePanelPasswordRegisterClick}
             className={panelOutlineButton}
           >
-            Get a one-time login code
+            Create account with password
           </Button>
         </div>
 
