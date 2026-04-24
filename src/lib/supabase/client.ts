@@ -21,5 +21,18 @@ export function createSupabaseBrowserClient() {
       "Supabase browser client: missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     );
   }
-  return createBrowserClient<Database>(url, anonKey);
+  return createBrowserClient<Database>(url, anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+    cookieOptions: {
+      // Keep auth cookies as long as the browser allows; refresh tokens still expire per Supabase
+      // project settings (Dashboard → Authentication → Sessions).
+      maxAge: 60 * 60 * 24 * 400,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    },
+  });
 }

@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2, LogIn, Mail, Send } from "lucide-react";
+import { Loader2, Mail, Send } from "lucide-react";
 
 import { GoogleLogo } from "@/components/auth/google-logo";
+import { EmailOtpVerifyCard } from "@/components/auth/email-otp-verify-card";
 import { MagicLinkSentCard } from "@/components/auth/magic-link-sent-card";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
@@ -107,18 +108,15 @@ function useSecondsUntil(ts: number | null): number {
 }
 
 /**
- * Passwordless login: one email field, one primary button (full-page variant).
- *   • **Sign in** — `signInWithPassword` (email + password). No magic link for returning users who
- *     set a password at signup.
- *   • **Email me a sign-in link** — optional `signInWithOtp` (`shouldCreateUser: true`) for
- *     passwordless access or accounts without a password.
- *   • Panel variant (`/app` sheet): same — email + password primary; magic link secondary; optional
- *     **Create account with password** → name → password + `signUp`.
- *   • "Continue with Google" — Supabase OAuth using the browser client. The PKCE `code`
- *     lands on `/auth/callback`, which already handles `exchangeCodeForSession`.
+ * Passwordless-first login: `signInWithOtp` then `verifyOtp` with a 6-digit email code (no link
+ * click). `shouldCreateUser: true` on send. Returning users only skip this step while a session
+ * cookie is still valid (persisted + refreshed in the browser client).
  *
- * All sessions are written by the browser client (`document.cookie`), mirroring the
- * reliability notes from the previous password flow.
+ *   • **Send sign-in code** — `signInWithOtp`; user enters code in EmailOtpVerifyCard.
+ *   • **Continue with Google** — OAuth; PKCE `code` on `/auth/callback`.
+ *   • Optional **Sign in with password instead** — `signInWithPassword`.
+ *   • Password signup still uses MagicLinkSentCard when Supabase returns no session (email
+ *     confirmation link — separate template).
  */
 export function LoginForm({
   nextPath,
@@ -146,6 +144,10 @@ export function LoginForm({
   const [rateLimit, setRateLimit] = useState<RateLimit | null>(null);
   const [pending, setPending] = useState<PendingAction>("none");
   const [magicSentTo, setMagicSentTo] = useState<string | null>(null);
+  /** After `signInWithOtp`, user enters the email OTP in-app (not magic-link click). */
+  const [otpAwaitEmail, setOtpAwaitEmail] = useState<string | null>(null);
+  /** Optional email+password path (passwordless remains default). */
+  const [showPasswordSignIn, setShowPasswordSignIn] = useState(false);
   const secondsLeft = useSecondsUntil(rateLimit?.retryAt ?? null);
   // Render-time derivation — once the countdown hits 0 the banner simply disappears.
   // No state sync is needed, which keeps this compatible with `react-hooks/set-state-in-effect`.
@@ -195,7 +197,9 @@ export function LoginForm({
           msg.includes("credentials") ||
           msg.includes("password")
         ) {
-          setGenericError("Wrong email or password. Try again or use a sign-in link.");
+          setGenericError(
+            "Wrong email or password. Try again, or use Send sign-in code for email login.",
+          );
         } else {
           setGenericError(error.message || "Could not sign in. Try again.");
         }
@@ -219,7 +223,7 @@ export function LoginForm({
     }
   }
 
-  async function sendMagicLink(
+  async function sendEmailOtpForSignIn(
     email: string,
     metadata?: Record<string, string>,
   ): Promise<void> {
@@ -240,15 +244,14 @@ export function LoginForm({
         if (limit) {
           setRateLimit(limit);
         } else {
-          setGenericError("Something went wrong sending the sign-in link. Try again.");
+          setGenericError("Something went wrong sending the sign-in code. Try again.");
         }
         setPending("none");
         return;
       }
 
       trackClientEvent(ANALYTICS_EVENTS.MAGIC_LINK_REQUESTED);
-      setMagicCardMode("signIn");
-      setMagicSentTo(email);
+      setOtpAwaitEmail(email);
       setPending("none");
     } catch {
       setGenericError("Something went wrong. Check your connection and try again.");
@@ -262,7 +265,8 @@ export function LoginForm({
     await trySignInWithPassword("default");
   }
 
-  async function handleDefaultMagicLinkClick() {
+  async function handleDefaultMagicLinkSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     resetErrors();
 
     const parsed = magicLinkSchema.safeParse({ email: emailValue });
@@ -272,26 +276,27 @@ export function LoginForm({
     }
 
     setInvalidEmail(false);
-    await sendMagicLink(parsed.data.email);
+    await sendEmailOtpForSignIn(parsed.data.email);
+  }
+
+  async function handlePanelMagicLinkSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    resetErrors();
+
+    const parsed = magicLinkSchema.safeParse({ email: emailValue });
+    if (!parsed.success) {
+      setInvalidEmail(true);
+      return;
+    }
+
+    setInvalidEmail(false);
+    await sendEmailOtpForSignIn(parsed.data.email);
   }
 
   async function handlePanelSignInSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     resetErrors();
     await trySignInWithPassword("panel");
-  }
-
-  async function handlePanelMagicLinkClick() {
-    resetErrors();
-
-    const parsed = magicLinkSchema.safeParse({ email: emailValue });
-    if (!parsed.success) {
-      setInvalidEmail(true);
-      return;
-    }
-
-    setInvalidEmail(false);
-    await sendMagicLink(parsed.data.email);
   }
 
   function handlePanelPasswordRegisterClick() {
@@ -304,6 +309,7 @@ export function LoginForm({
     setInvalidEmail(false);
     setInvalidName(false);
     setSignInPassword("");
+    setShowPasswordSignIn(false);
     setPanelEmailIntent("password_register");
     setPanelStep("name");
   }
@@ -391,7 +397,7 @@ export function LoginForm({
           msg.includes("exists")
         ) {
           setGenericError(
-            "That email already has an account. Sign in with your password, use a sign-in link, or continue with Google.",
+            "That email already has an account. Use Send sign-in code, or continue with Google.",
           );
         } else {
           setGenericError(error.message || "Could not create your account. Try again.");
@@ -455,6 +461,7 @@ export function LoginForm({
         onReset={() => {
           setMagicSentTo(null);
           setMagicCardMode("signIn");
+          setOtpAwaitEmail(null);
           setPanelStep("email");
           setPanelEmailIntent(null);
           setGivenName("");
@@ -462,6 +469,7 @@ export function LoginForm({
           setPasswordValue("");
           setConfirmPasswordValue("");
           setSignInPassword("");
+          setShowPasswordSignIn(false);
           resetErrors();
         }}
       />
@@ -470,8 +478,26 @@ export function LoginForm({
 
   const busy = pending !== "none";
   const signInPending = pending === "signin";
-  const defaultSignInDisabled =
-    pending === "google" || pending === "magic" || pending === "signup" || signInPending;
+  const passwordSignInSubmitDisabled =
+    pending === "google" ||
+    pending === "magic" ||
+    pending === "signup" ||
+    signInPending;
+  const magicSubmitDisabled =
+    pending === "google" ||
+    pending === "magic" ||
+    pending === "signup" ||
+    pending === "signin" ||
+    activeLimit !== null;
+
+  const primaryEmailAuthLabel =
+    activeLimit !== null
+      ? `Try again in ${secondsLeft}s`
+      : pending === "magic"
+        ? isPanel
+          ? "Sending…"
+          : "Sending code…"
+        : "Send sign-in code";
 
   const showInvalidEmailAlert =
     invalidEmail && (!isPanel || panelStep === "email");
@@ -482,19 +508,19 @@ export function LoginForm({
         <Alert variant="destructive">
           <AlertTitle>Check your email</AlertTitle>
           <AlertDescription>
-            Enter a valid email address{isPanel ? "" : " above"} to sign in.
+            Enter a valid email, then tap <strong>Send sign-in code</strong>.
           </AlertDescription>
         </Alert>
       ) : null}
 
-      {!isPanel && invalidPassword ? (
+      {!isPanel && showPasswordSignIn && invalidPassword ? (
         <Alert variant="destructive">
           <AlertTitle>Check your password</AlertTitle>
           <AlertDescription>Use at least 8 characters.</AlertDescription>
         </Alert>
       ) : null}
 
-      {isPanel && panelStep === "email" && invalidPassword ? (
+      {isPanel && panelStep === "email" && showPasswordSignIn && invalidPassword ? (
         <Alert variant="destructive">
           <AlertTitle>Check your password</AlertTitle>
           <AlertDescription>Use at least 8 characters.</AlertDescription>
@@ -529,11 +555,11 @@ export function LoginForm({
           <AlertDescription>
             {activeLimit.hardLimit
               ? isPanel
-                ? "This project has hit its email-sending quota. Sign in with your password or Google below, or try a sign-in link again in a few minutes."
-                : "This project has hit its email-sending quota. Sign in with your password or Google above, or try a sign-in link again in a few minutes."
+                ? "This project has hit its email-sending quota. Use Google below to sign in now, or try sending a code again in a few minutes. If you use a password, expand Sign in with password instead below."
+                : "This project has hit its email-sending quota. Use Google above to sign in now, or try sending a code again in a few minutes. If you use a password, expand Sign in with password instead below."
               : isPanel
-                ? "We just sent you a link — check your inbox. You can request another in a moment, sign in with your password, or use Google below."
-                : "We just sent you a link — check your inbox. You can request another in a moment, or sign in with your password or Google above."}
+                ? "We just sent you a code — check your inbox. You can request another in a moment, or use Google below."
+                : "We just sent you a code — check your inbox. You can request another in a moment, or use Google above."}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -546,6 +572,44 @@ export function LoginForm({
       ) : null}
     </>
   );
+
+  if (otpAwaitEmail !== null) {
+    const otpResendDisabled =
+      pending === "magic" ||
+      pending === "google" ||
+      pending === "signup" ||
+      activeLimit !== null;
+
+    return (
+      <div className={cn("flex flex-col gap-5", isPanel && "gap-6")}>
+        {alerts}
+        <EmailOtpVerifyCard
+          email={otpAwaitEmail}
+          embedded={isPanel}
+          resendDisabled={otpResendDisabled}
+          onResend={() => sendEmailOtpForSignIn(otpAwaitEmail)}
+          onReset={() => {
+            setOtpAwaitEmail(null);
+            setPanelStep("email");
+            setPanelEmailIntent(null);
+            setSignInPassword("");
+            setShowPasswordSignIn(false);
+            resetErrors();
+          }}
+          onVerified={() => {
+            setOtpAwaitEmail(null);
+            if (isPanel) {
+              onPanelAuthSuccess?.();
+              router.refresh();
+            } else {
+              router.refresh();
+              router.push(nextPath);
+            }
+          }}
+        />
+      </div>
+    );
+  }
 
   const panelOutlineButton =
     "h-12 w-full rounded-full border border-zinc-200 bg-white text-[15px] font-medium text-zinc-900 shadow-none hover:bg-zinc-50";
@@ -648,6 +712,7 @@ export function LoginForm({
               setPanelStep("email");
               setPanelEmailIntent(null);
               setInvalidName(false);
+              setShowPasswordSignIn(false);
               resetErrors();
             }}
             className="text-sm font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -709,13 +774,11 @@ export function LoginForm({
   }
 
   if (isPanel) {
-    const panelMagicLinkDisabled =
+    const outlineButtonsDisabled =
       pending === "google" ||
+      pending === "magic" ||
       pending === "signin" ||
-      pending === "signup" ||
-      activeLimit !== null;
-    const panelSignInDisabled =
-      pending === "google" || pending === "magic" || pending === "signup" || signInPending;
+      pending === "signup";
 
     return (
       <div className="flex flex-col gap-8">
@@ -723,15 +786,16 @@ export function LoginForm({
 
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Sign in
+            What is your email address?
           </h2>
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            Use the password you set when you registered — no inbox check needed.
+            Passwordless sign-in: we&apos;ll email you a 6-digit code. Enter it here — no link click
+            and no password.
           </p>
           <form
             ref={formRef}
             id="app-panel-login-email"
-            onSubmit={handlePanelSignInSubmit}
+            onSubmit={handlePanelMagicLinkSubmit}
             className="mt-6 flex flex-col gap-4"
           >
             <div className="flex flex-col gap-2">
@@ -755,69 +819,92 @@ export function LoginForm({
                 className="h-12 rounded-md border-sky-200 bg-white px-3.5 text-base text-zinc-900 shadow-none placeholder:text-zinc-400 focus-visible:border-sky-400 focus-visible:ring-2 focus-visible:ring-sky-300/35 dark:border-sky-800 dark:bg-zinc-950 dark:text-zinc-50"
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="login-panel-signin-password"
-                className="text-xs font-medium text-zinc-500 dark:text-zinc-400"
-              >
-                Password
-              </label>
-              <Input
-                id="login-panel-signin-password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                value={signInPassword}
-                onChange={(e) => setSignInPassword(e.currentTarget.value)}
-                className="h-12 rounded-md border-sky-200 bg-white px-3.5 text-base text-zinc-900 shadow-none placeholder:text-zinc-400 focus-visible:border-sky-400 focus-visible:ring-2 focus-visible:ring-sky-300/35 dark:border-sky-800 dark:bg-zinc-950 dark:text-zinc-50"
-              />
-            </div>
             <div className="flex justify-end">
-              <Link
-                href={forgotPasswordHref(emailValue)}
-                className="text-sm font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <div className="flex flex-col gap-3">
               <Button
                 type="submit"
-                disabled={panelSignInDisabled}
-                aria-busy={signInPending}
-                className="h-11 w-full rounded-full bg-[#0a84ff] px-8 text-sm font-semibold text-white shadow-none hover:bg-[#0077ed] disabled:opacity-60"
-              >
-                {signInPending ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                    Signing in…
-                  </>
-                ) : (
-                  "Sign in"
-                )}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={panelMagicLinkDisabled}
+                disabled={magicSubmitDisabled}
                 aria-busy={pending === "magic"}
-                onClick={handlePanelMagicLinkClick}
-                className={cn(panelOutlineButton, "gap-2")}
+                className="h-11 min-w-[5.5rem] rounded-full bg-[#0a84ff] px-8 text-sm font-semibold text-white shadow-none hover:bg-[#0077ed] disabled:opacity-60"
               >
                 {pending === "magic" ? (
                   <>
                     <Loader2 className="size-4 animate-spin" aria-hidden />
-                    Sending link…
+                    Sending…
                   </>
                 ) : (
-                  <>
-                    <Send className="size-4" aria-hidden />
-                    Email me a sign-in link
-                  </>
+                  primaryEmailAuthLabel
                 )}
               </Button>
             </div>
           </form>
+
+          <div className="mt-6 border-t border-zinc-200 pt-5 dark:border-zinc-700">
+            <button
+              type="button"
+              onClick={() => {
+                setShowPasswordSignIn((open) => {
+                  if (open) {
+                    setSignInPassword("");
+                    setInvalidPassword(false);
+                  }
+                  return !open;
+                });
+              }}
+              className="text-sm font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
+            >
+              {showPasswordSignIn
+                ? "Hide password sign-in"
+                : "Sign in with password instead"}
+            </button>
+
+            {showPasswordSignIn ? (
+              <form
+                onSubmit={handlePanelSignInSubmit}
+                className="mt-4 flex flex-col gap-4"
+              >
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="login-panel-signin-password"
+                    className="text-xs font-medium text-zinc-500 dark:text-zinc-400"
+                  >
+                    Password
+                  </label>
+                  <Input
+                    id="login-panel-signin-password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={signInPassword}
+                    onChange={(e) => setSignInPassword(e.currentTarget.value)}
+                    className="h-12 rounded-md border-sky-200 bg-white px-3.5 text-base text-zinc-900 shadow-none placeholder:text-zinc-400 focus-visible:border-sky-400 focus-visible:ring-2 focus-visible:ring-sky-300/35 dark:border-sky-800 dark:bg-zinc-950 dark:text-zinc-50"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Link
+                    href={forgotPasswordHref(emailValue)}
+                    className="text-sm font-medium text-zinc-500 underline-offset-2 hover:text-zinc-800 hover:underline dark:text-zinc-400 dark:hover:text-zinc-200"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <Button
+                  type="submit"
+                  disabled={passwordSignInSubmitDisabled}
+                  aria-busy={signInPending}
+                  className="h-11 w-full rounded-full bg-[#0a84ff] px-8 text-sm font-semibold text-white shadow-none hover:bg-[#0077ed] disabled:opacity-60"
+                >
+                  {signInPending ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" aria-hidden />
+                      Signing in…
+                    </>
+                  ) : (
+                    "Sign in"
+                  )}
+                </Button>
+              </form>
+            ) : null}
+          </div>
         </div>
 
         <div className="relative flex items-center justify-center py-1">
@@ -831,12 +918,7 @@ export function LoginForm({
           <Button
             type="button"
             variant="outline"
-            disabled={
-              pending === "google" ||
-              pending === "magic" ||
-              pending === "signin" ||
-              pending === "signup"
-            }
+            disabled={outlineButtonsDisabled}
             aria-busy={pending === "google"}
             onClick={handleGoogle}
             className={cn(panelOutlineButton, "gap-2.5")}
@@ -857,12 +939,7 @@ export function LoginForm({
           <Button
             type="button"
             variant="outline"
-            disabled={
-              pending === "google" ||
-              pending === "magic" ||
-              pending === "signin" ||
-              pending === "signup"
-            }
+            disabled={outlineButtonsDisabled}
             onClick={handlePanelPasswordRegisterClick}
             className={panelOutlineButton}
           >
@@ -924,7 +1001,7 @@ export function LoginForm({
         </span>
       </div>
 
-      <form onSubmit={handleDefaultSignInSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleDefaultMagicLinkSubmit} className="flex flex-col gap-4">
         <Field id="login-email" label="Email" required>
           <InputWithIcon leading={<Mail />}>
             <Input
@@ -942,72 +1019,92 @@ export function LoginForm({
           </InputWithIcon>
         </Field>
 
-        <Field id="login-password" label="Password" required>
-          <Input
-            id="login-password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            value={signInPassword}
-            onChange={(e) => setSignInPassword(e.currentTarget.value)}
-            required
-            className="h-11"
-          />
-        </Field>
-
-        <div className="flex justify-end">
-          <Link
-            href={forgotPasswordHref(emailValue)}
-            className="text-sm font-semibold text-brand underline-offset-4 hover:underline"
-          >
-            Forgot password?
-          </Link>
-        </div>
-
         <Button
           type="submit"
           size="touch"
-          disabled={defaultSignInDisabled}
-          aria-busy={signInPending}
+          disabled={magicSubmitDisabled}
+          aria-busy={pending === "magic"}
           className={cn(
             "w-full gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
           )}
-        >
-          {signInPending ? (
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-          ) : (
-            <LogIn className="size-4" aria-hidden />
-          )}
-          {signInPending ? "Signing in…" : "Sign in"}
-        </Button>
-
-        <Button
-          type="button"
-          variant="outline"
-          size="touch"
-          disabled={
-            pending === "google" ||
-            pending === "signin" ||
-            pending === "signup" ||
-            activeLimit !== null
-          }
-          aria-busy={pending === "magic"}
-          onClick={handleDefaultMagicLinkClick}
-          className="w-full gap-2 bg-background"
         >
           {pending === "magic" ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : (
             <Send className="size-4" aria-hidden />
           )}
-          {pending === "magic" ? "Sending link…" : "Email me a sign-in link"}
+          {primaryEmailAuthLabel}
         </Button>
       </form>
 
       <p className="text-center text-xs text-muted-foreground">
-        After you confirm your email once, use your password to sign in without another inbox step.
-        Prefer no password? Use a one-time link instead.
+        We&apos;ll email you a one-time 6-digit code. New here? Your account is created when you
+        verify the code. Stay signed in on this device to skip email on return visits.
       </p>
+
+      <div className="border-t border-border pt-5">
+        <button
+          type="button"
+          onClick={() => {
+            setShowPasswordSignIn((open) => {
+              if (open) {
+                setSignInPassword("");
+                setInvalidPassword(false);
+              }
+              return !open;
+            });
+          }}
+          className="text-sm font-semibold text-brand underline-offset-4 hover:underline"
+        >
+          {showPasswordSignIn
+            ? "Hide password sign-in"
+            : "Sign in with password instead"}
+        </button>
+
+        {showPasswordSignIn ? (
+          <form
+            onSubmit={handleDefaultSignInSubmit}
+            className="mt-4 flex flex-col gap-4"
+          >
+            <Field id="login-password" label="Password" required>
+              <Input
+                id="login-password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                value={signInPassword}
+                onChange={(e) => setSignInPassword(e.currentTarget.value)}
+                required
+                className="h-11"
+              />
+            </Field>
+
+            <div className="flex justify-end">
+              <Link
+                href={forgotPasswordHref(emailValue)}
+                className="text-sm font-semibold text-brand underline-offset-4 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
+            <Button
+              type="submit"
+              size="touch"
+              disabled={passwordSignInSubmitDisabled}
+              aria-busy={signInPending}
+              className={cn(
+                "w-full gap-2 bg-background text-foreground shadow-sm ring-1 ring-border hover:bg-muted/60",
+              )}
+            >
+              {signInPending ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : null}
+              {signInPending ? "Signing in…" : "Sign in"}
+            </Button>
+          </form>
+        ) : null}
+      </div>
     </div>
   );
 }

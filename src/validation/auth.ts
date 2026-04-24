@@ -30,6 +30,14 @@ export const magicLinkSchema = z.object({
   email: emailSchema,
 });
 
+/** 6-digit code from the Supabase email OTP template (`{{ .Token }}`). */
+export const emailOtpTokenSchema = z.object({
+  token: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Enter the 6-digit code from your email."),
+});
+
 /** First + last name collected in the guest `/app` sign-in panel before sending the magic link. */
 export const panelSignInNameSchema = z.object({
   givenName: z.string().trim().min(1, "Enter your first name.").max(80),

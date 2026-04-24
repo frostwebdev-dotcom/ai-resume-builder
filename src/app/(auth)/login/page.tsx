@@ -18,7 +18,7 @@ function loginErrorAlert(error: string | undefined) {
       <Alert variant="destructive">
         <AlertTitle>Link expired</AlertTitle>
         <AlertDescription>
-          That sign-in link is no longer valid. Request a new one below — it only takes a second.
+          That sign-in code or link is no longer valid. Request a new code below.
         </AlertDescription>
       </Alert>
     );
@@ -28,7 +28,7 @@ function loginErrorAlert(error: string | undefined) {
       <Alert variant="destructive">
         <AlertTitle>Couldn&apos;t finish sign-in</AlertTitle>
         <AlertDescription>
-          The link may have already been used or expired. Request a new one below.
+          The code or link may have already been used or expired. Request a new code below.
         </AlertDescription>
       </Alert>
     );
@@ -59,7 +59,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <AuthCard
       title="Welcome"
-      description="Sign in with email and password, Google, or a one-time email link."
+      description="Passwordless sign-in with email or Google — we email you a short code to type in."
     >
       <div className="flex flex-col gap-6">
         {loginErrorAlert(firstParam(sp.error))}
