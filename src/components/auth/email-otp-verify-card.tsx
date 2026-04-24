@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { KeyRound, Loader2 } from "lucide-react";
 
@@ -11,6 +11,11 @@ import { ROUTES } from "@/lib/constants";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { emailOtpTokenSchema } from "@/validation/auth";
+
+/** Strips non-digits and keeps up to 6 characters (handles SMS / keyboard autofill). */
+function normalizeOtpInput(raw: string): string {
+  return raw.replace(/\D/g, "").slice(0, 6);
+}
 
 type EmailOtpVerifyCardProps = {
   email: string;
@@ -36,15 +41,24 @@ export function EmailOtpVerifyCard({
   onResend,
   resendDisabled = false,
 }: EmailOtpVerifyCardProps) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<"none" | "verify" | "resend">("none");
+
+  function applyCodeFromString(raw: string, opts?: { submitIfComplete?: boolean }) {
+    const next = normalizeOtpInput(raw);
+    setCode(next);
+    if (opts?.submitIfComplete && next.length === 6 && formRef.current) {
+      queueMicrotask(() => formRef.current?.requestSubmit());
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
 
-    const parsed = emailOtpTokenSchema.safeParse({ token: code.replace(/\s/g, "") });
+    const parsed = emailOtpTokenSchema.safeParse({ token: normalizeOtpInput(code) });
     if (!parsed.success) {
       setError(parsed.error.flatten().fieldErrors.token?.[0] ?? "Invalid code.");
       return;
@@ -98,8 +112,8 @@ export function EmailOtpVerifyCard({
         <h2 className="text-headline text-foreground">Enter your sign-in code</h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
           We sent a 6-digit code to{" "}
-          <span className="font-semibold text-foreground">{email}</span>. Type it below — no need to
-          open a link.
+          <span className="font-semibold text-foreground">{email}</span>. Paste from your email or
+          type it here — no link required.
         </p>
       </div>
 
@@ -110,7 +124,7 @@ export function EmailOtpVerifyCard({
         </Alert>
       ) : null}
 
-      <form onSubmit={handleSubmit} className="space-y-4 text-left">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 text-left">
         <div className="flex flex-col gap-2">
           <label htmlFor="email-otp-code" className="text-sm font-medium text-foreground">
             6-digit code
@@ -125,12 +139,22 @@ export function EmailOtpVerifyCard({
             maxLength={6}
             placeholder="000000"
             value={code}
-            onChange={(e) => setCode(e.currentTarget.value.replace(/\D/g, "").slice(0, 6))}
+            onChange={(e) => applyCodeFromString(e.currentTarget.value)}
+            onPaste={(e) => {
+              e.preventDefault();
+              const text = e.clipboardData.getData("text");
+              applyCodeFromString(text, { submitIfComplete: true });
+            }}
+            onFocus={(e) => e.currentTarget.select()}
             className="h-12 text-center font-mono text-lg tracking-[0.35em] tabular-nums"
             autoFocus
             disabled={busy}
             aria-invalid={Boolean(error)}
           />
+          <p className="text-xs text-muted-foreground">
+            Tip: paste the whole line from your email; we keep the six digits. If a banner above
+            mentions a wait, send again after the timer.
+          </p>
         </div>
         <Button
           type="submit"
