@@ -5,6 +5,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { RESUME_PDF_EXPORT_PRICE_USD } from "@/lib/billing/monetization-copy";
 import { ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ const steps = [
   },
   {
     title: "Pay to export",
-    body: "When the content feels right, unlock a high-quality PDF. No subscription — just a clear one-time purchase at export.",
+    body: `When the content feels right, unlock a print-ready PDF from Preview & export—${RESUME_PDF_EXPORT_PRICE_USD} once per resume project at checkout today (Stripe may add tax). No subscription at launch; optional bundles will be labeled when available.`,
   },
 ] as const;
 

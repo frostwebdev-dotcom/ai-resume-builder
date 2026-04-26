@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Info } from "lucide-react";
 
+import { RESUME_PDF_EXPORT_PRICE_USD } from "@/lib/billing/monetization-copy";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -30,36 +31,50 @@ export function GuestDraftLocalSaveNote({ className, signedIn = false }: Props) 
           aria-hidden
         />
         <div className="min-w-0 flex-1 overflow-x-auto [-webkit-overflow-scrolling:touch]">
-          <p className="whitespace-nowrap text-center text-[0.8125rem] leading-snug text-slate-600 sm:text-left">
+          <p className="text-center text-[0.8125rem] leading-snug text-balance text-slate-600 sm:text-left">
             {signedIn ? (
               <>
-                You&apos;re signed in, but this page still saves in this browser only until you create a{" "}
+                New visits open with sample résumé content you can replace. You&apos;re signed in, but this page
+                still saves in this browser only until you create a{" "}
                 <strong className="font-medium text-slate-800">resume project</strong> on your dashboard, then
                 open <strong className="font-medium text-slate-800">Draft</strong>—same studio layout, saved to
-                your account. PDF export is a one-time purchase from{" "}
-                <strong className="font-medium text-slate-800">Preview &amp; export</strong> on that project.
-                Clearing this site&apos;s data removes only this local draft.{" "}
+                your account.                 PDF export is <strong className="font-medium text-slate-800">{RESUME_PDF_EXPORT_PRICE_USD} once</strong>{" "}
+                per project from <strong className="font-medium text-slate-800">Preview &amp; export</strong> (see{" "}
+                <Link
+                  href={ROUTES.pricing}
+                  className="font-medium text-[#2268d7] underline-offset-2 hover:underline"
+                >
+                  Pricing
+                </Link>
+                ). Clearing this site&apos;s data removes only this local draft.{" "}
                 <Link
                   href={ROUTES.faq}
                   className="font-medium text-[#2268d7] underline-offset-2 hover:underline"
                 >
-                  Learn more
+                  FAQ
                 </Link>
               </>
             ) : (
               <>
-                Your work autosaves in this browser only.{" "}
+                New visits open with sample résumé content you can replace. Your work autosaves in this browser
+                only.{" "}
                 <strong className="font-medium text-slate-800">Sign in</strong>, create a resume project on your
                 dashboard, then open <strong className="font-medium text-slate-800">Draft</strong>—same studio
-                editor, synced to your account. PDF export is a one-time purchase from{" "}
-                <strong className="font-medium text-slate-800">Preview &amp; export</strong> on the project.
-                Clearing this site&apos;s data or another device won&apos;t remove work you already saved to
+                editor, synced to your account.                 PDF export is <strong className="font-medium text-slate-800">{RESUME_PDF_EXPORT_PRICE_USD} once</strong>{" "}
+                per project from <strong className="font-medium text-slate-800">Preview &amp; export</strong> (see{" "}
+                <Link
+                  href={ROUTES.pricing}
+                  className="font-medium text-[#2268d7] underline-offset-2 hover:underline"
+                >
+                  Pricing
+                </Link>
+                ). Clearing this site&apos;s data or another device won&apos;t remove work you already saved to
                 your account.{" "}
                 <Link
                   href={ROUTES.faq}
                   className="font-medium text-[#2268d7] underline-offset-2 hover:underline"
                 >
-                  Learn more
+                  FAQ
                 </Link>
               </>
             )}

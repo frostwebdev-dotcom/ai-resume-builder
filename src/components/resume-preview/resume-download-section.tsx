@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Download, Info, Lock, Loader2 } from "lucide-react";
 
 import { BILLING_PRODUCTS } from "@/lib/billing/catalog";
+import { PDF_UNLOCK_PROJECT_SCOPE_LINE } from "@/lib/billing/monetization-copy";
 import { formatUsdFromCents } from "@/lib/billing/format-money";
 import { PdfPreviewFidelityNote } from "@/components/resume-preview/pdf-preview-fidelity-note";
 import { Button } from "@/components/ui/button";
@@ -89,7 +90,7 @@ export function ResumeDownloadSection({
               <p className="mt-1 max-w-xl text-sm text-muted-foreground">
                 Editing and on-screen preview are free. PDF file export is{" "}
                 {formatUsdFromCents(BILLING_PRODUCTS.resume_pdf_v1.amountCents)} once for this project
-                (Stripe handles the card).
+                (Stripe handles the card). {PDF_UNLOCK_PROJECT_SCOPE_LINE}
               </p>
             </div>
           </div>

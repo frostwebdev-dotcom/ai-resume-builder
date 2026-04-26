@@ -6,6 +6,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { RESUME_PDF_EXPORT_PRICE_USD } from "@/lib/billing/monetization-copy";
 import { APP_NAME, ROUTES } from "@/lib/constants";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,6 +20,10 @@ const faqs = [
   {
     q: `Is ${APP_NAME} free to try?`,
     a: "Yes. You can build and preview your resume without paying. You only pay when you export your final PDF.",
+  },
+  {
+    q: "What costs money—and what stays free?",
+    a: `Drafting and on-screen preview are free, including starting on ${ROUTES.create} before you sign in. After you create a resume project, PDF export is ${RESUME_PDF_EXPORT_PRICE_USD} once at Stripe checkout for that same project (covers fresh downloads when you edit). Optional add-ons will be labeled clearly when they ship. No subscription at launch.`,
   },
   {
     q: "I started without an account — where is my draft saved?",

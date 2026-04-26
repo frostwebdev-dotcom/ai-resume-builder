@@ -15,6 +15,8 @@ import {
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { ROUTES } from "@/lib/constants";
+import { createDemoWizardState } from "@/lib/resume-wizard/demo-wizard-state";
+import type { Json } from "@/types/database";
 import {
   AVATAR_ALLOWED_MIME,
   AVATAR_BUCKET,
@@ -92,6 +94,8 @@ export async function createProjectAction(
   const templateId =
     ts !== undefined && isTemplateSlug(ts) ? TEMPLATE_IDS[ts] : DEFAULT_TEMPLATE_ID;
 
+  const demoWizardJson = JSON.parse(JSON.stringify(createDemoWizardState())) as Json;
+
   const { data: created, error } = await supabase
     .from("resume_projects")
     .insert({
@@ -100,7 +104,9 @@ export async function createProjectAction(
       slug,
       status: "draft",
       template_id: templateId,
-      metadata: {},
+      metadata: {
+        wizard: demoWizardJson,
+      },
     })
     .select("id")
     .single();

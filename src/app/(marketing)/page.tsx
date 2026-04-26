@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/card";
 import { TrackedLink } from "@/components/analytics/tracked-link";
 import { cn } from "@/lib/utils";
+import { RESUME_PDF_EXPORT_PRICE_USD } from "@/lib/billing/monetization-copy";
 import { APP_NAME, ROUTES } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -43,12 +44,12 @@ const steps = [
     body: "We structure your experience into clear sections recruiters and ATS tools understand.",
   },
   {
-    title: "Edit with AI assistance",
-    body: "Refine bullets, tighten wording, and keep a consistent tone — without fluff.",
+    title: "Refine in the studio",
+    body: `Polish bullets and layout in the same editor on ${ROUTES.create} or in Draft after you sign in. Optional AI assist runs on saved projects (sign-in required) with fair-use limits—always verify facts before you apply.`,
   },
   {
     title: "Preview, then export",
-    body: "Review on phone or desktop. Pay once when you are ready for your final PDF.",
+    body: `Review on phone or desktop. When you are ready, unlock PDF from your project—${RESUME_PDF_EXPORT_PRICE_USD} once per resume at checkout today (see Pricing).`,
   },
 ] as const;
 
@@ -70,7 +71,7 @@ const features = [
 const faqTeaser = [
   {
     q: "Do I need a subscription?",
-    a: "No subscription required for launch. You can build and preview for free; you pay when you export your PDF.",
+    a: `No subscription at launch. Build and preview for free; PDF export is ${RESUME_PDF_EXPORT_PRICE_USD} once per resume project when you check out.`,
   },
   {
     q: "Is my data private?",

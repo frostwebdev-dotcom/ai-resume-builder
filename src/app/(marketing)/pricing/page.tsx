@@ -15,15 +15,15 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
-import { BILLING_PRODUCTS } from "@/lib/billing/catalog";
-import { formatUsdFromCents } from "@/lib/billing/format-money";
-
-const RESUME_PDF_CHECKOUT_PRICE = formatUsdFromCents(BILLING_PRODUCTS.resume_pdf_v1.amountCents);
+import {
+  PAY_ONCE_PDF_PER_PROJECT_LINE,
+  RESUME_PDF_EXPORT_PRICE_USD,
+} from "@/lib/billing/monetization-copy";
 
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    `Resume PDF export (${RESUME_PDF_CHECKOUT_PRICE} today in checkout): free draft and preview, then a one-time purchase to unlock downloads for that project. Cover letter and bundles are not sold yet.`,
+    `Resume PDF export (${RESUME_PDF_EXPORT_PRICE_USD} today in checkout): free draft and preview, then a one-time purchase to unlock downloads for that project. Cover letter and bundles are not sold yet.`,
 };
 
 const plans = [
@@ -40,7 +40,7 @@ const plans = [
     cta: "Start free",
     href: ROUTES.auth.login,
     featured: true,
-    footnote: `Checkout lists ${RESUME_PDF_CHECKOUT_PRICE} for this product today; Stripe may add taxes where applicable. No subscription.`,
+    footnote: `Checkout lists ${RESUME_PDF_EXPORT_PRICE_USD} for this product today; Stripe may add taxes where applicable. No subscription.`,
   },
   {
     name: "Resume + Cover letter",
@@ -78,7 +78,7 @@ export default function PricingPage() {
           <p className="text-eyebrow justify-center">Pricing</p>
           <h1 className="mt-3 text-display">Pay when you export your PDF</h1>
           <p className="mt-4 text-body-muted">
-            {`Draft and preview are free (including on ${ROUTES.create} before you sign in). After you have a project, pay once—currently ${RESUME_PDF_CHECKOUT_PRICE} in Stripe checkout—to unlock PDF export and downloads for that project. No subscription at launch.`}
+            {`${PAY_ONCE_PDF_PER_PROJECT_LINE} Start on ${ROUTES.create} without an account; when you are ready, sign in, create a project, and unlock PDF from Preview & export.`}
           </p>
         </div>
 

@@ -22,6 +22,10 @@ export const AI_ASSIST_SKILLS_LINE =
 export const AI_ASSIST_ADDITIONAL_LINE =
   "Clarifies wording in this box only—does not pull facts from other sections.";
 
+/** Shown once per AI assist panel — rate limits protect cost and uptime for paying users. */
+export const AI_ASSIST_FAIR_USE_LINE =
+  "AI runs on our servers after you sign in; fair-use limits keep responses fast for everyone. Always verify facts before you apply.";
+
 /** Near “match saved posting” tailor buttons (signed-in Draft). */
 export const AI_MATCH_SAVED_POSTING_LINE =
   "Suggests wording aligned to the posting you saved from your draft—does not invent employers or dates; verify before you apply.";

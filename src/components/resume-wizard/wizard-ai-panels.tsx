@@ -32,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   AI_ASSIST_ADDITIONAL_LINE,
   AI_ASSIST_EXPERIENCE_LINE,
+  AI_ASSIST_FAIR_USE_LINE,
   AI_ASSIST_PROFILE_LINE,
   AI_ASSIST_PROFILE_ROLE_LINE,
   AI_ASSIST_SKILLS_LINE,
@@ -242,6 +243,10 @@ export function SummaryAiPanel({
           Align to role
         </AiButton>
       </div>
+
+      <p className="mt-4 border-t border-border/60 pt-3 text-[0.65rem] leading-snug text-muted-foreground">
+        {AI_ASSIST_FAIR_USE_LINE}
+      </p>
     </div>
   );
 }
@@ -337,6 +342,7 @@ export function ExperienceEntryAiPanel({
           Expand
         </AiButton>
       </div>
+      <p className="mt-2 text-[0.65rem] leading-snug text-muted-foreground">{AI_ASSIST_FAIR_USE_LINE}</p>
     </div>
   );
 }
@@ -421,6 +427,7 @@ export function SkillsAiPanel({
           Shorten list
         </AiButton>
       </div>
+      <p className="mt-3 text-[0.65rem] leading-snug text-muted-foreground">{AI_ASSIST_FAIR_USE_LINE}</p>
     </div>
   );
 }
@@ -484,6 +491,7 @@ export function AdditionalAiPanel({
           Grammar & clarity
         </AiButton>
       </div>
+      <p className="mt-3 text-[0.65rem] leading-snug text-muted-foreground">{AI_ASSIST_FAIR_USE_LINE}</p>
     </div>
   );
 }

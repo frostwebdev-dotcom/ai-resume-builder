@@ -47,8 +47,9 @@ import {
   type CoalescedHistory,
   type GuestStudioPresentation,
 } from "@/hooks/use-guest-studio-store";
-import { createEmptyWizardState } from "@/lib/resume-wizard/defaults";
+import { createDemoWizardState } from "@/lib/resume-wizard/demo-wizard-state";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
+import { RESUME_PDF_EXPORT_PRICE_USD } from "@/lib/billing/monetization-copy";
 import { CREATE_RESUME_POST_AUTH_NEXT, ROUTES } from "@/lib/constants";
 import {
   createSupabaseBrowserClient,
@@ -77,7 +78,7 @@ type Snapshot = {
  */
 export function GuestCreateClient() {
   const [initialContent] = useState<WizardStateV1>(
-    () => loadGuestWizardDraftFromStorage() ?? createEmptyWizardState(),
+    () => loadGuestWizardDraftFromStorage() ?? createDemoWizardState(),
   );
   const [initialPresentation] = useState<GuestStudioPresentation>(
     () => loadGuestPresentationFromStorage() ?? DEFAULT_GUEST_PRESENTATION,
@@ -289,8 +290,13 @@ export function GuestCreateClient() {
             <span>
               Next: create a <strong className="font-medium text-foreground">resume project</strong> on your
               dashboard—you&apos;ll open <strong className="font-medium text-foreground">Draft</strong> in the
-              same studio editor as here, with autosave to your account. PDF is a one-time purchase under{" "}
-              <strong className="font-medium text-foreground">Preview &amp; export</strong>.
+              same studio editor as here, with autosave to your account. PDF export is{" "}
+              <strong className="font-medium text-foreground">{RESUME_PDF_EXPORT_PRICE_USD} once</strong> per
+              project under <strong className="font-medium text-foreground">Preview &amp; export</strong> (see{" "}
+              <Link href={ROUTES.pricing} className="font-medium underline-offset-2 hover:underline">
+                Pricing
+              </Link>
+              ).
             </span>
             <span className="flex shrink-0 flex-col gap-2 self-start sm:flex-row sm:items-center sm:self-center">
               <Link
