@@ -57,7 +57,7 @@ export function SidebarTemplate({ doc, slug, resumeStyle = null, className }: Pr
 
   return (
     <article className={paper} data-template={slug} data-layout-family="sidebar">
-      <div className="grid min-h-full grid-cols-[minmax(0,34%)_minmax(0,1fr)] items-stretch">
+      <div className="grid min-h-[297mm] grid-cols-[minmax(0,34%)_minmax(0,1fr)] items-stretch">
         {/* ───── Left rail ───── */}
         <aside className="relative flex flex-col gap-5 p-[clamp(8mm,2.4vw,12mm)] text-white" style={sidebarStyle}>
           {avatarUrl ? (

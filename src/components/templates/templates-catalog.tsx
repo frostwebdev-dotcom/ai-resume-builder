@@ -22,7 +22,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
-import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
+import { TemplateCatalogLivePreview } from "@/components/templates/template-catalog-live-preview";
 import { TemplateCardHoverChrome } from "@/components/templates/template-card-hover-chrome";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -437,8 +437,8 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
           {zoomTheme ? (
             <>
               <DialogDescription className="sr-only">
-                Preview of the {zoomTheme.name} resume template. Use Edit this template to start, or arrow
-                buttons to browse other templates in the current list.
+                Live preview of the {zoomTheme.name} resume template using sample résumé content. Use Edit this
+                template to start, or arrow buttons to browse other templates in the current list.
               </DialogDescription>
 
               <div
@@ -549,8 +549,8 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
                 </div>
 
                 <div className="flex min-h-[220px] flex-col items-center justify-center bg-[#E0F2F1] p-6 sm:min-h-[280px] sm:p-8 md:min-h-0 md:py-10">
-                  <div className="w-full max-w-[min(100%,280px)] overflow-hidden rounded-lg bg-white/40 p-3 shadow-sm ring-1 ring-teal-900/10 sm:max-w-[300px] sm:p-4">
-                    <TemplateThumbnail slug={zoomTheme.slug} className="w-full" />
+                  <div className="w-full max-w-[min(100%,320px)] overflow-hidden rounded-lg bg-white/40 p-3 shadow-sm ring-1 ring-teal-900/10 sm:max-w-[340px] sm:p-4">
+                    <TemplateCatalogLivePreview slug={zoomTheme.slug} className="w-full" />
                   </div>
                   <p className="mt-4 max-w-sm text-center text-xs leading-relaxed text-teal-900/75">
                     {zoomTheme.bestFor}
@@ -649,7 +649,7 @@ function TemplateCatalogCard({
             )}
           >
             <div className="relative z-[1]">
-              <TemplateThumbnail slug={theme.slug} className="shadow-none ring-0" />
+              <TemplateCatalogLivePreview slug={theme.slug} className="shadow-none ring-0" />
             </div>
             {popular ? (
               <div className="pointer-events-none absolute bottom-2 left-2 z-10">
