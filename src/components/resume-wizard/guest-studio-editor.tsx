@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { PreviewViewport } from "@/components/resume-preview/preview-viewport";
 import { ResumePreviewRenderer } from "@/components/resume-preview/resume-preview-renderer";
+import { TemplateCatalogLivePreview } from "@/components/templates/template-catalog-live-preview";
 import { useGuestWizardAutosave } from "@/hooks/use-guest-wizard-autosave";
 import type { SaveStatus } from "@/hooks/use-wizard-autosave";
 import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-preview";
@@ -769,24 +770,17 @@ export function GuestStudioEditor({
                         >
                           <div
                             className={cn(
-                              "w-[5rem] overflow-hidden rounded bg-white sm:w-[5.5rem] aspect-[210/297]",
+                              "relative w-[5rem] overflow-hidden rounded bg-white sm:w-[5.5rem] aspect-[210/297]",
                               selected
                                 ? "border-2 border-[#2268d7]"
                                 : "border border-slate-200/90",
                             )}
                             style={{ borderLeft: `3px solid ${theme.accent}` }}
                           >
-                            <div className="flex h-full w-full flex-col gap-0.5 p-1">
-                              <span
-                                className="h-1 w-2/3 shrink-0 rounded"
-                                style={{ background: theme.accent }}
-                              />
-                              <span className="h-0.5 w-full shrink-0 rounded bg-slate-200" />
-                              <span className="h-0.5 w-4/5 shrink-0 rounded bg-slate-200" />
-                              <span className="h-0.5 w-full shrink-0 rounded bg-slate-200" />
-                              <span className="h-0.5 w-3/5 shrink-0 rounded bg-slate-100" />
-                              <span className="mt-auto h-2 w-2 shrink-0 rounded-full bg-slate-200" />
-                            </div>
+                            <TemplateCatalogLivePreview
+                              slug={slug}
+                              className="absolute inset-0 h-full w-full rounded-none shadow-none ring-0"
+                            />
                           </div>
                           <span className="max-w-[5.5rem] text-center text-[0.65rem] font-semibold leading-tight whitespace-normal break-words text-slate-800 sm:text-xs">
                             {theme.name}
