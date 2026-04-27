@@ -3,6 +3,7 @@
 import {
   Briefcase,
   ChevronDown,
+  ChevronUp,
   ChevronLeft,
   ChevronRight,
   Gauge,
@@ -46,7 +47,9 @@ import {
   type TemplateCatalogCriteria,
   type TemplateColorFilter,
   type TemplateFormatFilter,
-  type TemplateIndustryFilter,
+  type TemplateIndustryKey,
+  TEMPLATE_CATALOG_INDUSTRY_LABEL,
+  TEMPLATE_CATALOG_INDUSTRY_ORDER,
   type TemplateStyleFilter,
   type TemplateTagsFilter,
   criteriaHasActiveFilters,
@@ -67,17 +70,6 @@ const PILL_TRIGGER = cn(
 );
 
 const PILL_TRIGGER_ACTIVE = "border-[#2268d7]/35 bg-sky-50/90 text-slate-800";
-
-const INDUSTRY_LABEL: Record<TemplateIndustryFilter, string> = {
-  all: "All industries",
-  tech: "Tech & product",
-  finance: "Finance & strategy",
-  healthcare: "Healthcare & regulated",
-  legal: "Legal & compliance",
-  creative: "Creative & marketing",
-  operations: "Operations & supply chain",
-  general: "General professional",
-};
 
 const CAREER_LABEL: Record<TemplateCareerFilter, string> = {
   all: "All stages",
@@ -136,6 +128,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
   const [zoomSlug, setZoomSlug] = useState<TemplateSlug | null>(null);
   /** Drives a short enter transition when changing templates inside the zoom modal (not on first open). */
   const [zoomEnterDir, setZoomEnterDir] = useState<"forward" | "back" | null>(null);
+  const [industryMenuOpen, setIndustryMenuOpen] = useState(false);
 
   const filtered = useMemo(
     () => filterTemplateThemes(ALL_TEMPLATE_THEMES, criteria),
@@ -166,6 +159,19 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
 
   function resetAll() {
     setCriteria(defaultTemplateCatalogCriteria());
+  }
+
+  function toggleIndustryFilter(key: TemplateIndustryKey) {
+    setCriteria((c) => {
+      const next = new Set(c.industry);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return { ...c, industry: Array.from(next) };
+    });
+  }
+
+  function clearIndustryFilters() {
+    setCriteria((c) => ({ ...c, industry: [] }));
   }
 
   function goZoom(delta: -1 | 1) {
@@ -222,24 +228,69 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DropdownMenu>
+          <DropdownMenu open={industryMenuOpen} onOpenChange={setIndustryMenuOpen}>
             <DropdownMenuTrigger
               type="button"
-              className={cn(PILL_TRIGGER, criteria.industry !== "all" && PILL_TRIGGER_ACTIVE)}
+              className={cn(
+                PILL_TRIGGER,
+                (criteria.industry.length > 0 || industryMenuOpen) && PILL_TRIGGER_ACTIVE,
+              )}
             >
               <IdCard className="size-4 shrink-0 text-slate-500" aria-hidden />
               <span className="max-w-[10rem] truncate sm:max-w-none">Occupation & Industry</span>
-              <ChevronDown className="size-4 shrink-0 text-slate-400" aria-hidden />
+              {industryMenuOpen ? (
+                <ChevronUp className="size-4 shrink-0 text-slate-400" aria-hidden />
+              ) : (
+                <ChevronDown className="size-4 shrink-0 text-slate-400" aria-hidden />
+              )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[14rem]">
-              {(Object.keys(INDUSTRY_LABEL) as TemplateIndustryFilter[]).map((key) => (
-                <DropdownMenuItem
-                  key={key}
-                  onSelect={() => setCriteria((c) => ({ ...c, industry: key }))}
+            <DropdownMenuContent
+              align="start"
+              className="w-[min(22rem,calc(100vw-2rem))] max-w-[22rem] overflow-hidden border border-slate-200/90 bg-white p-0 shadow-lg ring-1 ring-black/5"
+            >
+              <div
+                className="max-h-[min(16.5rem,42vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
+                onPointerDown={(e) => e.preventDefault()}
+              >
+                {TEMPLATE_CATALOG_INDUSTRY_ORDER.map((key) => {
+                  const checked = criteria.industry.includes(key);
+                  const id = `catalog-industry-${key}`;
+                  return (
+                    <label
+                      key={key}
+                      htmlFor={id}
+                      className="flex cursor-pointer items-start gap-2.5 px-3 py-2 text-sm leading-snug text-slate-800 hover:bg-slate-50"
+                    >
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleIndustryFilter(key)}
+                        className={cn(
+                          "mt-0.5 size-4 shrink-0 rounded border-slate-400 text-[#2268d7]",
+                          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2268d7]/40",
+                        )}
+                      />
+                      <span>{TEMPLATE_CATALOG_INDUSTRY_LABEL[key]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="border-t border-slate-200 bg-white p-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearIndustryFilters();
+                    setIndustryMenuOpen(false);
+                  }}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "default" }),
+                    "h-10 w-full rounded-full border-slate-300 text-slate-700 shadow-none",
+                  )}
                 >
-                  {INDUSTRY_LABEL[key]}
-                </DropdownMenuItem>
-              ))}
+                  Clear
+                </button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 

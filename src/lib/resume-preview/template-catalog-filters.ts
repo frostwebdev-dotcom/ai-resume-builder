@@ -20,6 +20,9 @@ export type TemplateIndustryFilter =
   | "operations"
   | "general";
 
+/** Selectable industry buckets (excludes `all`). */
+export type TemplateIndustryKey = Exclude<TemplateIndustryFilter, "all">;
+
 export type TemplateCareerFilter = "all" | "early" | "mid" | "senior";
 
 export type TemplateStyleFilter = "all" | "sans" | "serif";
@@ -32,7 +35,11 @@ export type TemplateTagsFilter = "all" | "photo-ready" | "compact" | "two-column
 
 export type TemplateCatalogCriteria = {
   search: string;
-  industry: TemplateIndustryFilter;
+  /**
+   * Multi-select (OR): template matches if it matches any selected bucket.
+   * Empty means no industry restriction (same as legacy `"all"`).
+   */
+  industry: readonly TemplateIndustryKey[];
   career: TemplateCareerFilter;
   style: TemplateStyleFilter;
   format: TemplateFormatFilter;
@@ -42,7 +49,7 @@ export type TemplateCatalogCriteria = {
 
 const DEFAULT_CRITERIA: TemplateCatalogCriteria = {
   search: "",
-  industry: "all",
+  industry: [],
   career: "all",
   style: "all",
   format: "all",
@@ -62,7 +69,28 @@ function matchesAny(text: string, needles: readonly string[]): boolean {
   return needles.some((n) => text.includes(n));
 }
 
-const INDUSTRY_KEYWORDS: Record<Exclude<TemplateIndustryFilter, "all">, readonly string[]> = {
+/** Checkbox order and labels for the template catalog “Occupation & Industry” filter. */
+export const TEMPLATE_CATALOG_INDUSTRY_ORDER: readonly TemplateIndustryKey[] = [
+  "operations",
+  "creative",
+  "finance",
+  "legal",
+  "healthcare",
+  "tech",
+  "general",
+];
+
+export const TEMPLATE_CATALOG_INDUSTRY_LABEL: Record<TemplateIndustryKey, string> = {
+  operations: "Beverage & food service, commerce & construction",
+  creative: "Arts & leisure",
+  finance: "Finance & business administration",
+  legal: "Law & rehabilitation",
+  healthcare: "Healthcare & regulated fields",
+  tech: "Technology, software & product",
+  general: "Education, farming, environment & general professional",
+};
+
+const INDUSTRY_KEYWORDS: Record<TemplateIndustryKey, readonly string[]> = {
   tech: [
     "tech",
     "software",
@@ -222,7 +250,7 @@ export function isPopularTemplate(theme: TemplateTheme): boolean {
 export function criteriaHasActiveFilters(c: TemplateCatalogCriteria): boolean {
   return (
     c.search.trim() !== "" ||
-    c.industry !== "all" ||
+    c.industry.length > 0 ||
     c.career !== "all" ||
     c.style !== "all" ||
     c.format !== "all" ||
@@ -248,9 +276,11 @@ export function filterTemplateThemes(
       if (!ok) return false;
     }
 
-    if (criteria.industry !== "all") {
-      const keys = INDUSTRY_KEYWORDS[criteria.industry];
-      if (!matchesAny(text, keys)) return false;
+    if (criteria.industry.length > 0) {
+      const matchesSelected = criteria.industry.some((key) =>
+        matchesAny(text, INDUSTRY_KEYWORDS[key]),
+      );
+      if (!matchesSelected) return false;
     }
 
     if (criteria.career !== "all") {
