@@ -6,7 +6,10 @@ import { ResumePreviewRenderer } from "@/components/resume-preview/resume-previe
 import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
 import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-preview";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
-import { createDemoWizardState } from "@/lib/resume-wizard/demo-wizard-state";
+import {
+  createDemoWizardStateForTemplate,
+  getDemoAvatarUrlForTemplate,
+} from "@/lib/resume-wizard/demo-wizard-state";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -28,8 +31,11 @@ export function TemplateCatalogLivePreview({ slug, className }: Props) {
   const [fit, setFit] = useState<Fit | null>(null);
 
   const document = useMemo(
-    () => mapWizardToPreviewDocument(createDemoWizardState(), { avatarUrl: null }),
-    [],
+    () =>
+      mapWizardToPreviewDocument(createDemoWizardStateForTemplate(slug), {
+        avatarUrl: getDemoAvatarUrlForTemplate(slug),
+      }),
+    [slug],
   );
 
   useEffect(() => {

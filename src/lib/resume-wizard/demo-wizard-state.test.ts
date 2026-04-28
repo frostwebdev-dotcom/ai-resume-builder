@@ -1,16 +1,38 @@
 import { describe, expect, it } from "vitest";
 
-import { createDemoWizardState } from "@/lib/resume-wizard/demo-wizard-state";
+import { TEMPLATE_SLUG_ORDER } from "@/lib/resume-preview/template-ids";
+import {
+  createDemoWizardState,
+  createDemoWizardStateForTemplate,
+  getDemoAvatarUrlForTemplate,
+} from "@/lib/resume-wizard/demo-wizard-state";
 import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-preview";
 
-describe("createDemoWizardState", () => {
-  it("validates and maps to a full preview document", () => {
+describe("createDemoWizardState / createDemoWizardStateForTemplate", () => {
+  it("default (athena) validates and maps to a full preview document", () => {
     const w = createDemoWizardState();
     expect(w.personal.givenName.length).toBeGreaterThan(0);
     expect(w.experience.entries.length).toBeGreaterThanOrEqual(2);
-    const doc = mapWizardToPreviewDocument(w, { avatarUrl: null });
-    expect(doc.identity.fullName).toContain("Alex");
+    const doc = mapWizardToPreviewDocument(w, { avatarUrl: getDemoAvatarUrlForTemplate("athena") });
+    expect(doc.identity.fullName).toContain("Jordan");
     expect(doc.summary).toBeTruthy();
     expect(doc.experience.length).toBeGreaterThanOrEqual(2);
+    expect(doc.identity.avatarUrl).toBeNull();
+  });
+
+  it("each catalog slug yields a distinct demo identity", () => {
+    const names = new Set<string>();
+    for (const slug of TEMPLATE_SLUG_ORDER) {
+      const w = createDemoWizardStateForTemplate(slug);
+      expect(w.personal.email).toContain("@");
+      names.add(`${w.personal.givenName}|${w.personal.familyName}`);
+    }
+    expect(names.size).toBe(TEMPLATE_SLUG_ORDER.length);
+  });
+
+  it("photo-capable templates receive a demo portrait URL", () => {
+    expect(getDemoAvatarUrlForTemplate("athena")).toBeNull();
+    expect(getDemoAvatarUrlForTemplate("astra")).toMatch(/^https:\/\//);
+    expect(getDemoAvatarUrlForTemplate("borealis")).toMatch(/^https:\/\//);
   });
 });

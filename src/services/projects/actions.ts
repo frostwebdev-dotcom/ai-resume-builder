@@ -7,15 +7,11 @@ import { redirect } from "next/navigation";
 
 import { mergeProjectMetadata, parseProjectMetadata } from "@/lib/projects/metadata";
 import { slugifyTitle } from "@/lib/projects/slug";
-import {
-  DEFAULT_TEMPLATE_ID,
-  isTemplateSlug,
-  TEMPLATE_IDS,
-} from "@/lib/resume-preview/template-ids";
+import { isTemplateSlug, TEMPLATE_IDS } from "@/lib/resume-preview/template-ids";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { ROUTES } from "@/lib/constants";
-import { createDemoWizardState } from "@/lib/resume-wizard/demo-wizard-state";
+import { createDemoWizardStateForTemplate } from "@/lib/resume-wizard/demo-wizard-state";
 import type { Json } from "@/types/database";
 import {
   AVATAR_ALLOWED_MIME,
@@ -91,10 +87,11 @@ export async function createProjectAction(
   const slug = await ensureUniqueSlug(userId, parsed.data.title);
 
   const ts = parsed.data.templateSlug;
-  const templateId =
-    ts !== undefined && isTemplateSlug(ts) ? TEMPLATE_IDS[ts] : DEFAULT_TEMPLATE_ID;
+  const templateSlug: keyof typeof TEMPLATE_IDS =
+    ts !== undefined && isTemplateSlug(ts) ? ts : "athena";
+  const templateId = TEMPLATE_IDS[templateSlug];
 
-  const demoWizardJson = JSON.parse(JSON.stringify(createDemoWizardState())) as Json;
+  const demoWizardJson = JSON.parse(JSON.stringify(createDemoWizardStateForTemplate(templateSlug))) as Json;
 
   const { data: created, error } = await supabase
     .from("resume_projects")
