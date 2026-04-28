@@ -4,10 +4,13 @@ export type EntryId = string;
 export type PersonalDetails = {
   /**
    * Derived or legacy full name for preview/PDF — kept in sync when
-   * givenName/familyName are edited in the guest personal editor.
+   * first/middle/last name fields are edited in the guest personal editor.
+   * (`givenName` / `familyName` remain the persisted keys for compatibility.)
    */
   fullName: string;
   givenName: string;
+  /** Optional middle name or initial — shown between first and last when set. */
+  middleName: string;
   familyName: string;
   /** Guest photo — data URL or empty (local preview only unless exported). */
   photoDataUrl: string;

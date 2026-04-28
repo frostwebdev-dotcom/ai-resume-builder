@@ -1591,7 +1591,12 @@ function SectionCard({
 function isSectionFilled(id: SectionId, s: WizardStateV1): boolean {
   switch (id) {
     case "personal": {
-      const n = [s.personal.givenName, s.personal.familyName, s.personal.fullName]
+      const n = [
+        s.personal.givenName,
+        s.personal.middleName,
+        s.personal.familyName,
+        s.personal.fullName,
+      ]
         .map((x) => x.trim())
         .join("")
         .length;
@@ -1739,8 +1744,9 @@ function PersonalBody({ state, setState }: { state: WizardStateV1; setState: Set
     setState((s) => {
       const next = { ...s.personal, ...patch };
       const g = next.givenName.trim();
+      const m = next.middleName.trim();
       const f = next.familyName.trim();
-      next.fullName = [g, f].filter(Boolean).join(" ").trim();
+      next.fullName = [g, m, f].filter(Boolean).join(" ").trim();
       let summary = s.summary;
       if (next.useJobPositionAsHeadline) {
         summary = { ...s.summary, headline: next.desiredJobPosition };
@@ -1834,8 +1840,8 @@ function PersonalBody({ state, setState }: { state: WizardStateV1; setState: Set
         </div>
 
         <div className="min-w-0 flex-1 space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field id="givenName" label="Given name" className="gap-1.5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field id="firstName" label="First name" className="gap-1.5">
               <Input
                 className={softInput}
                 autoComplete="given-name"
@@ -1844,7 +1850,16 @@ function PersonalBody({ state, setState }: { state: WizardStateV1; setState: Set
                 onChange={(e) => updatePersonal({ givenName: e.target.value })}
               />
             </Field>
-            <Field id="familyName" label="Family name" className="gap-1.5">
+            <Field id="middleName" label="Middle name (optional)" className="gap-1.5">
+              <Input
+                className={softInput}
+                autoComplete="additional-name"
+                placeholder="Lee"
+                value={p.middleName}
+                onChange={(e) => updatePersonal({ middleName: e.target.value })}
+              />
+            </Field>
+            <Field id="lastName" label="Last name" className="gap-1.5">
               <Input
                 className={softInput}
                 autoComplete="family-name"

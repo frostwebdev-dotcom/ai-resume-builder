@@ -571,6 +571,7 @@ export function buildDemoWizardStateForTemplateSlug(slug: TemplateSlug): WizardS
     personal: {
       fullName,
       givenName: given,
+      middleName: "",
       familyName: family,
       photoDataUrl: "",
       desiredJobPosition: job,

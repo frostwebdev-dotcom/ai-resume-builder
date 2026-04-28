@@ -9,6 +9,7 @@ import {
   SidebarVisibilityProvider,
   useSidebarVisibility,
 } from "@/components/layout/sidebar-visibility";
+import { cn } from "@/lib/utils";
 
 export type AppShellUser = {
   email: string;
@@ -54,7 +55,14 @@ function AppShellInner({ children, user }: AppShellProps) {
             </div>
           </div>
         ) : null}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+            /* Reserve space for fixed desktop sidebar (width matches AppSidebar). */
+            "transition-[padding] duration-200 ease-out",
+            isCollapsed ? "md:pl-0" : "md:pl-[15.5rem] lg:pl-60",
+          )}
+        >
           <AppMobileHeader user={user} />
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-auto scroll-pb-28 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:scroll-pb-0 md:pb-8">
             {children}

@@ -19,7 +19,7 @@ import { IncompletePreviewNote } from "@/components/resume-preview/incomplete-pr
 import { PreviewViewport } from "@/components/resume-preview/preview-viewport";
 import { ResumeAppearancePanel } from "@/components/resume-preview/resume-appearance-panel";
 import { ResumePreviewRenderer } from "@/components/resume-preview/resume-preview-renderer";
-import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
+import { TemplateCatalogLivePreview } from "@/components/templates/template-catalog-live-preview";
 import { buttonVariants } from "@/components/ui/button";
 import { ROUTES } from "@/lib/constants";
 import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
@@ -30,7 +30,6 @@ import {
   TEMPLATE_PICKER_CAPTION,
   TEMPLATE_PICKER_TITLE,
 } from "@/lib/resume-preview/template-picker-copy";
-import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import { setProjectTemplateAction, updateResumeStyleAction } from "@/services/projects/actions";
 import type { TemplateOption } from "@/services/templates/queries";
 import type { ResumeDownloadAccess } from "@/services/downloads/queries";
@@ -121,7 +120,7 @@ export function ProjectPreviewClient({
   const showCheckoutBanner = Boolean(checkoutNotice) && !checkoutBannerDismissed;
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       <PreviewViewedTracker projectId={projectId} />
       {showCheckoutBanner && checkoutNotice === "success" ? (
         <Alert variant="success">
@@ -204,8 +203,11 @@ export function ProjectPreviewClient({
         always see the current design as they adjust template, appearance, and
         avatar. Below xl the stack collapses to a single column so narrow
         viewports stay readable without horizontal scrolling.
+        Second column uses % of the grid (not vw) so it stays within the main
+        shell beside the sidebar; minmax(0,…) lets the preview column shrink and
+        rely on the inner horizontal scroller on the paper canvas.
       */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(520px,min(46vw,780px))] xl:items-start">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,min(780px,50%))] xl:items-start">
         <div className="min-w-0 space-y-5">
           <ResumeDownloadSection
             projectId={projectId}
@@ -255,7 +257,6 @@ export function ProjectPreviewClient({
                 {templates.map((t) => {
                   const active = t.id === effectiveId;
                   const thumbSlug = isTemplateSlug(t.slug) ? t.slug : "athena";
-                  const theme = getTemplateTheme(thumbSlug);
                   return (
                     <button
                       key={t.id}
@@ -264,9 +265,9 @@ export function ProjectPreviewClient({
                       disabled={pending}
                       onClick={() => selectTemplate(t.id)}
                       aria-checked={active}
-                      aria-label={`${t.name} — ${theme.pickerTagline}`}
+                      aria-label={`Select layout: ${t.name}${t.isPremium ? " (premium)" : ""}`}
                       className={cn(
-                        "group/tmpl relative flex flex-col overflow-hidden rounded-xl border bg-card p-3 text-left text-sm shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-elevated disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
+                        "group/tmpl relative flex flex-col overflow-hidden rounded-xl border bg-card p-2 text-left text-sm shadow-soft transition-all hover:-translate-y-0.5 hover:shadow-elevated disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0",
                         active
                           ? "border-brand/40 ring-2 ring-brand/25"
                           : "border-border/70 hover:border-brand/30",
@@ -274,40 +275,32 @@ export function ProjectPreviewClient({
                     >
                       {active ? (
                         <span
-                          className="absolute right-2.5 top-2.5 z-10 inline-flex size-5 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-soft"
+                          className="absolute right-2 top-2 z-20 inline-flex size-5 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-soft"
                           aria-hidden
                         >
                           <CheckCircle2 className="size-3.5" strokeWidth={2.5} />
                         </span>
                       ) : null}
+                      {t.isPremium ? (
+                        <span className="absolute left-2 top-2 z-10 inline-flex items-center gap-0.5 rounded-full bg-warning/90 px-1.5 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-warning-foreground shadow-sm ring-1 ring-warning/30">
+                          <Sparkles className="size-2.5" aria-hidden />
+                          Premium
+                        </span>
+                      ) : null}
                       <div
-                        className="mb-3 overflow-hidden rounded-md ring-1 ring-border/60"
+                        className="overflow-hidden rounded-md ring-1 ring-border/60"
                         style={{
                           background:
                             "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,1) 100%)",
                         }}
                       >
-                        <div className="p-2">
-                          <TemplateThumbnail slug={t.slug} />
+                        <div className="p-1.5">
+                          <TemplateCatalogLivePreview
+                            slug={thumbSlug}
+                            className="shadow-none ring-0"
+                          />
                         </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className="inline-block size-2.5 rounded-full ring-1 ring-black/5"
-                          style={{ backgroundColor: theme.accent }}
-                          aria-hidden
-                        />
-                        <span className="font-semibold text-foreground">{t.name}</span>
-                        {t.isPremium ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-warning-foreground ring-1 ring-warning/25">
-                            <Sparkles className="size-3" aria-hidden />
-                            Premium
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1.5 text-caption leading-relaxed text-muted-foreground">
-                        {theme.pickerTagline}
-                      </p>
                     </button>
                   );
                 })}
@@ -339,7 +332,7 @@ export function ProjectPreviewClient({
         */}
         <aside
           className={cn(
-            "min-w-0",
+            "min-w-0 w-full max-w-full",
             "xl:sticky xl:top-4 xl:self-start",
             "xl:max-h-[calc(100dvh-2rem)] xl:overflow-y-auto xl:overscroll-contain",
             "xl:rounded-2xl xl:border xl:border-border/60 xl:bg-card/60 xl:p-3 xl:shadow-soft",

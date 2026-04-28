@@ -17,7 +17,10 @@ function splitSkills(lines: string): string[] {
 }
 
 function composedFullName(p: WizardStateV1["personal"]): string {
-  const split = [p.givenName, p.familyName].map((s) => s.trim()).filter(Boolean).join(" ");
+  const split = [p.givenName, p.middleName, p.familyName]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(" ");
   return (split || p.fullName).trim();
 }
 

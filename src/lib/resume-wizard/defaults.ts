@@ -13,6 +13,7 @@ export function createEmptyWizardState(): WizardStateV1 {
     personal: {
       fullName: "",
       givenName: "",
+      middleName: "",
       familyName: "",
       photoDataUrl: "",
       desiredJobPosition: "",

@@ -4,11 +4,29 @@ import { personalDetailsSchema } from "@/lib/resume-wizard/schema";
 
 const base = {
   fullName: "Ada Lovelace",
+  givenName: "",
+  middleName: "",
+  familyName: "",
+  photoDataUrl: "",
+  desiredJobPosition: "",
+  useJobPositionAsHeadline: false,
   email: "ada@example.com",
   phone: "",
+  address: "",
+  postCode: "",
+  city: "",
   location: "",
   linkedIn: "",
   website: "",
+  dateOfBirth: "",
+  placeOfBirth: "",
+  driversLicense: "",
+  gender: "",
+  nationality: "",
+  civilStatus: "",
+  customFieldLabel: "",
+  customFieldValue: "",
+  showNameIn: "title" as const,
 };
 
 function validate(patch: Partial<typeof base>) {

@@ -40,7 +40,9 @@ export function AppSidebar({ user }: AppSidebarProps) {
     <aside
       className={cn(
         "hidden md:flex",
-        "sticky top-0 z-20 self-start h-screen max-h-screen",
+        /* Fixed (not sticky): keeps nav full viewport height while <main> scrolls independently.
+           Sticky inside overflow-hidden flex shells often fails, leaving a gap under the bar. */
+        "fixed left-0 top-0 z-20 h-dvh max-h-dvh",
         "shrink-0 flex-col overflow-hidden",
         "bg-[#1c1f26] text-zinc-100 shadow-[4px_0_24px_rgba(0,0,0,0.12)]",
         "[scrollbar-gutter:stable]",

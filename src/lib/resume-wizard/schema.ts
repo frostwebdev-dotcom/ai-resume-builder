@@ -105,6 +105,7 @@ export const personalDetailsSchema = z
   .object({
     fullName: z.string().trim().max(120),
     givenName: z.string().trim().max(80),
+    middleName: z.string().trim().max(80),
     familyName: z.string().trim().max(80),
     photoDataUrl: z.string().trim().max(2_000_000),
     desiredJobPosition: z.string().trim().max(200),
@@ -133,11 +134,14 @@ export const personalDetailsSchema = z
   })
   .refine(
     (d) => {
-      const split = [d.givenName, d.familyName].map((s) => s.trim()).filter(Boolean).join(" ");
+      const split = [d.givenName, d.middleName, d.familyName]
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .join(" ");
       const legacy = d.fullName.trim();
       return split.length > 0 || legacy.length > 0;
     },
-    { message: "Add your name (given and family name or full name).", path: ["givenName"] },
+    { message: "Add your name (first and last name, or full name).", path: ["givenName"] },
   );
 
 export const professionalSummarySchema = z.object({
@@ -154,6 +158,7 @@ export const wizardStateSchema = z.object({
   personal: z.object({
     fullName: z.string().trim().max(120),
     givenName: z.string().trim().max(80),
+    middleName: z.string().trim().max(80),
     familyName: z.string().trim().max(80),
     photoDataUrl: z.string().trim().max(2_000_000),
     desiredJobPosition: z.string().trim().max(200),
