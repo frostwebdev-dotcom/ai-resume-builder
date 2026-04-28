@@ -17,6 +17,8 @@ import {
   Camera,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Download,
   FileUp,
@@ -290,6 +292,11 @@ export function GuestStudioEditor({
   const previewFitBodyRef = useRef<HTMLDivElement | null>(null);
   const previewMeasureRef = useRef<HTMLDivElement | null>(null);
   const templateStripScrollRef = useRef<HTMLDivElement | null>(null);
+  /** Arrow affordances replace a subtle native scrollbar for the template row. */
+  const [templateStripArrows, setTemplateStripArrows] = useState({
+    canLeft: false,
+    canRight: false,
+  });
 
   const currentSize =
     SIZE_PRESETS.find((p) => Math.abs((resumeStyle.lineHeight ?? 1.45) - p.lineHeight) < 0.02) ??
@@ -345,6 +352,49 @@ export function GuestStudioEditor({
     node.addEventListener("wheel", onWheel, { passive: false });
     return () => node.removeEventListener("wheel", onWheel);
   }, [templatesOpen]);
+
+  const updateTemplateStripArrows = useCallback(() => {
+    const el = templateStripScrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    const maxScroll = scrollWidth - clientWidth;
+    setTemplateStripArrows({
+      canLeft: scrollLeft > 2,
+      canRight: maxScroll > 2 && scrollLeft < maxScroll - 2,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!templatesOpen) return;
+    const el = templateStripScrollRef.current;
+    if (!el) return;
+
+    updateTemplateStripArrows();
+    const onScroll = () => updateTemplateStripArrows();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(() => updateTemplateStripArrows());
+    ro.observe(el);
+    const id = window.requestAnimationFrame(() => {
+      updateTemplateStripArrows();
+      document.getElementById(`guest-template-thumb-${templateSlug}`)?.scrollIntoView({
+        inline: "center",
+        block: "nearest",
+      });
+      window.requestAnimationFrame(updateTemplateStripArrows);
+    });
+    return () => {
+      window.cancelAnimationFrame(id);
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, [templatesOpen, templateSlug, updateTemplateStripArrows]);
+
+  function scrollTemplateStrip(direction: -1 | 1) {
+    const el = templateStripScrollRef.current;
+    if (!el) return;
+    const delta = Math.max(120, Math.floor(el.clientWidth * 0.72)) * direction;
+    el.scrollBy({ left: delta, behavior: "smooth" });
+  }
 
   useLayoutEffect(() => {
     if (previewZoomed) {
@@ -737,12 +787,30 @@ export function GuestStudioEditor({
                   }
                 }}
               >
-                <div className="mx-auto max-w-[780px] rounded-lg border border-border/80 bg-white px-2 py-2.5 shadow-sm sm:px-3">
-                  <div
-                    ref={templateStripScrollRef}
-                    className="w-full overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth pb-1 [scrollbar-width:thin]"
-                  >
-                    <div className="flex w-max min-w-full flex-nowrap justify-center gap-3 px-0.5 sm:gap-4">
+                <div className="mx-auto max-w-[780px] rounded-lg border border-border/80 bg-white px-1.5 py-2 shadow-sm sm:px-2 sm:py-2.5">
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => scrollTemplateStrip(-1)}
+                      disabled={!templateStripArrows.canLeft}
+                      aria-label="Show previous templates"
+                      className={cn(
+                        "flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm outline-none transition-colors",
+                        "hover:border-slate-300 hover:bg-slate-50",
+                        "focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                        "disabled:pointer-events-none disabled:opacity-35",
+                      )}
+                    >
+                      <ChevronLeft className="size-5" strokeWidth={2} aria-hidden />
+                    </button>
+                    <div
+                      ref={templateStripScrollRef}
+                      className={cn(
+                        "min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth py-0.5",
+                        "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0",
+                      )}
+                    >
+                      <div className="flex w-max min-w-full flex-nowrap justify-center gap-3 px-0.5 sm:gap-4">
                     {TEMPLATE_SLUG_ORDER.map((slug) => {
                       const theme = getTemplateTheme(slug);
                       const selected = slug === templateSlug;
@@ -750,6 +818,7 @@ export function GuestStudioEditor({
                       return (
                         <button
                           key={slug}
+                          id={`guest-template-thumb-${slug}`}
                           type="button"
                           onMouseEnter={() => setTemplateHoverSlug(slug)}
                           onFocus={() => setTemplateHoverSlug(slug)}
@@ -788,7 +857,22 @@ export function GuestStudioEditor({
                         </button>
                       );
                     })}
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => scrollTemplateStrip(1)}
+                      disabled={!templateStripArrows.canRight}
+                      aria-label="Show more templates"
+                      className={cn(
+                        "flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm outline-none transition-colors",
+                        "hover:border-slate-300 hover:bg-slate-50",
+                        "focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                        "disabled:pointer-events-none disabled:opacity-35",
+                      )}
+                    >
+                      <ChevronRight className="size-5" strokeWidth={2} aria-hidden />
+                    </button>
                   </div>
                 </div>
               </div>
