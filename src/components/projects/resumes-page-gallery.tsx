@@ -25,7 +25,7 @@ import {
   ProjectResumePreviewCard,
 } from "@/components/projects/project-resume-preview-card";
 import { RenameProjectDialog } from "@/components/projects/rename-project-dialog";
-import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
+import { TemplateCatalogLivePreview } from "@/components/templates/template-catalog-live-preview";
 import { createProjectAction, duplicateProjectAction } from "@/services/projects/actions";
 import {
   DropdownMenu,
@@ -79,8 +79,11 @@ function ResumeListRow({ project }: { project: DashboardProject }) {
           aria-label={`Open ${project.title}`}
         >
           <span className="sr-only">Open resume</span>
-          <div className="absolute inset-0 flex items-center justify-center p-1">
-            <TemplateThumbnail slug={slug} compact className="max-h-full w-full scale-[0.92]" />
+          <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-0.5">
+            <TemplateCatalogLivePreview
+              slug={slug}
+              className="h-full max-h-full w-full rounded-none shadow-none ring-0"
+            />
           </div>
         </Link>
 

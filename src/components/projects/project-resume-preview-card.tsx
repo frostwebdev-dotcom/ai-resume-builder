@@ -13,7 +13,7 @@ import { useState, useTransition } from "react";
 
 import { DeleteProjectDialog } from "@/components/projects/delete-project-dialog";
 import { RenameProjectDialog } from "@/components/projects/rename-project-dialog";
-import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
+import { TemplateCatalogLivePreview } from "@/components/templates/template-catalog-live-preview";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -123,7 +123,10 @@ export function ProjectResumePreviewCard({
             )}
           >
             <div className={cn("relative z-[1]", !strip && "p-1.5")}>
-              <TemplateThumbnail slug={slug} compact className="shadow-none ring-0" />
+              <TemplateCatalogLivePreview
+                slug={slug}
+                className="w-full rounded-none shadow-none ring-0"
+              />
             </div>
           </div>
           <div className="pointer-events-none absolute inset-0 z-[2]">
