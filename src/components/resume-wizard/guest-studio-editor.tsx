@@ -788,17 +788,30 @@ export function GuestStudioEditor({
                 }}
               >
                 <div className="mx-auto max-w-[780px] rounded-lg border border-border/80 bg-white px-1.5 py-2 shadow-sm sm:px-2 sm:py-2.5">
-                  <div className="flex items-center gap-1 sm:gap-1.5">
+                  <div className="relative py-0.5">
+                    {templateStripArrows.canLeft ? (
+                      <div
+                        className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-14 bg-gradient-to-r from-white from-35% to-transparent sm:w-16"
+                        aria-hidden
+                      />
+                    ) : null}
+                    {templateStripArrows.canRight ? (
+                      <div
+                        className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-14 bg-gradient-to-l from-white from-35% to-transparent sm:w-16"
+                        aria-hidden
+                      />
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => scrollTemplateStrip(-1)}
                       disabled={!templateStripArrows.canLeft}
                       aria-label="Show previous templates"
                       className={cn(
-                        "flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm outline-none transition-colors",
-                        "hover:border-slate-300 hover:bg-slate-50",
+                        "absolute left-1 top-1/2 z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200/90 bg-white/92 text-slate-800 shadow-[0_4px_18px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] backdrop-blur-sm outline-none transition-[transform,box-shadow,background-color,border-color,opacity] sm:left-1.5",
+                        "hover:border-slate-300/90 hover:bg-white hover:shadow-[0_6px_22px_rgba(15,23,42,0.16)]",
+                        "active:scale-[0.96]",
                         "focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                        "disabled:pointer-events-none disabled:opacity-35",
+                        "disabled:pointer-events-none disabled:opacity-30",
                       )}
                     >
                       <ChevronLeft className="size-5" strokeWidth={2} aria-hidden />
@@ -806,11 +819,11 @@ export function GuestStudioEditor({
                     <div
                       ref={templateStripScrollRef}
                       className={cn(
-                        "min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth py-0.5",
+                        "min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth py-0.5",
                         "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0",
                       )}
                     >
-                      <div className="flex w-max min-w-full flex-nowrap justify-center gap-3 px-0.5 sm:gap-4">
+                      <div className="flex w-max min-w-full flex-nowrap justify-center gap-3 px-11 sm:gap-4 sm:px-12">
                     {TEMPLATE_SLUG_ORDER.map((slug) => {
                       const theme = getTemplateTheme(slug);
                       const selected = slug === templateSlug;
@@ -865,10 +878,11 @@ export function GuestStudioEditor({
                       disabled={!templateStripArrows.canRight}
                       aria-label="Show more templates"
                       className={cn(
-                        "flex size-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm outline-none transition-colors",
-                        "hover:border-slate-300 hover:bg-slate-50",
+                        "absolute right-1 top-1/2 z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200/90 bg-white/92 text-slate-800 shadow-[0_4px_18px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] backdrop-blur-sm outline-none transition-[transform,box-shadow,background-color,border-color,opacity] sm:right-1.5",
+                        "hover:border-slate-300/90 hover:bg-white hover:shadow-[0_6px_22px_rgba(15,23,42,0.16)]",
+                        "active:scale-[0.96]",
                         "focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                        "disabled:pointer-events-none disabled:opacity-35",
+                        "disabled:pointer-events-none disabled:opacity-30",
                       )}
                     >
                       <ChevronRight className="size-5" strokeWidth={2} aria-hidden />
@@ -2264,9 +2278,15 @@ function ExperienceBody({
             I currently work here
           </label>
           <div className="mt-4 space-y-2">
-            <p className="text-[0.75rem] font-semibold uppercase tracking-wide text-muted-foreground">
-              Highlights
-            </p>
+            <div>
+              <p className="text-[0.75rem] font-semibold tracking-wide text-muted-foreground">
+                Job highlights
+              </p>
+              <p className="mt-1 max-w-prose text-[0.7rem] leading-snug text-muted-foreground">
+                One accomplishment per box—what you did, how you did it, and the impact (add metrics when you
+                have them).
+              </p>
+            </div>
             {entry.highlights.map((line, hi) => (
               <Textarea
                 key={`${entry.id}-h-${hi}`}

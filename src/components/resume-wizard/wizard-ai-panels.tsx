@@ -273,7 +273,7 @@ export function ExperienceEntryAiPanel({
   ) => {
     setError(null);
     if (!canRun) {
-      setError("Add at least one bullet first.");
+      setError("Add at least one job highlight first.");
       return;
     }
     setPendingKey(key);

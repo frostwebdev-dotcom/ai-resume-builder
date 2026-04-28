@@ -364,7 +364,7 @@ export function ExperienceJobTailorSection({
   const runTailor = () => {
     setError(null);
     if (bullets.length === 0) {
-      setError("Add at least one bullet first.");
+      setError("Add at least one job highlight first.");
       return;
     }
     start(() => {
@@ -429,7 +429,7 @@ export function ExperienceJobTailorSection({
 
       {!slice ? (
         <TailorButton pending={pending} disabled={!hasSavedJobTarget} onClick={runTailor}>
-          Align bullets to posting
+          Align job highlights to posting
         </TailorButton>
       ) : null}
 
@@ -440,7 +440,7 @@ export function ExperienceJobTailorSection({
       {slice ? (
         <div className="space-y-3">
           <CompareGrid
-            labelBefore="Your bullets"
+            labelBefore="Your job highlights"
             labelAfter="Suggested for this posting"
             before={
               <ul className="list-inside list-disc space-y-1">
@@ -462,10 +462,10 @@ export function ExperienceJobTailorSection({
           </p>
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" size="sm" className="min-h-10 w-full sm:w-auto" onClick={reject} disabled={pending}>
-              Keep my bullets
+              Keep my job highlights
             </Button>
             <Button type="button" size="sm" className="min-h-10 w-full sm:w-auto" onClick={accept} disabled={pending}>
-              Use suggested bullets
+              Use suggested job highlights
             </Button>
           </div>
         </div>
