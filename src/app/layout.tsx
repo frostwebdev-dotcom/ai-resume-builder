@@ -36,10 +36,10 @@ export default function RootLayout({
       className={`${GeistSans.variable} ${GeistMono.variable} h-full min-h-dvh antialiased`}
       suppressHydrationWarning
     >
-      <body className="flex min-h-0 min-h-dvh flex-col bg-background text-foreground">
+      <body className="flex min-h-0 min-h-dvh min-w-0 flex-col bg-background text-foreground">
         <AppProviders>
           {/* Flex pass-through so nested `flex-1 min-h-0` shells (e.g. app studio) get a bounded height */}
-          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip">{children}</div>
         </AppProviders>
       </body>
     </html>

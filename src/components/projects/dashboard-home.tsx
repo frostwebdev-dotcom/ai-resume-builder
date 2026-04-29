@@ -70,7 +70,7 @@ function StatCard({ label, value, sub, href, icon: Icon, iconClass }: StatCardPr
   return (
     <Link
       href={href}
-      className="group flex items-start gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md sm:p-5"
+      className="group flex min-w-0 items-start gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md sm:p-5"
     >
       <span
         className={cn(
@@ -250,12 +250,12 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
   }).format(new Date());
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 sm:space-y-8">
+    <div className="mx-auto w-full min-w-0 max-w-6xl space-y-6 sm:space-y-8">
       {/* Hero / welcome */}
-      <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-sky-50/60 to-indigo-50/40 p-5 shadow-sm sm:p-7">
+      <section className="relative min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-white via-sky-50/60 to-indigo-50/40 p-5 shadow-sm sm:p-7">
         <div className="absolute -right-16 -top-16 size-48 rounded-full bg-[#2268d7]/8 blur-2xl" aria-hidden />
         <div className="absolute -bottom-20 right-10 size-56 rounded-full bg-indigo-300/20 blur-3xl" aria-hidden />
-        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="relative flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="min-w-0">
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
               <Calendar className="size-3.5 text-slate-400" aria-hidden />
@@ -351,10 +351,10 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
       {/* Recent resumes */}
       <section
         aria-labelledby="recent-resumes-heading"
-        className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6"
+        className="min-w-0 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6"
       >
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
+        <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
+          <div className="min-w-0">
             <h2
               id="recent-resumes-heading"
               className="text-base font-semibold tracking-tight text-slate-900 sm:text-lg"
@@ -381,10 +381,10 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
       </section>
 
       {/* Two column: pipeline + jobs */}
-      <section className="grid gap-4 lg:grid-cols-2 lg:gap-5">
+      <section className="grid min-w-0 gap-4 lg:grid-cols-2 lg:gap-5">
         {/* Pipeline / next steps */}
-        <article className="flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <article className="flex min-w-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                 <ClipboardList className="size-4.5" aria-hidden />
@@ -423,8 +423,8 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
                   {a.logo.letter}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold text-slate-900">{a.company}</p>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{a.company}</p>
                     <span
                       className={cn(
                         "shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold",
@@ -448,8 +448,8 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
         </article>
 
         {/* Suggested jobs */}
-        <article className="flex flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <article className="flex min-w-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
                 <Star className="size-4.5" aria-hidden />

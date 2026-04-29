@@ -72,10 +72,14 @@ function ResumeListRow({ project }: { project: DashboardProject }) {
 
   return (
     <div>
-      <div className="flex items-center gap-3 px-4 py-3 sm:gap-4 sm:px-5">
+      {/*
+        Mobile list: explicit horizontal grid — preview column left, text center, actions right.
+        Prevents flex quirks on narrow widths; items-start keeps the thumb aligned to the top on phones.
+      */}
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 px-4 py-3 sm:items-center sm:gap-x-4 sm:gap-y-0 sm:px-5">
         <Link
           href={href}
-          className="relative h-14 w-11 shrink-0 overflow-hidden rounded-md bg-slate-100 ring-1 ring-slate-200/90 transition-opacity hover:opacity-95"
+          className="relative aspect-[210/297] w-[3.35rem] shrink-0 overflow-hidden rounded-md bg-slate-100 ring-1 ring-slate-200/90 transition-opacity hover:opacity-95 sm:w-12"
           aria-label={`Open ${project.title}`}
         >
           <span className="sr-only">Open resume</span>
@@ -87,7 +91,7 @@ function ResumeListRow({ project }: { project: DashboardProject }) {
           </div>
         </Link>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <Link
             href={href}
             className="min-w-0 truncate text-sm font-semibold text-slate-900 underline-offset-2 hover:underline sm:max-w-[min(100%,28rem)] sm:text-base"
@@ -99,7 +103,7 @@ function ResumeListRow({ project }: { project: DashboardProject }) {
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+        <div className="flex shrink-0 flex-row items-center justify-end gap-0.5 sm:gap-1">
           <Link
             href={ROUTES.app.project(project.id)}
             className={listIconLinkClass}
@@ -281,7 +285,7 @@ export function ResumesPageGallery({ projects, guest = false }: Props) {
   const { openLogin } = useAppLoginPanel();
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto w-full min-w-0 max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       {guest ? (
         <div className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm sm:px-5">
           <span className="text-slate-700">

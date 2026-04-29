@@ -41,8 +41,8 @@ export default async function CheckoutReturnPage({ params, searchParams }: PageP
   const initial = await getCheckoutReturnState(user.id, projectId, sessionId);
 
   return (
-    <section className="min-h-0 flex-1 pt-6 pb-safe sm:py-10">
-      <PageContainer className="max-w-lg">
+    <section className="min-h-0 min-w-0 flex-1 overflow-x-clip pt-6 pb-safe sm:py-10">
+      <PageContainer className="max-w-lg min-w-0">
         <CheckoutReturnClient
           projectId={projectId}
           sessionId={sessionId}

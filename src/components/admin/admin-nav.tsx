@@ -21,7 +21,7 @@ export function AdminNav() {
 
   return (
     <nav
-      className="flex gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex min-w-0 gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       aria-label="Admin sections"
     >
       {LINKS.map(({ href, label }) => {

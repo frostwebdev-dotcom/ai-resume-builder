@@ -10,7 +10,7 @@ export function AdminDataTable({ children, className }: AdminDataTableProps) {
   return (
     <div
       className={cn(
-        "-mx-1 overflow-x-auto rounded-xl border border-border/70 bg-card shadow-soft",
+        "-mx-1 min-w-0 overflow-x-auto overscroll-x-contain rounded-xl border border-border/70 bg-card shadow-soft",
         className,
       )}
     >

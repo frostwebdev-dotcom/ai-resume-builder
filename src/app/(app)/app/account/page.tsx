@@ -54,7 +54,7 @@ export default async function AccountPage() {
   ];
 
   return (
-    <section className="py-8 sm:py-10">
+    <section className="min-w-0 py-8 sm:py-10">
       <PageContainer>
         <header className="space-y-3">
           <p className="text-eyebrow">Account</p>
@@ -65,7 +65,7 @@ export default async function AccountPage() {
           />
         </header>
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_20rem]">
+        <div className="mt-10 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
           <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-8">
             <div
               aria-hidden

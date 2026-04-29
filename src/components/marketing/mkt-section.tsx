@@ -14,7 +14,7 @@ export function MktSection({ id, children, className, padded = true }: MktSectio
   return (
     <section
       id={id}
-      className={cn(padded && "py-14 sm:py-20", className)}
+      className={cn("min-w-0", padded && "py-14 sm:py-20", className)}
     >
       {children}
     </section>

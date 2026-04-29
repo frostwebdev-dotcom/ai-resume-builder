@@ -173,6 +173,8 @@
   }
   html {
     @apply font-sans;
+    /* Avoid rare horizontal “page bleed” from wide descendants in flex/grid shells */
+    overflow-x: clip;
   }
   /* Selection uses brand so highlighted text feels on-brand */
   ::selection {

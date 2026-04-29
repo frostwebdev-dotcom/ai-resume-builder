@@ -54,7 +54,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const templateTheme = getTemplateTheme(templateSlug);
 
   return (
-    <section className="py-6 sm:py-10">
+    <section className="min-w-0 py-6 sm:py-10">
       <PageContainer>
         <div className="space-y-8">
           <div>
@@ -67,7 +67,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             </Link>
           </div>
 
-          <div className="flex flex-col gap-6 border-b border-border/70 pb-8 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 flex-col gap-6 border-b border-border/70 pb-8 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0 space-y-3">
               <p className="text-eyebrow">Resume project</p>
               <h1 className="text-balance text-display text-foreground">{project.title}</h1>

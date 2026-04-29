@@ -80,7 +80,7 @@ export default async function ProjectPreviewPage({ params, searchParams }: PageP
   const document = mapWizardToPreviewDocument(wizard, { avatarUrl: avatarSignedUrl });
 
   return (
-    <section className="min-h-0 min-w-0 flex-1 py-4 sm:py-8">
+    <section className="min-h-0 min-w-0 flex-1 overflow-x-clip py-4 sm:py-8">
       <PageContainer className="max-w-[1400px] xl:px-6 2xl:px-8">
         <ProjectPreviewClient
           key={projectId}

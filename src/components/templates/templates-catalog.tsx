@@ -195,9 +195,9 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
       : "rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5";
 
   return (
-    <div className={cn("w-full", className)}>
-      <div className={cn("flex flex-col gap-4", toolbarSurface)}>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+    <div className={cn("w-full min-w-0", className)}>
+      <div className={cn("flex min-w-0 flex-col gap-4", toolbarSurface)}>
+        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
           <InputWithIcon
             className="min-w-0 flex-1"
             leading={<Search className="pointer-events-none size-4 text-muted-foreground" aria-hidden />}
@@ -213,7 +213,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
           </InputWithIcon>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-2.5">
           <DropdownMenu>
             <DropdownMenuTrigger
               type="button"

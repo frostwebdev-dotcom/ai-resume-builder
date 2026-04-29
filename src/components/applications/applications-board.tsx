@@ -163,11 +163,11 @@ export function ApplicationsBoard({ guest = false }: Props) {
             <li key={row.id}>
               <article
                 className={cn(
-                  "rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-shadow sm:p-5",
+                  "min-w-0 rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-shadow sm:p-5",
                   "hover:border-slate-300 hover:shadow-md",
                 )}
               >
-                <div className="flex gap-4">
+                <div className="flex min-w-0 gap-3 sm:gap-4">
                   <div
                     className={cn(
                       "flex size-12 shrink-0 items-center justify-center rounded-lg text-sm font-bold sm:size-14 sm:text-base",

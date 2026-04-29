@@ -13,8 +13,8 @@ type AuthCardProps = {
 
 export function AuthCard({ title, description, children }: AuthCardProps) {
   return (
-    <PageContainer className="flex min-h-dvh flex-1 flex-col justify-center py-10 pb-safe sm:min-h-0 sm:py-16">
-      <div className="mx-auto w-full max-w-[min(100%,24rem)]">
+    <PageContainer className="flex min-h-dvh min-w-0 flex-1 flex-col justify-center py-10 pb-safe sm:min-h-0 sm:py-16">
+      <div className="mx-auto w-full min-w-0 max-w-[min(100%,24rem)]">
         <div className="mb-8 flex flex-col items-center text-center">
           <Link
             href={ROUTES.home}
