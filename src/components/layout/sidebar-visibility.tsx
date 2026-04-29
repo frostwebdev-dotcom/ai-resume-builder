@@ -6,34 +6,34 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useState,
   useSyncExternalStore,
 } from "react";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-const STORAGE_KEY = "app-sidebar:collapsed";
+const STORAGE_MODE_KEY = "app-sidebar:mode";
+const LEGACY_COLLAPSED_KEY = "app-sidebar:collapsed";
+
+export type SidebarMode = "expanded" | "collapsed" | "expand-on-hover";
+
+const MODE_ORDER: SidebarMode[] = ["expanded", "collapsed", "expand-on-hover"];
 
 type Ctx = {
-  /** True when the desktop sidebar is collapsed (hidden from view). */
-  collapsed: boolean;
-  toggle: () => void;
-  setCollapsed: (next: boolean) => void;
+  mode: SidebarMode;
+  setMode: (next: SidebarMode) => void;
+  /**
+   * When true, the sidebar uses the narrow icon rail (no section labels).
+   * In expand-on-hover mode this follows pointer / open menus.
+   */
+  narrowRail: boolean;
+  setRailHovered: (value: boolean) => void;
+  setAccountMenuOpen: (open: boolean) => void;
+  /** Ctrl/Cmd + B — cycles Expanded → Collapsed → Expand on hover. */
+  cycleMode: () => void;
 };
 
-/*
- * External store for the sidebar's collapsed state.
- *
- * We intentionally hold this outside React so:
- *   - `useSyncExternalStore` renders the server snapshot (`false` → expanded)
- *     on SSR and the first client paint, then transitions to the real value
- *     after hydration. No `setState`-in-effect needed and no hydration
- *     mismatch warning.
- *   - Any component (sidebar, re-open handle, per-page toggle button) can
- *     subscribe to the same store, and a single click updates them all in
- *     one frame without prop drilling.
- *   - The `storage` event keeps multiple open tabs of the app in sync.
- */
 const listeners = new Set<() => void>();
 
 function notify() {
@@ -43,7 +43,7 @@ function notify() {
 function subscribe(onChange: () => void) {
   listeners.add(onChange);
   const onStorage = (event: StorageEvent) => {
-    if (event.key === STORAGE_KEY) onChange();
+    if (event.key === STORAGE_MODE_KEY || event.key === LEGACY_COLLAPSED_KEY) onChange();
   };
   window.addEventListener("storage", onStorage);
   return () => {
@@ -52,74 +52,101 @@ function subscribe(onChange: () => void) {
   };
 }
 
-function readCollapsed(): boolean {
+function readMode(): SidebarMode {
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === "1";
+    const raw = window.localStorage.getItem(STORAGE_MODE_KEY);
+    if (raw === "expanded" || raw === "collapsed" || raw === "expand-on-hover") {
+      return raw;
+    }
+    if (window.localStorage.getItem(LEGACY_COLLAPSED_KEY) === "1") {
+      return "collapsed";
+    }
+    return "expanded";
   } catch {
-    return false;
+    return "expanded";
   }
 }
 
-function writeCollapsed(next: boolean) {
+function writeMode(next: SidebarMode) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+    window.localStorage.setItem(STORAGE_MODE_KEY, next);
+    window.localStorage.removeItem(LEGACY_COLLAPSED_KEY);
   } catch {
-    // Storage may be unavailable (private mode, disabled cookies); we still
-    // notify subscribers so the in-memory UI state updates for this tab.
+    // Storage may be unavailable; still notify so this tab updates.
   }
   notify();
 }
 
-function getServerSnapshot(): boolean {
-  return false;
+function getServerSnapshot(): SidebarMode {
+  return "expanded";
 }
 
 const SidebarVisibilityContext = createContext<Ctx | null>(null);
 
 /**
- * Desktop sidebar visibility state.
- *
- * The decision lives above the sidebar and the page shell so a single toggle
- * (button or keyboard shortcut) can hide/reveal it for every app route.
- * Persisting in `localStorage` keeps the choice across reloads — users who
- * prefer a distraction-free workspace only configure it once.
+ * Desktop sidebar layout mode (full rail, icon rail, or icon rail that
+ * expands while hovered). Persisted in `localStorage`; `storage` events
+ * sync additional tabs.
  */
 export function SidebarVisibilityProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const collapsed = useSyncExternalStore(subscribe, readCollapsed, getServerSnapshot);
-
-  const setCollapsed = useCallback((next: boolean) => {
-    writeCollapsed(next);
-  }, []);
-
-  const toggle = useCallback(() => {
-    writeCollapsed(!readCollapsed());
-  }, []);
+  const mode = useSyncExternalStore(subscribe, readMode, getServerSnapshot);
+  const [railHovered, setRailHovered] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Ctrl+B (Cmd+B on macOS) mirrors the familiar IDE shortcut. We avoid
-    // stealing the combo when the user is actively composing in an input so
-    // text formatting shortcuts inside the wizard keep working.
+    if (mode !== "expand-on-hover") {
+      setRailHovered(false);
+    }
+  }, [mode]);
+
+  const setMode = useCallback((next: SidebarMode) => {
+    writeMode(next);
+  }, []);
+
+  const cycleMode = useCallback(() => {
+    const cur = readMode();
+    const i = MODE_ORDER.indexOf(cur);
+    writeMode(MODE_ORDER[(i === -1 ? 0 : i + 1) % MODE_ORDER.length]);
+  }, []);
+
+  const narrowRail = useMemo(() => {
+    if (mode === "expanded") return false;
+    if (mode === "collapsed") return true;
+    /* Expand on hover: widen for pointer on rail or account menu (portaled); sidebar
+       control stays on the narrow trigger so the menu anchor does not jump. */
+    const expandedByHover = railHovered || accountMenuOpen;
+    return !expandedByHover;
+  }, [mode, railHovered, accountMenuOpen]);
+
+  const value = useMemo<Ctx>(
+    () => ({
+      mode,
+      setMode,
+      narrowRail,
+      setRailHovered,
+      setAccountMenuOpen,
+      cycleMode,
+    }),
+    [mode, setMode, narrowRail, cycleMode],
+  );
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const isToggle = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b";
-      if (!isToggle) return;
+      const isCycle = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "b";
+      if (!isCycle) return;
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return;
       event.preventDefault();
-      toggle();
+      cycleMode();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [toggle]);
-
-  const value = useMemo<Ctx>(
-    () => ({ collapsed, toggle, setCollapsed }),
-    [collapsed, toggle, setCollapsed],
-  );
+  }, [cycleMode]);
 
   return (
     <SidebarVisibilityContext.Provider value={value}>
@@ -143,25 +170,23 @@ type ToggleProps = {
   /**
    * When true, the button is rendered in-line with other chrome and gets a
    * bordered pill appearance. When false (default) the button is a compact
-   * icon square suitable for the sidebar header and the re-open handle.
+   * icon square.
    */
   inline?: boolean;
 };
 
 /**
- * Small icon button that toggles the desktop sidebar. Hidden on mobile (the
- * bottom navigation already handles navigation on small screens).
+ * Cycles sidebar layout (Expanded → Collapsed → Expand on hover). Hidden on
+ * mobile. Prefer the footer “Sidebar control” menu for discovery.
  */
 export function SidebarToggleButton({ className, inline = false }: ToggleProps) {
-  const { collapsed, toggle } = useSidebarVisibility();
-  const label = collapsed ? "Show sidebar" : "Hide sidebar";
-  const Icon = collapsed ? PanelLeftOpen : PanelLeftClose;
+  const { cycleMode, mode } = useSidebarVisibility();
+  const label = "Cycle sidebar layout";
   return (
     <button
       type="button"
-      onClick={toggle}
-      aria-label={label}
-      aria-pressed={collapsed}
+      onClick={cycleMode}
+      aria-label={`${label} (current: ${mode}). Shortcut: Ctrl or Cmd + B.`}
       title={`${label} (Ctrl/Cmd + B)`}
       className={cn(
         "hidden md:inline-flex items-center justify-center transition-colors",
@@ -171,7 +196,7 @@ export function SidebarToggleButton({ className, inline = false }: ToggleProps) 
         className,
       )}
     >
-      <Icon className="size-4" aria-hidden />
+      <PanelLeft className="size-4" aria-hidden />
       {inline ? <span className="text-caption font-medium">Sidebar</span> : null}
     </button>
   );

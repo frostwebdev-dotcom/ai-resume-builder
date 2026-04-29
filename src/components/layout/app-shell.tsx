@@ -4,11 +4,7 @@ import { AppBottomNav } from "@/components/layout/app-bottom-nav";
 import { AppLoginPanelProvider } from "@/components/layout/app-login-panel";
 import { AppMobileHeader } from "@/components/layout/app-mobile-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
-import {
-  SidebarToggleButton,
-  SidebarVisibilityProvider,
-  useSidebarVisibility,
-} from "@/components/layout/sidebar-visibility";
+import { SidebarVisibilityProvider, useSidebarVisibility } from "@/components/layout/sidebar-visibility";
 import { cn } from "@/lib/utils";
 
 export type AppShellUser = {
@@ -25,7 +21,7 @@ type AppShellProps = {
 /**
  * Authenticated product shell: desktop sidebar + mobile header & bottom nav.
  * Wraps the tree in a sidebar-visibility provider so a global keyboard
- * shortcut (Ctrl/Cmd + B) and a re-open handle can hide/show the sidebar.
+ * shortcut (Ctrl/Cmd + B) and the header control can switch full vs icon rail.
  */
 export function AppShell({ children, user }: AppShellProps) {
   return (
@@ -36,31 +32,19 @@ export function AppShell({ children, user }: AppShellProps) {
 }
 
 function AppShellInner({ children, user }: AppShellProps) {
-  const { collapsed: isCollapsed } = useSidebarVisibility();
+  const { mode } = useSidebarVisibility();
+  const mainUsesNarrowPadding = mode === "collapsed" || mode === "expand-on-hover";
   const guest = user === null;
   return (
     <AppLoginPanelProvider guest={guest}>
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <AppSidebar user={user} />
-        {isCollapsed ? (
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-10 md:block"
-            aria-hidden
-          >
-            {/* Re-open handle: lives on the far-left edge of the main column and
-                is a forgiving click target for users who collapsed the sidebar
-                and now want it back without reaching for the keyboard. */}
-            <div className="pointer-events-auto absolute left-2 top-4">
-              <SidebarToggleButton />
-            </div>
-          </div>
-        ) : null}
         <div
           className={cn(
             "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
             /* Reserve space for fixed desktop sidebar (width matches AppSidebar). */
             "transition-[padding] duration-200 ease-out",
-            isCollapsed ? "md:pl-0" : "md:pl-[15.5rem] lg:pl-60",
+            mainUsesNarrowPadding ? "md:pl-14" : "md:pl-[15.5rem] lg:pl-60",
           )}
         >
           <AppMobileHeader user={user} />

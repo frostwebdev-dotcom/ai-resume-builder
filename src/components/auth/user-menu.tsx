@@ -24,6 +24,10 @@ type UserMenuProps = {
   variant?: "default" | "icon";
   /** Dark sidebar trigger (dashboard shell). */
   tone?: "default" | "inverse";
+  /** Fires when the account dropdown opens or closes (e.g. expand-on-hover sidebar). */
+  onOpenChange?: (open: boolean) => void;
+  /** Merged onto the trigger after variants (e.g. app rail `h-8` alignment). */
+  triggerClassName?: string;
 };
 
 function LogoutItem() {
@@ -47,12 +51,14 @@ export function UserMenu({
   isAdmin,
   variant = "default",
   tone = "default",
+  onOpenChange,
+  triggerClassName,
 }: UserMenuProps) {
   const display = email.length > 28 ? `${email.slice(0, 26)}…` : email;
   const inverse = tone === "inverse";
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={onOpenChange}>
       <DropdownMenuTrigger
         type="button"
         className={cn(
@@ -61,6 +67,7 @@ export function UserMenu({
           variant === "icon" && "shrink-0",
           inverse &&
             "border-white/25 bg-white/5 text-zinc-100 hover:bg-white/10 hover:text-white dark:border-white/25 dark:bg-white/5",
+          triggerClassName,
         )}
         aria-label="Account menu"
       >
