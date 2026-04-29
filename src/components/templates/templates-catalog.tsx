@@ -7,7 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Gauge,
-  IdCard,
+  Building2,
   LayoutGrid,
   Lightbulb,
   Loader2,
@@ -43,19 +43,28 @@ import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ROUTES } from "@/lib/constants";
 import {
-  type TemplateCareerFilter,
   type TemplateCatalogCriteria,
-  type TemplateColorFilter,
-  type TemplateFormatFilter,
+  type TemplateCareerStageKey,
+  type TemplateCatalogFormatFacetKey,
+  type TemplateCatalogTagKey,
   type TemplateIndustryKey,
+  TEMPLATE_CATALOG_ACCENT_SWATCHES,
+  TEMPLATE_CATALOG_CAREER_STAGE_LABEL,
+  TEMPLATE_CATALOG_CAREER_STAGE_ORDER,
+  TEMPLATE_CATALOG_FORMAT_FACET_LABEL,
+  TEMPLATE_CATALOG_FORMAT_FACET_ORDER,
   TEMPLATE_CATALOG_INDUSTRY_LABEL,
   TEMPLATE_CATALOG_INDUSTRY_ORDER,
-  type TemplateStyleFilter,
-  type TemplateTagsFilter,
+  TEMPLATE_CATALOG_STYLE_LOOK_LABEL,
+  TEMPLATE_CATALOG_STYLE_LOOK_ORDER,
+  TEMPLATE_CATALOG_TAG_LABEL,
+  TEMPLATE_CATALOG_TAG_ORDER,
+  type TemplateStyleLookKey,
   criteriaHasActiveFilters,
   defaultTemplateCatalogCriteria,
   filterTemplateThemes,
   isPopularTemplate,
+  normalizeCatalogAccentHex,
 } from "@/lib/resume-preview/template-catalog-filters";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import type { TemplateTheme } from "@/lib/resume-preview/template-theme";
@@ -71,39 +80,14 @@ const PILL_TRIGGER = cn(
 
 const PILL_TRIGGER_ACTIVE = "border-[#2268d7]/35 bg-sky-50/90 text-slate-800";
 
-const CAREER_LABEL: Record<TemplateCareerFilter, string> = {
-  all: "All stages",
-  early: "Entry & early career",
-  mid: "Mid-level",
-  senior: "Senior & executive",
-};
+/** Navy border + pale cyan when active/open (Career Stage, Style look). */
+const CATALOG_FILTER_MENU_TRIGGER = cn(
+  "inline-flex h-9 max-w-full shrink-0 items-center gap-1.5 rounded-lg border-2 px-3 text-sm font-semibold outline-none transition-colors",
+  "border-slate-200 bg-slate-50/80 text-slate-800",
+  "hover:bg-sky-50/90 focus-visible:ring-2 focus-visible:ring-slate-900/25 data-popup-open:bg-sky-100",
+);
 
-const STYLE_LABEL: Record<TemplateStyleFilter, string> = {
-  all: "All styles",
-  sans: "Sans-serif",
-  serif: "Serif",
-};
-
-const FORMAT_LABEL: Record<TemplateFormatFilter, string> = {
-  all: "All formats",
-  classic: "Single column",
-  sidebar: "Sidebar",
-  "photo-banner": "Photo header",
-};
-
-const COLOR_LABEL: Record<TemplateColorFilter, string> = {
-  all: "All colors",
-  cool: "Cool tones",
-  warm: "Warm tones",
-  neutral: "Neutral",
-};
-
-const TAGS_LABEL: Record<TemplateTagsFilter, string> = {
-  all: "All tags",
-  "photo-ready": "Photo-ready",
-  compact: "Compact header",
-  "two-column-meta": "Two-column meta",
-};
+const CATALOG_FILTER_MENU_TRIGGER_ON = "border-slate-900 bg-sky-100 text-slate-900 shadow-sm";
 
 function CreateProjectPendingInline() {
   const { pending } = useFormStatus();
@@ -129,6 +113,11 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
   /** Drives a short enter transition when changing templates inside the zoom modal (not on first open). */
   const [zoomEnterDir, setZoomEnterDir] = useState<"forward" | "back" | null>(null);
   const [industryMenuOpen, setIndustryMenuOpen] = useState(false);
+  const [careerMenuOpen, setCareerMenuOpen] = useState(false);
+  const [styleMenuOpen, setStyleMenuOpen] = useState(false);
+  const [formatMenuOpen, setFormatMenuOpen] = useState(false);
+  const [colorMenuOpen, setColorMenuOpen] = useState(false);
+  const [tagsMenuOpen, setTagsMenuOpen] = useState(false);
 
   const filtered = useMemo(
     () => filterTemplateThemes(ALL_TEMPLATE_THEMES, criteria),
@@ -173,6 +162,95 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
   function clearIndustryFilters() {
     setCriteria((c) => ({ ...c, industry: [] }));
   }
+
+  function toggleCareerStage(key: TemplateCareerStageKey) {
+    setCriteria((c) => {
+      const next = new Set(c.careerStages);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return { ...c, careerStages: Array.from(next) as TemplateCareerStageKey[] };
+    });
+  }
+
+  function clearCareerStages() {
+    setCriteria((c) => ({ ...c, careerStages: [] }));
+  }
+
+  function toggleStyleLook(key: TemplateStyleLookKey) {
+    setCriteria((c) => {
+      const next = new Set(c.styleLooks);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return { ...c, styleLooks: Array.from(next) as TemplateStyleLookKey[] };
+    });
+  }
+
+  function clearStyleLooks() {
+    setCriteria((c) => ({ ...c, styleLooks: [] }));
+  }
+
+  function toggleFormatFacet(key: TemplateCatalogFormatFacetKey) {
+    setCriteria((c) => {
+      const next = new Set(c.formatFacets);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return { ...c, formatFacets: Array.from(next) as TemplateCatalogFormatFacetKey[] };
+    });
+  }
+
+  function clearFormatFacets() {
+    setCriteria((c) => ({ ...c, formatFacets: [] }));
+  }
+
+  function toggleAccentSwatch(hex: string) {
+    const canon = normalizeCatalogAccentHex(hex);
+    if (!canon) return;
+    setCriteria((c) => {
+      const next = new Set(
+        c.accentSwatches.map((h) => normalizeCatalogAccentHex(h)).filter((h): h is string => Boolean(h)),
+      );
+      if (next.has(canon)) next.delete(canon);
+      else next.add(canon);
+      return { ...c, accentSwatches: Array.from(next) };
+    });
+  }
+
+  function clearAccentSwatches() {
+    setCriteria((c) => ({ ...c, accentSwatches: [] }));
+  }
+
+  function toggleTagFilter(key: TemplateCatalogTagKey) {
+    setCriteria((c) => {
+      const next = new Set(c.tagFilters);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return { ...c, tagFilters: Array.from(next) as TemplateCatalogTagKey[] };
+    });
+  }
+
+  function clearTagFilters() {
+    setCriteria((c) => ({ ...c, tagFilters: [] }));
+  }
+
+  const tagTriggerLabel =
+    criteria.tagFilters.length === 1
+      ? TEMPLATE_CATALOG_TAG_LABEL[criteria.tagFilters[0]!]
+      : "Tags";
+
+  const formatTriggerLabel =
+    criteria.formatFacets.length === 1
+      ? TEMPLATE_CATALOG_FORMAT_FACET_LABEL[criteria.formatFacets[0]!]
+      : "Format";
+
+  const styleLookTriggerLabel =
+    criteria.styleLooks.length === 1
+      ? TEMPLATE_CATALOG_STYLE_LOOK_LABEL[criteria.styleLooks[0]!]
+      : "Style";
+
+  const industryTriggerLabel =
+    criteria.industry.length === 1
+      ? TEMPLATE_CATALOG_INDUSTRY_LABEL[criteria.industry[0]!]
+      : "Occupation & Industry";
 
   function goZoom(delta: -1 | 1) {
     if (zoomIndex < 0) return;
@@ -232,24 +310,30 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
             <DropdownMenuTrigger
               type="button"
               className={cn(
-                PILL_TRIGGER,
-                (criteria.industry.length > 0 || industryMenuOpen) && PILL_TRIGGER_ACTIVE,
+                CATALOG_FILTER_MENU_TRIGGER,
+                (criteria.industry.length > 0 || industryMenuOpen) && CATALOG_FILTER_MENU_TRIGGER_ON,
               )}
             >
-              <IdCard className="size-4 shrink-0 text-slate-500" aria-hidden />
-              <span className="max-w-[10rem] truncate sm:max-w-none">Occupation & Industry</span>
+              <Building2
+                className={cn(
+                  "size-4 shrink-0 transition-colors",
+                  criteria.industry.length > 0 || industryMenuOpen ? "text-slate-900" : "text-slate-600",
+                )}
+                aria-hidden
+              />
+              <span className="max-w-[11rem] truncate sm:max-w-[14rem] md:max-w-none">{industryTriggerLabel}</span>
               {industryMenuOpen ? (
-                <ChevronUp className="size-4 shrink-0 text-slate-400" aria-hidden />
+                <ChevronUp className="size-4 shrink-0 text-slate-800" aria-hidden />
               ) : (
-                <ChevronDown className="size-4 shrink-0 text-slate-400" aria-hidden />
+                <ChevronDown className="size-4 shrink-0 text-slate-600" aria-hidden />
               )}
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="start"
-              className="w-[min(22rem,calc(100vw-2rem))] max-w-[22rem] overflow-hidden border border-slate-200/90 bg-white p-0 shadow-lg ring-1 ring-black/5"
+              className="w-[min(24rem,calc(100vw-2rem))] max-w-[24rem] overflow-hidden border-2 border-slate-900/15 bg-white p-0 shadow-lg ring-1 ring-slate-900/10"
             >
               <div
-                className="max-h-[min(16.5rem,42vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
+                className="max-h-[min(20rem,50vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
                 onPointerDown={(e) => e.preventDefault()}
               >
                 {TEMPLATE_CATALOG_INDUSTRY_ORDER.map((key) => {
@@ -259,7 +343,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
                     <label
                       key={key}
                       htmlFor={id}
-                      className="flex cursor-pointer items-start gap-2.5 px-3 py-2 text-sm leading-snug text-slate-800 hover:bg-slate-50"
+                      className="flex cursor-pointer items-start gap-2.5 px-3 py-2.5 text-sm font-normal leading-snug text-slate-900 hover:bg-sky-50/60"
                     >
                       <input
                         id={id}
@@ -267,8 +351,8 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
                         checked={checked}
                         onChange={() => toggleIndustryFilter(key)}
                         className={cn(
-                          "mt-0.5 size-4 shrink-0 rounded border-slate-400 text-[#2268d7]",
-                          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2268d7]/40",
+                          "mt-0.5 size-4 shrink-0 rounded border-2 border-slate-900 bg-white accent-slate-900",
+                          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900/35",
                         )}
                       />
                       <span>{TEMPLATE_CATALOG_INDUSTRY_LABEL[key]}</span>
@@ -276,7 +360,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
                   );
                 })}
               </div>
-              <div className="border-t border-slate-200 bg-white p-2">
+              <div className="border-t border-slate-200 bg-white p-2.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -285,7 +369,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
                   }}
                   className={cn(
                     buttonVariants({ variant: "outline", size: "default" }),
-                    "h-10 w-full rounded-full border-slate-300 text-slate-700 shadow-none",
+                    "h-10 w-full rounded-full border-2 border-slate-800/25 bg-white text-sm font-medium text-slate-800 shadow-none hover:bg-slate-50",
                   )}
                 >
                   Clear
@@ -294,93 +378,367 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DropdownMenu>
+          <DropdownMenu open={careerMenuOpen} onOpenChange={setCareerMenuOpen}>
             <DropdownMenuTrigger
               type="button"
-              className={cn(PILL_TRIGGER, criteria.career !== "all" && PILL_TRIGGER_ACTIVE)}
+              className={cn(
+                CATALOG_FILTER_MENU_TRIGGER,
+                (criteria.careerStages.length > 0 || careerMenuOpen) && CATALOG_FILTER_MENU_TRIGGER_ON,
+              )}
             >
-              <Briefcase className="size-4 shrink-0 text-slate-500" aria-hidden />
+              <Briefcase
+                className={cn(
+                  "size-4 shrink-0 transition-colors",
+                  criteria.careerStages.length > 0 || careerMenuOpen ? "text-slate-900" : "text-slate-600",
+                )}
+                aria-hidden
+              />
               <span className="truncate">Career Stage</span>
-              <ChevronDown className="size-4 shrink-0 text-slate-400" aria-hidden />
+              {careerMenuOpen ? (
+                <ChevronUp className="size-4 shrink-0 text-slate-800" aria-hidden />
+              ) : (
+                <ChevronDown className="size-4 shrink-0 text-slate-600" aria-hidden />
+              )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[12rem]">
-              {(Object.keys(CAREER_LABEL) as TemplateCareerFilter[]).map((key) => (
-                <DropdownMenuItem key={key} onSelect={() => setCriteria((c) => ({ ...c, career: key }))}>
-                  {CAREER_LABEL[key]}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent
+              align="start"
+              className="w-[min(22rem,calc(100vw-2rem))] max-w-[22rem] overflow-hidden border-2 border-slate-900/15 bg-white p-0 shadow-lg ring-1 ring-slate-900/10"
+            >
+              <div
+                className="max-h-[min(16.5rem,42vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
+                onPointerDown={(e) => e.preventDefault()}
+              >
+                {TEMPLATE_CATALOG_CAREER_STAGE_ORDER.map((key) => {
+                  const checked = criteria.careerStages.includes(key);
+                  const id = `catalog-career-${key}`;
+                  return (
+                    <label
+                      key={key}
+                      htmlFor={id}
+                      className="flex cursor-pointer items-start gap-2.5 px-3 py-2.5 text-sm font-normal leading-snug text-slate-900 hover:bg-sky-50/60"
+                    >
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleCareerStage(key)}
+                        className={cn(
+                          "mt-0.5 size-4 shrink-0 rounded border-2 border-slate-900 bg-white accent-slate-900",
+                          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900/35",
+                        )}
+                      />
+                      <span>{TEMPLATE_CATALOG_CAREER_STAGE_LABEL[key]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="border-t border-slate-200 bg-white p-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearCareerStages();
+                    setCareerMenuOpen(false);
+                  }}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "default" }),
+                    "h-10 w-full rounded-full border-2 border-slate-800/25 bg-white text-sm font-medium text-slate-800 shadow-none hover:bg-slate-50",
+                  )}
+                >
+                  Clear
+                </button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DropdownMenu>
+          <DropdownMenu open={styleMenuOpen} onOpenChange={setStyleMenuOpen}>
             <DropdownMenuTrigger
               type="button"
-              className={cn(PILL_TRIGGER, criteria.style !== "all" && PILL_TRIGGER_ACTIVE)}
+              className={cn(
+                CATALOG_FILTER_MENU_TRIGGER,
+                (criteria.styleLooks.length > 0 || styleMenuOpen) && CATALOG_FILTER_MENU_TRIGGER_ON,
+              )}
             >
-              <PenLine className="size-4 shrink-0 text-slate-500" aria-hidden />
-              <span className="truncate">Style</span>
-              <ChevronDown className="size-4 shrink-0 text-slate-400" aria-hidden />
+              <Palette
+                className={cn(
+                  "size-4 shrink-0 transition-colors",
+                  criteria.styleLooks.length > 0 || styleMenuOpen ? "text-slate-900" : "text-slate-600",
+                )}
+                aria-hidden
+              />
+              <span className="truncate">{styleLookTriggerLabel}</span>
+              {styleMenuOpen ? (
+                <ChevronUp className="size-4 shrink-0 text-slate-800" aria-hidden />
+              ) : (
+                <ChevronDown className="size-4 shrink-0 text-slate-600" aria-hidden />
+              )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[10rem]">
-              {(Object.keys(STYLE_LABEL) as TemplateStyleFilter[]).map((key) => (
-                <DropdownMenuItem key={key} onSelect={() => setCriteria((c) => ({ ...c, style: key }))}>
-                  {STYLE_LABEL[key]}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent
+              align="start"
+              className="w-[min(22rem,calc(100vw-2rem))] max-w-[22rem] overflow-hidden border-2 border-slate-900/15 bg-white p-0 shadow-lg ring-1 ring-slate-900/10"
+            >
+              <div
+                className="max-h-[min(16.5rem,42vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
+                onPointerDown={(e) => e.preventDefault()}
+              >
+                {TEMPLATE_CATALOG_STYLE_LOOK_ORDER.map((key) => {
+                  const checked = criteria.styleLooks.includes(key);
+                  const id = `catalog-style-look-${key}`;
+                  return (
+                    <label
+                      key={key}
+                      htmlFor={id}
+                      className="flex cursor-pointer items-start gap-2.5 px-3 py-2.5 text-sm font-normal leading-snug text-slate-900 hover:bg-sky-50/60"
+                    >
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleStyleLook(key)}
+                        className={cn(
+                          "mt-0.5 size-4 shrink-0 rounded border-2 border-slate-900 bg-white accent-slate-900",
+                          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900/35",
+                        )}
+                      />
+                      <span>{TEMPLATE_CATALOG_STYLE_LOOK_LABEL[key]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="border-t border-slate-200 bg-white p-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearStyleLooks();
+                    setStyleMenuOpen(false);
+                  }}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "default" }),
+                    "h-10 w-full rounded-full border-2 border-slate-800/25 bg-white text-sm font-medium text-slate-800 shadow-none hover:bg-slate-50",
+                  )}
+                >
+                  Clear
+                </button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DropdownMenu>
+          <DropdownMenu open={formatMenuOpen} onOpenChange={setFormatMenuOpen}>
             <DropdownMenuTrigger
               type="button"
-              className={cn(PILL_TRIGGER, criteria.format !== "all" && PILL_TRIGGER_ACTIVE)}
+              className={cn(
+                CATALOG_FILTER_MENU_TRIGGER,
+                (criteria.formatFacets.length > 0 || formatMenuOpen) && CATALOG_FILTER_MENU_TRIGGER_ON,
+              )}
             >
-              <LayoutGrid className="size-4 shrink-0 text-slate-500" aria-hidden />
-              <span className="truncate">Format</span>
-              <ChevronDown className="size-4 shrink-0 text-slate-400" aria-hidden />
+              <LayoutGrid
+                className={cn(
+                  "size-4 shrink-0 transition-colors",
+                  criteria.formatFacets.length > 0 || formatMenuOpen ? "text-slate-900" : "text-slate-600",
+                )}
+                aria-hidden
+              />
+              <span className="truncate">{formatTriggerLabel}</span>
+              {formatMenuOpen ? (
+                <ChevronUp className="size-4 shrink-0 text-slate-800" aria-hidden />
+              ) : (
+                <ChevronDown className="size-4 shrink-0 text-slate-600" aria-hidden />
+              )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[11rem]">
-              {(Object.keys(FORMAT_LABEL) as TemplateFormatFilter[]).map((key) => (
-                <DropdownMenuItem key={key} onSelect={() => setCriteria((c) => ({ ...c, format: key }))}>
-                  {FORMAT_LABEL[key]}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent
+              align="start"
+              className="w-[min(22rem,calc(100vw-2rem))] max-w-[22rem] overflow-hidden border-2 border-slate-900/15 bg-white p-0 shadow-lg ring-1 ring-slate-900/10"
+            >
+              <div
+                className="max-h-[min(20rem,50vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
+                onPointerDown={(e) => e.preventDefault()}
+              >
+                {TEMPLATE_CATALOG_FORMAT_FACET_ORDER.map((key) => {
+                  const checked = criteria.formatFacets.includes(key);
+                  const id = `catalog-format-${key}`;
+                  return (
+                    <label
+                      key={key}
+                      htmlFor={id}
+                      className="flex cursor-pointer items-start gap-2.5 px-3 py-2.5 text-sm font-normal leading-snug text-slate-900 hover:bg-sky-50/60"
+                    >
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleFormatFacet(key)}
+                        className={cn(
+                          "mt-0.5 size-4 shrink-0 rounded border-2 border-slate-900 bg-white accent-slate-900",
+                          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900/35",
+                        )}
+                      />
+                      <span>{TEMPLATE_CATALOG_FORMAT_FACET_LABEL[key]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="border-t border-slate-200 bg-white p-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearFormatFacets();
+                    setFormatMenuOpen(false);
+                  }}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "default" }),
+                    "h-10 w-full rounded-full border-2 border-slate-800/25 bg-white text-sm font-medium text-slate-800 shadow-none hover:bg-slate-50",
+                  )}
+                >
+                  Clear
+                </button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DropdownMenu>
+          <DropdownMenu open={colorMenuOpen} onOpenChange={setColorMenuOpen}>
             <DropdownMenuTrigger
               type="button"
-              className={cn(PILL_TRIGGER, criteria.color !== "all" && PILL_TRIGGER_ACTIVE)}
+              className={cn(
+                CATALOG_FILTER_MENU_TRIGGER,
+                (criteria.accentSwatches.length > 0 || colorMenuOpen) && CATALOG_FILTER_MENU_TRIGGER_ON,
+              )}
             >
-              <Palette className="size-4 shrink-0 text-slate-500" aria-hidden />
+              <Palette
+                className={cn(
+                  "size-4 shrink-0 transition-colors",
+                  criteria.accentSwatches.length > 0 || colorMenuOpen ? "text-slate-900" : "text-slate-600",
+                )}
+                aria-hidden
+              />
               <span className="truncate">Color</span>
-              <ChevronDown className="size-4 shrink-0 text-slate-400" aria-hidden />
+              {colorMenuOpen ? (
+                <ChevronUp className="size-4 shrink-0 text-slate-800" aria-hidden />
+              ) : (
+                <ChevronDown className="size-4 shrink-0 text-slate-600" aria-hidden />
+              )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[10rem]">
-              {(Object.keys(COLOR_LABEL) as TemplateColorFilter[]).map((key) => (
-                <DropdownMenuItem key={key} onSelect={() => setCriteria((c) => ({ ...c, color: key }))}>
-                  {COLOR_LABEL[key]}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent
+              align="start"
+              className="w-[min(17rem,calc(100vw-2rem))] max-w-[17rem] overflow-hidden border-2 border-slate-900/15 bg-white p-0 shadow-lg ring-1 ring-slate-900/10"
+            >
+              <div
+                className="grid grid-cols-5 gap-2 p-3"
+                onPointerDown={(e) => e.preventDefault()}
+              >
+                {TEMPLATE_CATALOG_ACCENT_SWATCHES.map((hex) => {
+                  const canon = normalizeCatalogAccentHex(hex) ?? hex;
+                  const selected = criteria.accentSwatches.some(
+                    (h) => (normalizeCatalogAccentHex(h) ?? h) === canon,
+                  );
+                  const lightSwatch =
+                    canon === "#fafafa" || canon === "#f1f5f9" || canon === "#ffffff" || canon === "#e2e8f0";
+                  return (
+                    <button
+                      key={canon}
+                      type="button"
+                      title={canon}
+                      aria-label={`Accent ${canon}`}
+                      aria-pressed={selected}
+                      onClick={() => toggleAccentSwatch(canon)}
+                      className={cn(
+                        "size-8 shrink-0 rounded-full transition-[box-shadow,transform] outline-none",
+                        "hover:scale-105 focus-visible:ring-2 focus-visible:ring-slate-900/35 focus-visible:ring-offset-2",
+                        lightSwatch && "border border-slate-300/90",
+                        selected
+                          ? "ring-2 ring-slate-900 ring-offset-2 ring-offset-white"
+                          : "ring-0 ring-offset-0",
+                      )}
+                      style={{ backgroundColor: canon }}
+                    />
+                  );
+                })}
+              </div>
+              <div className="border-t border-slate-200 bg-white p-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearAccentSwatches();
+                    setColorMenuOpen(false);
+                  }}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "default" }),
+                    "h-10 w-full rounded-full border-2 border-slate-800/25 bg-white text-sm font-medium text-slate-800 shadow-none hover:bg-slate-50",
+                  )}
+                >
+                  Clear
+                </button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <DropdownMenu>
+          <DropdownMenu open={tagsMenuOpen} onOpenChange={setTagsMenuOpen}>
             <DropdownMenuTrigger
               type="button"
-              className={cn(PILL_TRIGGER, criteria.tags !== "all" && PILL_TRIGGER_ACTIVE)}
+              className={cn(
+                CATALOG_FILTER_MENU_TRIGGER,
+                (criteria.tagFilters.length > 0 || tagsMenuOpen) && CATALOG_FILTER_MENU_TRIGGER_ON,
+              )}
             >
-              <Star className="size-4 shrink-0 text-slate-500" aria-hidden />
-              <span className="truncate">Tags</span>
-              <ChevronDown className="size-4 shrink-0 text-slate-400" aria-hidden />
+              <Star
+                className={cn(
+                  "size-4 shrink-0 transition-colors",
+                  criteria.tagFilters.length > 0 || tagsMenuOpen ? "text-slate-900" : "text-slate-600",
+                )}
+                aria-hidden
+              />
+              <span className="truncate">{tagTriggerLabel}</span>
+              {tagsMenuOpen ? (
+                <ChevronUp className="size-4 shrink-0 text-slate-800" aria-hidden />
+              ) : (
+                <ChevronDown className="size-4 shrink-0 text-slate-600" aria-hidden />
+              )}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[12rem]">
-              {(Object.keys(TAGS_LABEL) as TemplateTagsFilter[]).map((key) => (
-                <DropdownMenuItem key={key} onSelect={() => setCriteria((c) => ({ ...c, tags: key }))}>
-                  {TAGS_LABEL[key]}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent
+              align="start"
+              className="w-[min(22rem,calc(100vw-2rem))] max-w-[22rem] overflow-hidden border-2 border-slate-900/15 bg-white p-0 shadow-lg ring-1 ring-slate-900/10"
+            >
+              <div
+                className="max-h-[min(16.5rem,42vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
+                onPointerDown={(e) => e.preventDefault()}
+              >
+                {TEMPLATE_CATALOG_TAG_ORDER.map((key) => {
+                  const checked = criteria.tagFilters.includes(key);
+                  const id = `catalog-tag-${key}`;
+                  return (
+                    <label
+                      key={key}
+                      htmlFor={id}
+                      className="flex cursor-pointer items-start gap-2.5 px-3 py-2.5 text-sm font-normal leading-snug text-slate-900 hover:bg-sky-50/60"
+                    >
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleTagFilter(key)}
+                        className={cn(
+                          "mt-0.5 size-4 shrink-0 rounded border-2 border-slate-900 bg-white accent-slate-900",
+                          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900/35",
+                        )}
+                      />
+                      <span>{TEMPLATE_CATALOG_TAG_LABEL[key]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div className="border-t border-slate-200 bg-white p-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearTagFilters();
+                    setTagsMenuOpen(false);
+                  }}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "default" }),
+                    "h-10 w-full rounded-full border-2 border-slate-800/25 bg-white text-sm font-medium text-slate-800 shadow-none hover:bg-slate-50",
+                  )}
+                >
+                  Clear
+                </button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -409,7 +767,10 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
 
       <ul
         className={cn(
-          "mt-6 grid items-start gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4",
+          "mt-6 grid items-start",
+          surface === "app"
+            ? "gap-5 sm:gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
+            : "gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4",
           surface === "marketing" && "text-left",
         )}
       >
@@ -420,6 +781,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
               popular={isPopularTemplate(theme)}
               ringOffsetClass={ringOffsetClass}
               signedInApp={signedInApp}
+              expandedCard={surface === "app"}
               onPreview={() => setZoomSlug(theme.slug)}
               createHref={`${ROUTES.create}?template=${encodeURIComponent(theme.slug)}`}
             />
@@ -452,6 +814,11 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
       >
         <DialogContentFlanked
           showCloseButton
+          flankHostClassName={
+            surface === "app"
+              ? "max-w-[min(100vw-1.5rem,calc(72rem+10rem))] md:max-w-[min(100vw-2rem,calc(80rem+10rem))]"
+              : undefined
+          }
           leftSlot={
             <div className="flex h-11 w-11 shrink-0 items-center justify-center">
               {filtered.length > 1 && zoomIndex > 0 ? (
@@ -483,6 +850,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
           className={cn(
             "max-h-[min(92vh,880px)] gap-0 overflow-hidden p-0 md:max-h-[85vh]",
             "rounded-xl bg-white text-slate-900 shadow-xl ring-1 ring-slate-200/80",
+            surface === "app" && "max-w-none md:max-w-[min(94vw,72rem)]",
           )}
         >
           {zoomTheme ? (
@@ -495,7 +863,8 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
               <div
                 key={zoomTheme.slug}
                 className={cn(
-                  "grid min-h-0 md:grid-cols-2 md:grid-rows-1",
+                  "grid min-h-0 md:grid-rows-1",
+                  surface === "app" ? "md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]" : "md:grid-cols-2",
                   zoomEnterDir === "forward" &&
                     "animate-in fade-in-0 slide-in-from-right-4 duration-200 ease-out motion-reduce:animate-none motion-reduce:opacity-100",
                   zoomEnterDir === "back" &&
@@ -599,11 +968,30 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
                 ) : null}
                 </div>
 
-                <div className="flex min-h-[220px] flex-col items-center justify-center bg-[#E0F2F1] p-6 sm:min-h-[280px] sm:p-8 md:min-h-0 md:py-10">
-                  <div className="w-full max-w-[min(100%,320px)] overflow-hidden rounded-lg bg-white/40 p-3 shadow-sm ring-1 ring-teal-900/10 sm:max-w-[340px] sm:p-4">
+                <div
+                  className={cn(
+                    "flex flex-col items-center justify-center bg-[#E0F2F1] p-6 sm:p-8 md:min-h-0 md:py-10",
+                    surface === "app"
+                      ? "min-h-[280px] sm:min-h-[340px] md:min-h-[min(100%,720px)]"
+                      : "min-h-[220px] sm:min-h-[280px]",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "w-full overflow-hidden rounded-lg bg-white/40 shadow-sm ring-1 ring-teal-900/10",
+                      surface === "app"
+                        ? "max-w-[min(100%,560px)] p-4 sm:max-w-[min(100%,640px)] sm:p-5"
+                        : "max-w-[min(100%,320px)] p-3 sm:max-w-[340px] sm:p-4",
+                    )}
+                  >
                     <TemplateCatalogLivePreview slug={zoomTheme.slug} className="w-full" />
                   </div>
-                  <p className="mt-4 max-w-sm text-center text-xs leading-relaxed text-teal-900/75">
+                  <p
+                    className={cn(
+                      "mt-4 text-center text-xs leading-relaxed text-teal-900/75",
+                      surface === "app" ? "max-w-xl sm:text-sm" : "max-w-sm",
+                    )}
+                  >
                     {zoomTheme.bestFor}
                   </p>
                 </div>
@@ -621,6 +1009,8 @@ type CardProps = {
   popular: boolean;
   ringOffsetClass: string;
   signedInApp: boolean;
+  /** App /templates: larger preview frame and padding. */
+  expandedCard?: boolean;
   onPreview: () => void;
   createHref: string;
 };
@@ -682,6 +1072,7 @@ function TemplateCatalogCard({
   popular,
   ringOffsetClass,
   signedInApp,
+  expandedCard = false,
   onPreview,
   createHref,
 }: CardProps) {
@@ -691,12 +1082,8 @@ function TemplateCatalogCard({
         <CardContent className="p-0">
           <div
             className={cn(
-              "relative overflow-hidden rounded-md bg-white p-1.5",
-              "shadow-[0_1px_2px_rgba(15,23,42,0.05),0_4px_14px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.85)]",
-              "ring-1 ring-slate-200/50",
-              "transition-[box-shadow,ring-color] duration-200 ease-out",
-              "group-hover:shadow-[0_2px_6px_rgba(15,23,42,0.07),0_10px_28px_rgba(15,23,42,0.09),inset_0_1px_0_rgba(255,255,255,0.9)]",
-              "group-hover:ring-slate-300/70",
+              "relative overflow-hidden bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05),0_4px_14px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-slate-200/50 transition-[box-shadow,ring-color] duration-200 ease-out group-hover:shadow-[0_2px_6px_rgba(15,23,42,0.07),0_10px_28px_rgba(15,23,42,0.09),inset_0_1px_0_rgba(255,255,255,0.9)] group-hover:ring-slate-300/70",
+              expandedCard ? "rounded-lg p-2.5 sm:p-3" : "rounded-md p-1.5",
             )}
           >
             <div className="relative z-[1]">

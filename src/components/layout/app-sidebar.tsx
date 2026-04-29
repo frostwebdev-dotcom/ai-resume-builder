@@ -29,31 +29,25 @@ import { NewResumeServerForm } from "@/components/projects/new-resume-server-for
 /** Horizontal padding for rail sections — same narrow vs expanded. */
 const RAIL_PAD_X = "px-3";
 
-const railLayoutTransition =
-  "transition-[color,background-color,border-color,width,height,padding,border-radius,margin,gap,max-width] duration-200 ease-out";
+/** Hover / mode changes: color only so icons & selection chrome do not resize. */
+const railColorTransition = "transition-colors duration-150 ease-out";
 
 const railNewShared = cn(
-  "flex items-center justify-center gap-2 rounded-full border border-white/35 bg-transparent font-semibold text-white outline-none",
-  railLayoutTransition,
+  "flex w-full min-h-10 items-center justify-center gap-2 rounded-full border border-white/35 bg-transparent font-semibold text-white outline-none",
+  railColorTransition,
   "hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/40",
 );
 
-const sidebarNewGuestClass = cn(railNewShared, "w-full py-2.5 text-sm");
+const sidebarNewGuestClass = cn(railNewShared, "py-2.5 text-sm");
 
 const sidebarNewSignedInClass = cn(
   railNewShared,
-  "w-full py-2.5 text-sm disabled:pointer-events-none disabled:opacity-60",
-);
-
-/** Narrow rail: same footprint as compact “New” (icon-only chip). */
-const railNarrowChip = cn(
-  "mx-auto flex size-8 shrink-0 items-center justify-center gap-0 rounded-lg p-0",
-  railLayoutTransition,
+  "py-2.5 text-sm disabled:pointer-events-none disabled:opacity-60",
 );
 
 const railHomeLink = cn(
-  "group flex min-w-0 items-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-white/40",
-  railLayoutTransition,
+  "group flex min-h-10 min-w-0 items-center rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-white/40",
+  railColorTransition,
   "text-white hover:bg-white/[0.06]",
 );
 
@@ -61,9 +55,10 @@ const railLogoMark = cn(
   "flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-xs font-bold tracking-tight text-white ring-1 ring-white/15",
 );
 
+/** Same row geometry in icon-only and labeled modes (no size jump on expand-on-hover). */
 const railNavLink = cn(
-  "relative flex min-h-10 items-center rounded-lg px-3 py-2.5 text-sm font-medium",
-  railLayoutTransition,
+  "relative flex min-h-10 w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium",
+  railColorTransition,
 );
 
 const railNavIcon = "size-4 shrink-0 pointer-events-none";
@@ -71,21 +66,24 @@ const railNavIcon = "size-4 shrink-0 pointer-events-none";
 const railFooter = cn("flex flex-col gap-2 border-t border-white/10 p-3");
 
 const railLoginBtn = cn(
-  "flex w-full items-center rounded-lg text-left text-sm font-medium text-zinc-400",
-  railLayoutTransition,
+  "flex min-h-10 w-full items-center rounded-lg px-3 py-2.5 text-left text-sm font-medium text-zinc-400",
+  railColorTransition,
   "hover:bg-white/[0.06] hover:text-zinc-100",
 );
 
-const sidebarControlBase = cn(
-  "flex shrink-0 items-center rounded-lg border border-white/12 bg-white/[0.04] outline-none text-zinc-200",
-  railLayoutTransition,
+const sidebarControlTrigger = cn(
+  "flex min-h-10 h-10 w-full shrink-0 items-center rounded-lg border border-white/12 bg-white/[0.04] px-3 text-zinc-200 outline-none",
+  railColorTransition,
   "hover:border-white/18 hover:bg-white/[0.08] hover:text-white",
   "focus-visible:ring-2 focus-visible:ring-white/35",
 );
 
-const sidebarControlWide = cn(sidebarControlBase, "h-8 min-h-8 w-full gap-1.5 px-2 text-left text-[0.65rem] font-medium leading-tight");
+const sidebarControlTriggerLabeled = cn(
+  sidebarControlTrigger,
+  "justify-start gap-2 text-left text-[0.8rem] font-medium leading-tight",
+);
 
-const sidebarControlNarrow = cn(sidebarControlBase, "size-8 justify-center");
+const sidebarControlTriggerIconOnly = cn(sidebarControlTrigger, "justify-center px-2");
 
 /** Collapsed-rail metaphor: frame, divider ~⅓ from left, three stacked nav dots. */
 function SidebarControlGlyph({ className }: { className?: string }) {
@@ -116,7 +114,6 @@ function SidebarControlGlyph({ className }: { className?: string }) {
   );
 }
 
-/** Same glyph box in both modes (14px). */
 const SIDEBAR_CONTROL_GLYPH_CLASS = "size-3.5";
 
 function SidebarControlMenu({ narrowRail }: { narrowRail: boolean }) {
@@ -126,7 +123,7 @@ function SidebarControlMenu({ narrowRail }: { narrowRail: boolean }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         type="button"
-        className={cn(narrowRail ? sidebarControlNarrow : sidebarControlWide)}
+        className={cn(narrowRail ? sidebarControlTriggerIconOnly : sidebarControlTriggerLabeled)}
         aria-label="Sidebar control"
       >
         <SidebarControlGlyph className={SIDEBAR_CONTROL_GLYPH_CLASS} />
@@ -186,15 +183,17 @@ function SidebarControlMenu({ narrowRail }: { narrowRail: boolean }) {
   );
 }
 
-/** Aligns account trigger with rail chrome (h-8, inverse outline). */
+/** Account row: same min height as nav / New so hover-expand does not resize chrome. */
 const userMenuRailTriggerClass = cn(
-  "min-h-8 h-8 w-full rounded-lg border-white/25 bg-white/5 text-zinc-100",
-  railLayoutTransition,
+  "min-h-10 h-10 w-full justify-start rounded-lg border-white/25 bg-white/5 px-3 text-zinc-100 sm:!h-10 sm:!min-h-10",
+  railColorTransition,
   "hover:bg-white/10 hover:text-white",
-  "sm:min-h-8 sm:h-8",
 );
 
-const userMenuRailTriggerIconClass = cn(userMenuRailTriggerClass, railNarrowChip);
+const userMenuRailTriggerNarrowClass = cn(
+  userMenuRailTriggerClass,
+  "justify-center px-2 !size-auto min-h-10 h-10 w-full sm:!h-10 sm:!min-h-10 sm:!w-full sm:!min-w-0 sm:!max-w-none",
+);
 
 type AppSidebarProps = {
   user: AppShellUser | null;
@@ -227,7 +226,6 @@ export function AppSidebar({ user }: AppSidebarProps) {
       <div
         className={cn("flex h-full min-w-0 flex-col", narrowRail ? "w-14" : "w-[15.5rem] lg:w-60")}
       >
-        {/* Header: same height, padding, border, home affordances in both modes */}
         <div
           className={cn(
             "flex h-14 shrink-0 items-center border-b border-white/10",
@@ -241,7 +239,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
             aria-label={`${APP_NAME} — home`}
             className={cn(
               railHomeLink,
-              narrowRail ? "size-8 shrink-0 justify-center" : "min-w-0 flex-1 gap-2",
+              narrowRail ? "w-full justify-center" : "flex-1 gap-2",
             )}
           >
             <span className={railLogoMark} aria-hidden>
@@ -261,7 +259,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               formClassName="w-full"
               buttonClassName={cn(
                 sidebarNewSignedInClass,
-                narrowRail && cn(railNarrowChip, "max-w-none rounded-lg border-white/35"),
+                narrowRail && "gap-0 py-0",
               )}
               idleContent={
                 narrowRail ? (
@@ -276,10 +274,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
           ) : (
             <Link
               href={ROUTES.create}
-              className={cn(
-                sidebarNewGuestClass,
-                narrowRail && cn(railNarrowChip, "border-white/35"),
-              )}
+              className={cn(sidebarNewGuestClass, narrowRail && "gap-0 py-0")}
               aria-label="New resume — open the builder"
             >
               <Plus className={railNavIcon} aria-hidden />
@@ -303,9 +298,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 aria-current={active ? "page" : undefined}
                 title={label}
                 className={cn(
-                  narrowRail ? railNarrowChip : railNavLink,
-                  !narrowRail && "justify-start gap-3",
-                  narrowRail && "min-h-0 text-sm font-medium",
+                  railNavLink,
+                  narrowRail ? "justify-center gap-0" : "justify-start gap-3",
                   active
                     ? "bg-white/12 text-white"
                     : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100",
@@ -318,7 +312,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 {narrowRail ? (
                   <span className="sr-only">{label}</span>
                 ) : (
-                  <span>{label}</span>
+                  <span className="min-w-0 truncate">{label}</span>
                 )}
               </Link>
             );
@@ -333,7 +327,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               isAdmin={user.isAdmin}
               tone="inverse"
               variant={narrowRail ? "icon" : "default"}
-              triggerClassName={narrowRail ? userMenuRailTriggerIconClass : userMenuRailTriggerClass}
+              triggerClassName={narrowRail ? userMenuRailTriggerNarrowClass : userMenuRailTriggerClass}
               onOpenChange={setAccountMenuOpen}
             />
           ) : (
@@ -344,7 +338,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               title="Log in"
               className={cn(
                 railLoginBtn,
-                narrowRail ? railNarrowChip : "gap-2.5 px-3 py-2.5",
+                narrowRail ? "justify-center gap-0" : "gap-2.5",
               )}
             >
               <UserRound className={cn(railNavIcon, "opacity-90")} aria-hidden />

@@ -34,7 +34,7 @@ export default async function AppTemplatesPage() {
             </GuestAppRouteBanner>
           ) : null}
 
-          <header className="mx-auto max-w-3xl text-center">
+          <header className="mx-auto max-w-4xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Templates</p>
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
               Resume templates
@@ -48,7 +48,7 @@ export default async function AppTemplatesPage() {
             </p>
           </header>
 
-          <TemplatesCatalog surface="app" guest={!ctx} className="mx-auto mt-8 max-w-6xl" />
+          <TemplatesCatalog surface="app" guest={!ctx} className="mx-auto mt-8 w-full max-w-[min(100%,90rem)]" />
 
           <div className="mx-auto mt-12 flex max-w-2xl flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8">
             <p className="text-sm text-slate-600">

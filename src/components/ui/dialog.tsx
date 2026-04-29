@@ -94,11 +94,14 @@ function DialogContentFlanked({
   showCloseButton = true,
   leftSlot,
   rightSlot,
+  flankHostClassName,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
   leftSlot?: React.ReactNode
   rightSlot?: React.ReactNode
+  /** Merged onto the inner row that wraps arrows + popup (default caps modal width). */
+  flankHostClassName?: string
 }) {
   return (
     <DialogPortal>
@@ -107,7 +110,12 @@ function DialogContentFlanked({
         data-slot="dialog-flank-host"
         className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 pointer-events-none"
       >
-        <div className="flex max-h-full w-full max-w-[min(100vw-2.5rem,calc(42rem+7rem))] items-center justify-center gap-2 sm:gap-3 md:max-w-[min(100vw-3rem,calc(64rem+8rem))] md:gap-4 pointer-events-auto">
+        <div
+          className={cn(
+            "flex max-h-full w-full max-w-[min(100vw-2.5rem,calc(42rem+7rem))] items-center justify-center gap-2 sm:gap-3 md:max-w-[min(100vw-3rem,calc(64rem+8rem))] md:gap-4 pointer-events-auto",
+            flankHostClassName,
+          )}
+        >
           <div className="hidden shrink-0 md:flex md:items-center md:justify-end">
             {leftSlot}
           </div>

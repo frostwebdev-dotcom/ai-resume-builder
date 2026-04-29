@@ -10,28 +10,152 @@ export const POPULAR_TEMPLATE_SLUGS = new Set<TemplateSlug>(
   TEMPLATE_SLUG_ORDER.slice(0, 4) as TemplateSlug[],
 );
 
-export type TemplateIndustryFilter =
-  | "all"
-  | "tech"
-  | "finance"
-  | "healthcare"
-  | "legal"
-  | "creative"
-  | "operations"
-  | "general";
+/** Occupation & Industry catalog filter buckets (multi-select). */
+export type TemplateIndustryKey =
+  | "beverageFoodService"
+  | "salesRetail"
+  | "artsLeisure"
+  | "commerceConstruction"
+  | "education"
+  | "farmingEnvironmentAgriculture"
+  | "financeBusinessAdministration"
+  | "lawRehabilitation"
+  | "leadership"
+  | "maintenance"
+  | "manufacturing"
+  | "medicalHealthcareSupport"
+  | "nursingAidesHomeHealth"
+  | "officeSupportClerical"
+  | "property"
+  | "safetySecurity"
+  | "selfCareServices"
+  | "socialServicesCommunityEngagement"
+  | "techInnovation"
+  | "technician"
+  | "transportation";
 
-/** Selectable industry buckets (excludes `all`). */
-export type TemplateIndustryKey = Exclude<TemplateIndustryFilter, "all">;
-
+/** Legacy single-select; superseded by `TemplateCareerStageKey` + `careerStages`. */
 export type TemplateCareerFilter = "all" | "early" | "mid" | "senior";
 
+/** Multi-select career stages (checkbox UI). Empty = no restriction. */
+export type TemplateCareerStageKey = "student" | "early" | "mid" | "senior";
+
+export const TEMPLATE_CATALOG_CAREER_STAGE_ORDER: readonly TemplateCareerStageKey[] = [
+  "student",
+  "early",
+  "mid",
+  "senior",
+];
+
+export const TEMPLATE_CATALOG_CAREER_STAGE_LABEL: Record<TemplateCareerStageKey, string> = {
+  student: "Students",
+  early: "Entry Level",
+  mid: "Mid Level",
+  senior: "Experienced",
+};
+
+/** Legacy sans/serif filter; catalog UI uses `TemplateStyleLookKey` + `styleLooks`. */
 export type TemplateStyleFilter = "all" | "sans" | "serif";
 
-export type TemplateFormatFilter = "all" | "classic" | "sidebar" | "photo-banner";
+/** Multi-select “look & feel” (checkbox UI). Empty = no restriction. */
+export type TemplateStyleLookKey = "modern" | "creative" | "traditional";
 
-export type TemplateColorFilter = "all" | "cool" | "warm" | "neutral";
+export const TEMPLATE_CATALOG_STYLE_LOOK_ORDER: readonly TemplateStyleLookKey[] = [
+  "modern",
+  "creative",
+  "traditional",
+];
 
-export type TemplateTagsFilter = "all" | "photo-ready" | "compact" | "two-column-meta";
+export const TEMPLATE_CATALOG_STYLE_LOOK_LABEL: Record<TemplateStyleLookKey, string> = {
+  modern: "Modern",
+  creative: "Creative",
+  traditional: "Traditional",
+};
+
+/**
+ * Multi-select format facets (checkbox UI). Empty = no format restriction.
+ * Matching uses OR across selected facets.
+ */
+export type TemplateCatalogFormatFacetKey =
+  | "singlepage"
+  | "oneColumn"
+  | "twoColumn"
+  | "onePage"
+  | "twoPage"
+  | "headshot"
+  | "noPhoto";
+
+export const TEMPLATE_CATALOG_FORMAT_FACET_ORDER: readonly TemplateCatalogFormatFacetKey[] = [
+  "singlepage",
+  "oneColumn",
+  "twoColumn",
+  "onePage",
+  "twoPage",
+  "headshot",
+  "noPhoto",
+];
+
+export const TEMPLATE_CATALOG_FORMAT_FACET_LABEL: Record<TemplateCatalogFormatFacetKey, string> = {
+  singlepage: "Singlepage",
+  oneColumn: "One Column",
+  twoColumn: "Two Column",
+  onePage: "One Page",
+  twoPage: "Two Page",
+  headshot: "Headshot",
+  noPhoto: "No Photo",
+};
+
+/**
+ * Fixed 5×7 accent swatches for the catalog Color picker (row-major).
+ * Filter uses OR: a template matches if its `accent` is near any selected swatch.
+ */
+export const TEMPLATE_CATALOG_ACCENT_SWATCHES: readonly string[] = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#3b82f6",
+  "#06b6d4",
+  "#6366f1",
+  "#8b5cf6",
+  "#d946ef",
+  "#ec4899",
+  "#b45309",
+  "#15803d",
+  "#0e7490",
+  "#1e40af",
+  "#6d28d9",
+  "#fde047",
+  "#fdba74",
+  "#fda4af",
+  "#86efac",
+  "#93c5fd",
+  "#44403c",
+  "#57534e",
+  "#71717a",
+  "#a1a1aa",
+  "#d4d4d8",
+  "#18181b",
+  "#27272a",
+  "#fafafa",
+  "#f1f5f9",
+  "#e2e8f0",
+  "#991b1b",
+  "#9a3412",
+  "#365314",
+  "#115e59",
+  "#0f172a",
+];
+
+/** Multi-select catalog tags (checkbox UI). Empty = no tag restriction. OR across selections. */
+export type TemplateCatalogTagKey = "free" | "popular";
+
+export const TEMPLATE_CATALOG_TAG_ORDER: readonly TemplateCatalogTagKey[] = ["free", "popular"];
+
+export const TEMPLATE_CATALOG_TAG_LABEL: Record<TemplateCatalogTagKey, string> = {
+  free: "Free",
+  popular: "Popular",
+};
 
 export type TemplateCatalogCriteria = {
   search: string;
@@ -40,25 +164,71 @@ export type TemplateCatalogCriteria = {
    * Empty means no industry restriction (same as legacy `"all"`).
    */
   industry: readonly TemplateIndustryKey[];
-  career: TemplateCareerFilter;
-  style: TemplateStyleFilter;
-  format: TemplateFormatFilter;
-  color: TemplateColorFilter;
-  tags: TemplateTagsFilter;
+  /**
+   * Multi-select (OR): template matches if it fits any selected stage.
+   * Empty means no career-stage restriction.
+   */
+  careerStages: readonly TemplateCareerStageKey[];
+  /**
+   * Multi-select (OR): `modern` = sans body, `traditional` = serif, `creative` = non-classic layout family.
+   */
+  styleLooks: readonly TemplateStyleLookKey[];
+  /**
+   * Multi-select (OR): layout / density / photo facets derived from `TemplateTheme`.
+   */
+  formatFacets: readonly TemplateCatalogFormatFacetKey[];
+  /**
+   * Multi-select accent swatches (`#rrggbb`). Empty = no accent-color restriction.
+   * Matching uses OR against `TEMPLATE_CATALOG_ACCENT_SWATCHES`.
+   */
+  accentSwatches: readonly string[];
+  /** Multi-select (OR): `popular` = featured picks; `free` = full free-to-use catalog (all templates today). */
+  tagFilters: readonly TemplateCatalogTagKey[];
 };
 
 const DEFAULT_CRITERIA: TemplateCatalogCriteria = {
   search: "",
   industry: [],
-  career: "all",
-  style: "all",
-  format: "all",
-  color: "all",
-  tags: "all",
+  careerStages: [],
+  styleLooks: [],
+  formatFacets: [],
+  accentSwatches: [],
+  tagFilters: [],
 };
 
 export function defaultTemplateCatalogCriteria(): TemplateCatalogCriteria {
   return { ...DEFAULT_CRITERIA };
+}
+
+/** Normalize a 6-digit theme or swatch hex to `#rrggbb` lowercase. */
+export function normalizeCatalogAccentHex(hex: string): string | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  return `#${m[1]!.toLowerCase()}`;
+}
+
+function rgbDistance(
+  a: { r: number; g: number; b: number },
+  b: { r: number; g: number; b: number },
+): number {
+  const dr = a.r - b.r;
+  const dg = a.g - b.g;
+  const db = a.b - b.b;
+  return Math.sqrt(dr * dr + dg * dg + db * db);
+}
+
+function accentNearSwatch(themeAccent: string, swatchHex: string): boolean {
+  const t = hexToRgb(themeAccent);
+  const s = hexToRgb(swatchHex);
+  if (!t || !s) return false;
+  if (rgbDistance(t, s) <= 88) return true;
+  const A = rgbToHsl(t.r, t.g, t.b);
+  const B = rgbToHsl(s.r, s.g, s.b);
+  if (A.s < 0.1 && B.s < 0.1) {
+    return Math.abs(A.l - B.l) < 0.14 && rgbDistance(t, s) < 42;
+  }
+  const dh = Math.min(Math.abs(A.h - B.h), 360 - Math.abs(A.h - B.h));
+  return dh <= 24 && Math.abs(A.s - B.s) < 0.4 && Math.abs(A.l - B.l) < 0.22;
 }
 
 function haystack(theme: TemplateTheme): string {
@@ -69,49 +239,124 @@ function matchesAny(text: string, needles: readonly string[]): boolean {
   return needles.some((n) => text.includes(n));
 }
 
-/** Checkbox order and labels for the template catalog “Occupation & Industry” filter. */
+/** Checkbox order for the template catalog “Occupation & Industry” filter. */
 export const TEMPLATE_CATALOG_INDUSTRY_ORDER: readonly TemplateIndustryKey[] = [
-  "operations",
-  "creative",
-  "finance",
-  "legal",
-  "healthcare",
-  "tech",
-  "general",
+  "beverageFoodService",
+  "salesRetail",
+  "artsLeisure",
+  "commerceConstruction",
+  "education",
+  "farmingEnvironmentAgriculture",
+  "financeBusinessAdministration",
+  "lawRehabilitation",
+  "leadership",
+  "maintenance",
+  "manufacturing",
+  "medicalHealthcareSupport",
+  "nursingAidesHomeHealth",
+  "officeSupportClerical",
+  "property",
+  "safetySecurity",
+  "selfCareServices",
+  "socialServicesCommunityEngagement",
+  "techInnovation",
+  "technician",
+  "transportation",
 ];
 
 export const TEMPLATE_CATALOG_INDUSTRY_LABEL: Record<TemplateIndustryKey, string> = {
-  operations: "Beverage & food service, commerce & construction",
-  creative: "Arts & leisure",
-  finance: "Finance & business administration",
-  legal: "Law & rehabilitation",
-  healthcare: "Healthcare & regulated fields",
-  tech: "Technology, software & product",
-  general: "Education, farming, environment & general professional",
+  beverageFoodService: "Beverage & Food Service",
+  salesRetail: "Sales & Retail",
+  artsLeisure: "Arts & Leisure",
+  commerceConstruction: "Commerce & Construction",
+  education: "Education",
+  farmingEnvironmentAgriculture: "Farming, Environment, and Agriculture",
+  financeBusinessAdministration: "Finance & Business Administration",
+  lawRehabilitation: "Law & Rehabilitation",
+  leadership: "Leadership",
+  maintenance: "Maintenance",
+  manufacturing: "Manufacturing",
+  medicalHealthcareSupport: "Medical & Healthcare Support",
+  nursingAidesHomeHealth: "Nursing Aides & Home Health Care",
+  officeSupportClerical: "Office Support & Clerical",
+  property: "Property",
+  safetySecurity: "Safety & Security",
+  selfCareServices: "Self Care Services",
+  socialServicesCommunityEngagement: "Social Services & Community Engagement",
+  techInnovation: "Tech & Innovation",
+  technician: "Technician",
+  transportation: "Transportation",
 };
 
 const INDUSTRY_KEYWORDS: Record<TemplateIndustryKey, readonly string[]> = {
-  tech: [
-    "tech",
-    "software",
-    "engineering",
-    "engineer",
-    "data",
-    "analytics",
-    "ml",
-    "product",
-    "startup",
-    "digital",
-    "security",
-    "infrastructure",
-    "it ",
+  beverageFoodService: [
+    "beverage",
+    "food service",
+    "hospitality",
+    "restaurant",
+    "culinary",
+    "catering",
+    "hotel",
+    "events",
+    "service leadership",
+  ],
+  salesRetail: [
+    "sales",
+    "retail",
+    "revenue",
+    "e-commerce",
+    "merchandising",
+    "store",
+    "partnerships",
+    "customer-facing",
+    "commercial",
+    "customer success",
+  ],
+  artsLeisure: [
+    "creative",
     "design",
     "ux",
-    "cyber",
-    "technical",
-    "saas",
+    "marketing",
+    "media",
+    "content",
+    "portfolio",
+    "communications",
+    "arts",
+    "leisure",
   ],
-  finance: [
+  commerceConstruction: [
+    "construction",
+    "commerce",
+    "consulting",
+    "logistics",
+    "supply",
+    "project delivery",
+    "real estate",
+    "infrastructure",
+    "manufacturing",
+    "energy",
+  ],
+  education: [
+    "education",
+    "academic",
+    "university",
+    "teaching",
+    "school",
+    "campus",
+    "nonprofit",
+    "mission-driven",
+  ],
+  farmingEnvironmentAgriculture: [
+    "farming",
+    "agriculture",
+    "environment",
+    "sustainability",
+    "energy",
+    "forestry",
+    "conservation",
+    "rural",
+  ],
+  financeBusinessAdministration: [
     "finance",
     "banking",
     "lending",
@@ -122,57 +367,107 @@ const INDUSTRY_KEYWORDS: Record<TemplateIndustryKey, readonly string[]> = {
     "insurance",
     "risk",
     "actuarial",
+    "business",
+    "administration",
   ],
-  healthcare: [
+  lawRehabilitation: [
+    "legal",
+    "law",
+    "policy",
+    "compliance",
+    "government",
+    "defense",
+    "rehabilitation",
+    "regulated",
+  ],
+  leadership: [
+    "leadership",
+    "executive",
+    "director",
+    "founder",
+    "board",
+    "vp",
+    "chief",
+    "senior leadership",
+    "management",
+  ],
+  maintenance: ["maintenance", "facilities", "reliability", "operations", "field service"],
+  manufacturing: ["manufacturing", "plant", "production", "industrial", "supply chain"],
+  medicalHealthcareSupport: [
     "health",
     "medical",
     "pharma",
     "biotech",
     "clinical",
     "healthcare",
+    "regulated fields",
+    "patient",
   ],
-  legal: ["legal", "policy", "compliance", "government", "defense", "academic"],
-  creative: [
-    "creative",
-    "design",
-    "ux",
-    "marketing",
-    "media",
-    "content",
-    "portfolio",
-    "communications",
+  nursingAidesHomeHealth: [
+    "nursing",
+    "nurse",
+    "home health",
+    "aide",
+    "bedside",
+    "caregiver",
+    "hospice",
   ],
-  operations: [
-    "operations",
-    "consulting",
-    "logistics",
-    "supply",
-    "manufacturing",
-    "project",
-    "construction",
-    "real estate",
-    "hospitality",
-    "retail",
-    "e-commerce",
-    "energy",
-    "infrastructure",
-  ],
-  general: [
-    "general",
-    "professional",
-    "hybrid",
-    "most roles",
-    "reliable",
-    "conventional",
-    "conservative",
-    "minimal",
-    "nonprofit",
-    "education",
-    "hr ",
+  officeSupportClerical: [
+    "administrative",
+    "clerical",
+    "office",
+    "executive assistant",
+    "chief of staff",
+    "coordination",
     "people ops",
+    "hr ",
     "talent",
-    "customer success",
-    "services",
+  ],
+  property: ["property", "leasing", "facilities", "real estate", "estate"],
+  safetySecurity: [
+    "security",
+    "safety",
+    "cyber",
+    "grc",
+    "trust",
+    "compliance-heavy",
+    "defense contracting",
+  ],
+  selfCareServices: ["wellness", "beauty", "spa", "fitness", "personal care", "salon"],
+  socialServicesCommunityEngagement: [
+    "nonprofit",
+    "community",
+    "social",
+    "mission",
+    "human services",
+    "engagement",
+    "volunteer",
+  ],
+  techInnovation: [
+    "tech",
+    "software",
+    "engineering",
+    "engineer",
+    "data",
+    "analytics",
+    "ml",
+    "product",
+    "startup",
+    "digital",
+    "saas",
+    "it ",
+    "infrastructure",
+    "technical",
+  ],
+  technician: ["technician", "technical program", "labs", "systems integrator", "support"],
+  transportation: [
+    "transportation",
+    "logistics",
+    "shipping",
+    "freight",
+    "fleet",
+    "supply chain",
+    "delivery",
   ],
 };
 
@@ -192,6 +487,21 @@ const SENIOR_HINTS = [
 ];
 
 const EARLY_HINTS = ["early-career", "internship", "intern-friendly", "early career"];
+
+const STUDENT_HINTS = [
+  "student",
+  "intern",
+  "internship",
+  "campus",
+  "graduate",
+  "graduation",
+  "university",
+  "college",
+  "undergrad",
+  "academic",
+  "first job",
+  "entry role",
+];
 
 function careerBucket(text: string): "early" | "mid" | "senior" {
   if (matchesAny(text, EARLY_HINTS)) return "early";
@@ -251,11 +561,11 @@ export function criteriaHasActiveFilters(c: TemplateCatalogCriteria): boolean {
   return (
     c.search.trim() !== "" ||
     c.industry.length > 0 ||
-    c.career !== "all" ||
-    c.style !== "all" ||
-    c.format !== "all" ||
-    c.color !== "all" ||
-    c.tags !== "all"
+    c.careerStages.length > 0 ||
+    c.styleLooks.length > 0 ||
+    c.formatFacets.length > 0 ||
+    c.accentSwatches.length > 0 ||
+    c.tagFilters.length > 0
   );
 }
 
@@ -283,29 +593,73 @@ export function filterTemplateThemes(
       if (!matchesSelected) return false;
     }
 
-    if (criteria.career !== "all") {
+    if (criteria.careerStages.length > 0) {
       const bucket = careerBucket(text);
-      if (criteria.career === "early" && bucket !== "early") return false;
-      if (criteria.career === "senior" && bucket !== "senior") return false;
-      if (criteria.career === "mid" && bucket !== "mid") return false;
+      const matchesStage = criteria.careerStages.some((stage) => {
+        if (stage === "student") return matchesAny(text, STUDENT_HINTS);
+        if (stage === "early") return bucket === "early";
+        if (stage === "mid") return bucket === "mid";
+        return bucket === "senior";
+      });
+      if (!matchesStage) return false;
     }
 
-    if (criteria.style !== "all" && theme.fontFamily !== criteria.style) return false;
+    if (criteria.styleLooks.length > 0) {
+      const matchesLook = criteria.styleLooks.some((look) => {
+        if (look === "modern") return theme.fontFamily === "sans";
+        if (look === "traditional") return theme.fontFamily === "serif";
+        return theme.layoutFamily !== "classic";
+      });
+      if (!matchesLook) return false;
+    }
 
-    if (criteria.format !== "all" && theme.layoutFamily !== criteria.format) return false;
+    if (criteria.formatFacets.length > 0) {
+      const matchesFacet = criteria.formatFacets.some((facet) => {
+        switch (facet) {
+          case "singlepage":
+            // Dense, one-sheet-friendly rhythm / type (distinct from column structure).
+            return (
+              theme.headerStyle === "compact" ||
+              (theme.type.body <= 9.75 && theme.rhythm.sectionGap <= 11)
+            );
+          case "oneColumn":
+            return theme.layoutFamily === "classic" && !theme.twoColumnMeta;
+          case "twoColumn":
+            return theme.twoColumnMeta || theme.layoutFamily !== "classic";
+          case "onePage":
+            return (
+              theme.headerStyle === "compact" ||
+              theme.type.body <= 10 ||
+              (theme.rhythm.sectionGap <= 12 && theme.pageMarginPt <= 48)
+            );
+          case "twoPage":
+            return (
+              theme.headerStyle === "banner" ||
+              theme.pageMarginPt >= 50 ||
+              (theme.type.body >= 10.5 && theme.rhythm.sectionGap >= 13)
+            );
+          case "headshot":
+            return templateSupportsAvatar(theme);
+          case "noPhoto":
+            return !templateSupportsAvatar(theme);
+          default:
+            return false;
+        }
+      });
+      if (!matchesFacet) return false;
+    }
 
-    if (criteria.color !== "all" && accentColorFamily(theme) !== criteria.color) return false;
+    if (criteria.accentSwatches.length > 0) {
+      const matchesSwatch = criteria.accentSwatches.some((sw) => accentNearSwatch(theme.accent, sw));
+      if (!matchesSwatch) return false;
+    }
 
-    if (criteria.tags !== "all") {
-      if (criteria.tags === "photo-ready" && !templateSupportsAvatar(theme)) return false;
-      if (
-        criteria.tags === "compact" &&
-        theme.headerStyle !== "compact" &&
-        !theme.twoColumnMeta
-      ) {
-        return false;
-      }
-      if (criteria.tags === "two-column-meta" && !theme.twoColumnMeta) return false;
+    if (criteria.tagFilters.length > 0) {
+      const matchesTag = criteria.tagFilters.some((tag) => {
+        if (tag === "popular") return isPopularTemplate(theme);
+        return true;
+      });
+      if (!matchesTag) return false;
     }
 
     return true;
