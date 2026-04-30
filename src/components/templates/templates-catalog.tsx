@@ -819,8 +819,8 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
         className={cn(
           "mt-6 grid items-start",
           surface === "app"
-            ? "gap-5 sm:gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
-            : "gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4",
+            ? "grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4"
+            : "grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4",
           surface === "marketing" && "text-left",
         )}
       >
@@ -1056,6 +1056,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
           id="template-catalog-filters-sheet"
           side="left"
           showCloseButton={false}
+          overlayClassName="supports-backdrop-filter:backdrop-blur-none"
           className={cn(
             "gap-0 overflow-hidden border-2 border-slate-200 bg-white p-0 shadow-[8px_0_32px_rgba(15,23,42,0.12)]",
             "data-[side=left]:!top-auto data-[side=left]:!bottom-4 data-[side=left]:!left-3 data-[side=left]:!right-auto data-[side=left]:!h-auto",
@@ -1463,11 +1464,11 @@ function TemplateCatalogCard({
           <div
             className={cn(
               "relative overflow-hidden bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05),0_4px_14px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-slate-200/50 transition-[box-shadow,ring-color] duration-200 ease-out group-hover:shadow-[0_2px_6px_rgba(15,23,42,0.07),0_10px_28px_rgba(15,23,42,0.09),inset_0_1px_0_rgba(255,255,255,0.9)] group-hover:ring-slate-300/70",
-              expandedCard ? "rounded-lg p-2.5 sm:p-3" : "rounded-md p-1.5",
+              expandedCard ? "rounded-none p-2.5 sm:p-3" : "rounded-none p-1.5",
             )}
           >
             <div className="relative z-[1]">
-              <TemplateCatalogLivePreview slug={theme.slug} className="shadow-none ring-0" />
+              <TemplateCatalogLivePreview slug={theme.slug} className="rounded-none shadow-none ring-0" />
             </div>
             {popular ? (
               <div className="pointer-events-none absolute bottom-2 left-2 z-10">
@@ -1491,7 +1492,7 @@ function TemplateCatalogCard({
   );
 
   const formShell = cn(
-    "group relative block rounded-xl outline-none",
+    "group relative block rounded-none outline-none",
     "focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#2268d7]",
   );
 
@@ -1504,7 +1505,7 @@ function TemplateCatalogCard({
         <CreateProjectPendingOverlay />
         <button
           type="submit"
-          className="absolute inset-0 z-[30] cursor-pointer rounded-xl border-0 bg-transparent p-0 opacity-0 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2268d7]"
+          className="absolute inset-0 z-[30] cursor-pointer rounded-none border-0 bg-transparent p-0 opacity-0 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2268d7]"
           aria-label={`Edit with ${theme.name} template — creates a draft and opens the studio`}
         />
       </form>
@@ -1512,12 +1513,12 @@ function TemplateCatalogCard({
   }
 
   return (
-    <div className={cn("group relative block rounded-xl", ringOffsetClass)}>
+    <div className={cn("group relative block rounded-none", ringOffsetClass)}>
       {chrome}
       <Link
         href={createHref}
         className={cn(
-          "absolute inset-0 z-[30] rounded-xl outline-none",
+          "absolute inset-0 z-[30] rounded-none outline-none",
           "focus-visible:ring-2 focus-visible:ring-[#2268d7]/45 focus-visible:ring-offset-2",
           ringOffsetClass,
         )}
@@ -1532,7 +1533,7 @@ function CreateProjectPendingOverlay() {
   if (!pending) return null;
   return (
     <div
-      className="absolute inset-0 z-[45] flex items-center justify-center rounded-xl bg-white/75 backdrop-blur-[2px]"
+      className="absolute inset-0 z-[45] flex items-center justify-center rounded-none bg-white/75 backdrop-blur-[2px]"
       aria-hidden
     >
       <Loader2 className="size-8 animate-spin text-[#2268d7]" aria-hidden />

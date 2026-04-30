@@ -7,7 +7,7 @@ export function TemplateHoverAffordance() {
   return (
     <>
       <div
-        className="pointer-events-none absolute inset-0 z-[1] rounded-xl bg-slate-900/0 transition-colors duration-200 group-hover:bg-slate-900/38"
+        className="pointer-events-none absolute inset-0 z-[1] rounded-none bg-slate-900/0 transition-colors duration-200 group-hover:bg-slate-900/38"
         aria-hidden
       />
       <div
@@ -30,7 +30,7 @@ export function TemplateHoverAffordance() {
 /** Ring + hover overlay around the card (parent must use Tailwind `group`). */
 export function TemplateCardHoverChrome({ children }: { children: ReactNode }) {
   return (
-    <div className="relative overflow-hidden rounded-xl bg-white/80 ring-1 ring-slate-200/45 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[box-shadow,ring-width,ring-color,background-color] duration-200 group-hover:bg-white group-hover:shadow-[0_4px_20px_rgba(15,23,42,0.08)] group-hover:ring-2 group-hover:ring-slate-200/60">
+    <div className="relative overflow-hidden rounded-none bg-white/80 ring-1 ring-slate-200/45 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[box-shadow,ring-width,ring-color,background-color] duration-200 group-hover:bg-white group-hover:shadow-[0_4px_20px_rgba(15,23,42,0.08)] group-hover:ring-2 group-hover:ring-slate-200/60">
       {children}
       <TemplateHoverAffordance />
     </div>
