@@ -18,7 +18,7 @@ export default function TemplatesPage() {
   return (
     <>
       <MktSection className="pt-12 sm:pt-20">
-        <PageContainer>
+        <PageContainer className="max-w-[min(100%,90rem)]">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-eyebrow justify-center">Templates</p>
             <h1 className="mt-3 text-display text-balance">
@@ -31,7 +31,7 @@ export default function TemplatesPage() {
             </p>
           </div>
 
-          <TemplatesCatalog surface="marketing" className="mx-auto mt-10 max-w-6xl" />
+          <TemplatesCatalog surface="marketing" className="mx-auto mt-10 w-full max-w-none" />
 
           <div className="mx-auto mt-16 grid max-w-4xl gap-6 rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-10 md:grid-cols-2 md:gap-10">
             <div>

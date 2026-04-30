@@ -324,10 +324,10 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
           </div>
         ) : null}
 
-        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-2.5">
+        <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:thin] sm:gap-2.5 sm:pb-0">
           {surface === "app" ? (
             <InputWithIcon
-              className="min-w-[10rem] max-w-full flex-1 basis-[min(100%,18rem)] sm:max-w-xl md:max-w-2xl"
+              className="min-h-10 min-w-0 max-w-full flex-1 basis-0 sm:min-w-[12rem]"
               leading={<Search className="pointer-events-none size-4 text-muted-foreground" aria-hidden />}
             >
               <Input

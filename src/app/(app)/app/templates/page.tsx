@@ -23,7 +23,7 @@ export default async function AppTemplatesPage() {
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-100">
       <div className="min-h-0 flex-1 basis-0 overflow-y-auto overflow-x-hidden overscroll-y-auto px-4 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-8">
-        <PageContainer>
+        <PageContainer className="max-w-[min(100%,90rem)]">
           {!ctx ? (
             <GuestAppRouteBanner nextPath={ROUTES.app.templates}>
               You&apos;re browsing as a guest. Saved projects and template picks sync after you sign in. Start a draft on{" "}
@@ -48,7 +48,7 @@ export default async function AppTemplatesPage() {
             </p>
           </header>
 
-          <TemplatesCatalog surface="app" guest={!ctx} className="mx-auto mt-8 w-full max-w-[min(100%,90rem)]" />
+          <TemplatesCatalog surface="app" guest={!ctx} className="mx-auto mt-8 w-full" />
 
           <div className="mx-auto mt-12 flex max-w-2xl flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8">
             <p className="text-sm text-slate-600">
