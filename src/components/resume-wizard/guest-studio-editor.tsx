@@ -10,6 +10,8 @@ import {
   useRef,
   useState,
   type Dispatch,
+  type DragEvent,
+  type PointerEvent,
   type ReactNode,
   type SetStateAction,
 } from "react";
@@ -244,12 +246,6 @@ export function GuestStudioEditor({
     [state.layout.sectionOrder],
   );
 
-  const orderedSections = useMemo((): SectionDef[] => {
-    return sectionOrderResolved
-      .map((id) => SECTIONS.find((s) => s.id === id))
-      .filter((s): s is SectionDef => Boolean(s));
-  }, [sectionOrderResolved]);
-
   const exportHref =
     persistMode === "project" && projectPreviewHref
       ? projectPreviewHref
@@ -262,6 +258,38 @@ export function GuestStudioEditor({
   >({});
   const [editingSectionTitleId, setEditingSectionTitleId] = useState<SectionId | null>(null);
   const [sectionTitleDraft, setSectionTitleDraft] = useState("");
+  /**
+   * Native DnD: active row + hover target for highlights only.
+   * List order must stay on `sectionOrderResolved` while dragging — reordering the DOM
+   * mid-drag unmounts the draggable grip and cancels the drag in the browser.
+   */
+  const [sectionReorderDrag, setSectionReorderDrag] = useState<{
+    activeId: SectionId | null;
+    overId: SectionId | null;
+  }>({ activeId: null, overId: null });
+  /** Set synchronously in dragstart so dragover (same tick) still sees the active id. */
+  const sectionDragActiveRef = useRef<SectionId | null>(null);
+  /**
+   * `dragstart.target` is the draggable drag source, not the element under the pointer.
+   * We record the pointerdown target (capture) so we can block drags that began on real
+   * controls while still allowing drags from empty chrome inside expanded bodies.
+   */
+  const sectionListPointerDownRef = useRef<{
+    sectionId: SectionId;
+    target: Element;
+  } | null>(null);
+
+  const clearSectionReorderDrag = useCallback(() => {
+    sectionListPointerDownRef.current = null;
+    sectionDragActiveRef.current = null;
+    setSectionReorderDrag({ activeId: null, overId: null });
+  }, []);
+
+  const orderedSections = useMemo((): SectionDef[] => {
+    return sectionOrderResolved
+      .map((id) => SECTIONS.find((s) => s.id === id))
+      .filter((s): s is SectionDef => Boolean(s));
+  }, [sectionOrderResolved]);
 
   const toggleSection = useCallback((id: SectionId) => {
     setOpenSection((cur) => (cur === id ? null : id));
@@ -485,20 +513,79 @@ export function GuestStudioEditor({
           <IntakeShortcuts />
 
           <nav
-            className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm"
+            className={cn(
+              "flex flex-col gap-2 rounded-xl border border-slate-200/90 bg-slate-100/80 p-2 sm:gap-2.5 sm:p-2.5 motion-safe:transition-[background-color,box-shadow] motion-safe:duration-200",
+              sectionReorderDrag.activeId &&
+                "bg-emerald-50/35 shadow-[inset_0_0_0_1px_rgba(45,159,109,0.18)]",
+            )}
             aria-label="Resume sections"
           >
             {orderedSections.map((section) => {
               const idx = sectionOrderResolved.indexOf(section.id);
               const canMoveUp = idx > 0;
               const canMoveDown = idx >= 0 && idx < sectionOrderResolved.length - 1;
+              const isDragging = Boolean(sectionReorderDrag.activeId);
+              const isDragSource = sectionReorderDrag.activeId === section.id;
+              const isDropTarget =
+                isDragging &&
+                sectionReorderDrag.overId === section.id &&
+                sectionReorderDrag.activeId !== section.id;
+              const isDragContextRow = isDragging && !isDragSource && !isDropTarget;
+              const beginSectionListDrag = (e: DragEvent<HTMLElement>) => {
+                const ptr = sectionListPointerDownRef.current;
+                const pointerIntent =
+                  ptr?.sectionId === section.id ? ptr.target : null;
+                const dragSource =
+                  e.currentTarget instanceof Element ? e.currentTarget : null;
+                if (!sectionRowDragAllowed(pointerIntent, dragSource)) {
+                  e.preventDefault();
+                  return;
+                }
+                e.dataTransfer.setData("text/plain", section.id);
+                e.dataTransfer.effectAllowed = "move";
+                sectionDragActiveRef.current = section.id;
+                setSectionReorderDrag({ activeId: section.id, overId: null });
+              };
               return (
               <div
                 key={section.id}
-                className="border-t border-neutral-200 first:border-t-0"
+                draggable={true}
+                aria-grabbed={isDragSource}
+                aria-label={`${section.label} — drag to reorder`}
+                title="Drag this card to reorder sections"
+                onPointerDownCapture={(e: PointerEvent<HTMLDivElement>) => {
+                  if (e.target instanceof Element) {
+                    sectionListPointerDownRef.current = {
+                      sectionId: section.id,
+                      target: e.target,
+                    };
+                  }
+                }}
+                onDragStart={beginSectionListDrag}
+                onDragEnd={clearSectionReorderDrag}
+                className={cn(
+                  "cursor-grab overflow-hidden rounded-xl border motion-safe:transition-[background-color,box-shadow,opacity,transform] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] active:cursor-grabbing",
+                  !isDragging && "border-slate-200/90 bg-white shadow-sm",
+                  !isDragging && "hover:border-slate-300/90 hover:shadow",
+                  isDragContextRow && "border-slate-200/80 bg-white/95 shadow-sm",
+                  isDragSource &&
+                    "relative z-[1] cursor-grabbing border-[#2d9f6d] bg-white opacity-[0.92] shadow-[0_10px_40px_-10px_rgba(45,159,109,0.55)]",
+                  isDropTarget &&
+                    "border-2 border-dashed border-[#2d9f6d]/70 bg-emerald-50/95 shadow-[0_0_0_3px_rgba(45,159,109,0.12)]",
+                )}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
                 onDragOver={(e) => {
                   e.preventDefault();
                   e.dataTransfer.dropEffect = "move";
+                  setSectionReorderDrag((prev) => {
+                    const activeId = prev.activeId ?? sectionDragActiveRef.current;
+                    if (!activeId) return prev;
+                    if (prev.activeId === activeId && prev.overId === section.id) return prev;
+                    return { ...prev, activeId, overId: section.id };
+                  });
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -521,6 +608,8 @@ export function GuestStudioEditor({
               <SectionCard
                 section={section}
                 displayLabel={sectionLabelOverrides[section.id] ?? section.label}
+                onNativeSectionDragStart={beginSectionListDrag}
+                onNativeSectionDragEnd={clearSectionReorderDrag}
                 open={openSection === section.id}
                 onToggle={() => toggleSection(section.id)}
                 filled={isSectionFilled(section.id, state)}
@@ -529,42 +618,43 @@ export function GuestStudioEditor({
                 onTitleDraftChange={setSectionTitleDraft}
                 onTitleCommit={() => commitSectionTitle(section.id, section.label)}
                 onTitleCancel={cancelSectionTitleEdit}
-                sectionReorder={
-                  canMoveUp || canMoveDown
-                    ? {
-                        canMoveUp,
-                        canMoveDown,
-                        onMoveUp: () =>
-                          setState((s) => ({
-                            ...s,
-                            layout: {
-                              ...s.layout,
-                              v: 1,
-                              sectionOrder: swapSectionWithNeighbor(
-                                s.layout.sectionOrder ??
-                                  [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
-                                section.id,
-                                -1,
-                              ),
-                            },
-                          })),
-                        onMoveDown: () =>
-                          setState((s) => ({
-                            ...s,
-                            layout: {
-                              ...s.layout,
-                              v: 1,
-                              sectionOrder: swapSectionWithNeighbor(
-                                s.layout.sectionOrder ??
-                                  [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
-                                section.id,
-                                1,
-                              ),
-                            },
-                          })),
-                      }
-                    : undefined
-                }
+                isSectionDragSource={isDragSource}
+                isSectionDropTarget={isDropTarget}
+                isSectionDragContext={isDragContextRow}
+                sectionReorder={{
+                  /* Keep chevrons mounted while dragging — unmounting them on dragstart
+                   * mutates the row mid-gesture and can cancel native HTML5 drag. */
+                  canMoveUp: canMoveUp && !sectionReorderDrag.activeId,
+                  canMoveDown: canMoveDown && !sectionReorderDrag.activeId,
+                  onMoveUp: () =>
+                    setState((s) => ({
+                      ...s,
+                      layout: {
+                        ...s.layout,
+                        v: 1,
+                        sectionOrder: swapSectionWithNeighbor(
+                          s.layout.sectionOrder ??
+                            [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
+                          section.id,
+                          -1,
+                        ),
+                      },
+                    })),
+                  onMoveDown: () =>
+                    setState((s) => ({
+                      ...s,
+                      layout: {
+                        ...s.layout,
+                        v: 1,
+                        sectionOrder: swapSectionWithNeighbor(
+                          s.layout.sectionOrder ??
+                            [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
+                          section.id,
+                          1,
+                        ),
+                      },
+                    })),
+                }}
                 headerMenu={
                   openSection === section.id ? (
                     <SectionOverflowMenu
@@ -1461,6 +1551,7 @@ function SectionOverflowMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         type="button"
+        data-no-section-drag
         onPointerDown={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
@@ -1549,6 +1640,36 @@ function SectionOverflowMenu({
   );
 }
 
+/**
+ * Whether a list reorder drag may start for this pointer gesture.
+ * `pointerIntent` is the element that received pointerdown (deepest hit).
+ * `dragSourceElement` is the draggable that fired dragstart — used only as a fallback when
+ * intent is missing (should be rare).
+ */
+function sectionRowDragAllowed(
+  pointerIntent: Element | null,
+  dragSourceElement: Element | null,
+): boolean {
+  const t = pointerIntent ?? dragSourceElement;
+  if (!(t instanceof Element)) return true;
+  if (t.closest("[data-no-section-drag]")) return false;
+  if (t.closest("[data-section-drag-handle], [data-section-drag-rail]")) {
+    if (t.closest("input,textarea,select,a,[contenteditable='true'],label")) return false;
+    if (
+      t.closest("button") &&
+      !t.closest("[data-section-title-drag]") &&
+      !t.closest("[data-section-expand-toggle]")
+    ) {
+      return false;
+    }
+    return true;
+  }
+  if (t.closest("input,textarea,select,button,a,[contenteditable='true'],label")) {
+    return false;
+  }
+  return true;
+}
+
 function IntakeShortcuts() {
   return (
     <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -1575,6 +1696,8 @@ function IntakeShortcuts() {
 function SectionCard({
   section,
   displayLabel,
+  onNativeSectionDragStart,
+  onNativeSectionDragEnd,
   open,
   onToggle,
   filled,
@@ -1584,11 +1707,17 @@ function SectionCard({
   onTitleCommit,
   onTitleCancel,
   headerMenu,
+  isSectionDragSource = false,
+  isSectionDropTarget = false,
+  isSectionDragContext = false,
   sectionReorder,
   children,
 }: {
   section: SectionDef;
   displayLabel: string;
+  /** Same handlers as the outer list row — also on rail, title, expand, and handle shells so HTML5 drag can start from most of the card. */
+  onNativeSectionDragStart: (e: DragEvent<HTMLElement>) => void;
+  onNativeSectionDragEnd: () => void;
   open: boolean;
   onToggle: () => void;
   filled: boolean;
@@ -1598,6 +1727,9 @@ function SectionCard({
   onTitleCommit: () => void;
   onTitleCancel: () => void;
   headerMenu: ReactNode;
+  isSectionDragSource?: boolean;
+  isSectionDropTarget?: boolean;
+  isSectionDragContext?: boolean;
   sectionReorder?: {
     canMoveUp: boolean;
     canMoveDown: boolean;
@@ -1610,21 +1742,58 @@ function SectionCard({
 
   return (
     <section
-      className={cn(open && "bg-neutral-50/60")}
+      className={cn(
+        "grid min-h-0 grid-cols-[2.5rem_minmax(0,1fr)] items-stretch motion-safe:transition-[background-color,opacity] motion-safe:duration-200",
+        /* Collapsed rows stay tall enough for a reliable drag target (rail + header). */
+        !open && "min-h-[2.75rem]",
+        open && !isSectionDragSource && "bg-neutral-50/60",
+        isSectionDragContext && "bg-white",
+        isSectionDropTarget && !isSectionDragSource && "bg-emerald-50/50",
+        isSectionDragSource && "opacity-[0.97]",
+      )}
     >
-      <div className="flex w-full items-center gap-2 px-4 py-[1.05rem] sm:py-[1.15rem] sm:pl-5 sm:pr-4">
-        <span
+      {/* Full-height rail — every section (any list position) has a reliable drag surface. */}
+      <div
+        data-section-drag-rail
+        draggable
+        onDragStart={onNativeSectionDragStart}
+        onDragEnd={onNativeSectionDragEnd}
+        className={cn(
+          "flex w-full min-h-[2.75rem] cursor-grab flex-col items-center justify-center border-r border-slate-200/80 bg-slate-100/80 py-2 active:cursor-grabbing sm:min-h-0 sm:justify-start sm:py-2.5",
+          /* touch-none while open avoids scroll fighting the rail; collapsed keeps touch scrolling on long lists. */
+          open && "touch-none",
+          isSectionDragSource &&
+            "cursor-grabbing border-[#2d9f6d]/50 bg-[#2d9f6d] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]",
+          isSectionDropTarget && !isSectionDragSource && "border-emerald-300/80 bg-emerald-100/90",
+        )}
+      >
+        <div className="flex flex-col items-center gap-1">
+          <GripVertical
+            className={cn(
+              "size-4 shrink-0",
+              isSectionDragSource ? "text-white" : "text-slate-500",
+            )}
+            strokeWidth={2}
+            aria-hidden
+          />
+        </div>
+      </div>
+
+      <div className="flex min-h-0 min-w-0 flex-col">
+        <div
+          data-section-drag-handle
           draggable
-          onDragStart={(e) => {
-            e.dataTransfer.setData("text/plain", section.id);
-            e.dataTransfer.effectAllowed = "move";
-          }}
-          className="inline-flex shrink-0 cursor-grab touch-none text-neutral-400 hover:text-neutral-500"
-          aria-label="Drag to reorder sections"
-          title="Drag to reorder sections"
+          onDragStart={onNativeSectionDragStart}
+          onDragEnd={onNativeSectionDragEnd}
+          className={cn(
+            "flex w-full items-center gap-2 px-3 py-[1.05rem] selection:bg-transparent sm:px-4 sm:py-[1.1rem]",
+            isSectionDragSource &&
+              "bg-[#2d9f6d] py-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]",
+            isSectionDropTarget &&
+              !isSectionDragSource &&
+              "bg-emerald-50/90 py-[1.05rem] ring-1 ring-[#2d9f6d]/25 sm:py-[1.1rem]",
+          )}
         >
-          <GripVertical className="size-4" aria-hidden />
-        </span>
         {sectionReorder ? (
           <div
             className="flex shrink-0 flex-col gap-px"
@@ -1633,28 +1802,32 @@ function SectionCard({
           >
             <Button
               type="button"
+              data-no-section-drag
               variant="ghost"
               size="icon"
+              draggable={false}
               disabled={!sectionReorder.canMoveUp}
               onClick={(e) => {
                 e.stopPropagation();
                 sectionReorder.onMoveUp();
               }}
-              className="size-7 shrink-0 text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
+              className="size-7 shrink-0 cursor-pointer text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
               aria-label={`Move ${displayLabel} up in the list`}
             >
               <ChevronUp className="size-3.5" aria-hidden />
             </Button>
             <Button
               type="button"
+              data-no-section-drag
               variant="ghost"
               size="icon"
+              draggable={false}
               disabled={!sectionReorder.canMoveDown}
               onClick={(e) => {
                 e.stopPropagation();
                 sectionReorder.onMoveDown();
               }}
-              className="size-7 shrink-0 text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
+              className="size-7 shrink-0 cursor-pointer text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
               aria-label={`Move ${displayLabel} down in the list`}
             >
               <ChevronDown className="size-3.5" aria-hidden />
@@ -1663,6 +1836,7 @@ function SectionCard({
         ) : null}
         {titleEditing ? (
           <div
+            data-no-section-drag
             className="min-w-0 flex-1"
             onPointerDown={(e) => e.stopPropagation()}
           >
@@ -1698,14 +1872,30 @@ function SectionCard({
         ) : (
           <button
             type="button"
+            data-section-title-drag
+            draggable
+            onDragStart={onNativeSectionDragStart}
+            onDragEnd={onNativeSectionDragEnd}
             onClick={onToggle}
             aria-expanded={open}
-            className="min-w-0 flex-1 truncate text-left text-[0.95rem] font-semibold tracking-tight transition-colors"
+            className={cn(
+              "min-w-0 flex-1 cursor-pointer truncate text-[0.95rem] font-semibold tracking-tight transition-colors",
+              isSectionDragSource || isSectionDropTarget
+                ? "text-center"
+                : "text-left",
+              isSectionDropTarget &&
+                !isSectionDragSource &&
+                "rounded-lg ring-1 ring-[#2d9f6d]/35 ring-offset-1 ring-offset-transparent",
+            )}
           >
             <span
               className={cn(
-                open ? "text-[#2268d7]" : "text-neutral-500",
-                filled && !open && "text-neutral-600",
+                !isSectionDragSource && open && "text-[#2268d7]",
+                !isSectionDragSource && !open && "text-neutral-500",
+                !isSectionDragSource && filled && !open && "text-neutral-600",
+                isSectionDragSource && "text-base font-bold tracking-tight text-white",
+                isSectionDropTarget && !isSectionDragSource && "font-bold text-emerald-900",
+                isSectionDragContext && "text-neutral-600",
               )}
             >
               {displayLabel}
@@ -1716,16 +1906,28 @@ function SectionCard({
           {open ? headerMenu : null}
           <button
             type="button"
+            data-section-expand-toggle
+            draggable
+            onDragStart={onNativeSectionDragStart}
+            onDragEnd={onNativeSectionDragEnd}
             onClick={onToggle}
             aria-expanded={open}
             aria-label={open ? "Collapse section" : "Expand section"}
             className={cn(
-              "inline-flex size-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-              open
-                ? "border-[#2268d7] bg-[#2268d7]/8 text-[#2268d7]"
-                : filled
-                  ? "border-neutral-300 text-neutral-500"
-                  : "border-neutral-300 text-neutral-400",
+              "inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded-full border-2 transition-colors active:cursor-grabbing",
+              isSectionDragSource &&
+                "border-white/80 bg-white/10 text-white hover:bg-white/20",
+              !isSectionDragSource &&
+                open &&
+                "border-[#2268d7] bg-[#2268d7]/8 text-[#2268d7]",
+              !isSectionDragSource &&
+                !open &&
+                filled &&
+                "border-neutral-300 text-neutral-500",
+              !isSectionDragSource &&
+                !open &&
+                !filled &&
+                "border-neutral-300 text-neutral-400",
             )}
           >
             {open ? (
@@ -1736,11 +1938,23 @@ function SectionCard({
           </button>
         </div>
       </div>
-      {open ? (
-        <div className="border-t border-neutral-200/90 bg-white px-4 pb-5 pt-4 sm:px-5">
-          {children}
-        </div>
-      ) : null}
+        {open ? (
+          <div
+            data-section-drag-handle
+            draggable
+            onDragStart={onNativeSectionDragStart}
+            onDragEnd={onNativeSectionDragEnd}
+            className={cn(
+              "min-h-0 border-t px-4 pb-5 pt-4 sm:px-5",
+              isSectionDragSource
+                ? "border-white/20 bg-white"
+                : "border-neutral-200/90 bg-white",
+            )}
+          >
+            {children}
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }
