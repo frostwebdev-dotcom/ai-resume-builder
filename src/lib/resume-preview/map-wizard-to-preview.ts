@@ -7,7 +7,10 @@ import {
   formatEducationDateRange,
   formatExperienceDateRange,
 } from "@/lib/resume-preview/format-dates";
-import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
+import type {
+  ResumePreviewDocument,
+  ResumeSupplementarySection,
+} from "@/lib/resume-preview/model";
 
 function splitSkills(lines: string): string[] {
   return lines
@@ -99,54 +102,61 @@ export function mapWizardToPreviewDocument(
     technologies: p.technologies.trim(),
   }));
 
-  const appendOptionalLines = (
-    label: string,
+  const supplementarySections: ResumeSupplementarySection[] = [];
+  const pushSupp = (
+    id: ResumeSupplementarySection["id"],
+    title: string,
     lines: string | undefined,
-  ): string | null => {
-    const t = lines?.trim();
-    return t ? `${label}\n${t}` : null;
+  ) => {
+    const body = lines?.trim();
+    if (body) supplementarySections.push({ id, title, body });
   };
+  pushSupp("languages", "Languages", wizard.languages?.lines);
+  pushSupp("hobbies", "Hobbies", wizard.hobbies?.lines);
+  pushSupp("courses", "Courses", wizard.courses?.lines);
+  pushSupp("internships", "Internships", wizard.internships?.lines);
 
-  const extraBlocks = [
-    appendOptionalLines("Languages", wizard.languages?.lines),
-    appendOptionalLines("Hobbies", wizard.hobbies?.lines),
-    appendOptionalLines("Courses", wizard.courses?.lines),
-    appendOptionalLines("Internships", wizard.internships?.lines),
-  ].filter((x): x is string => Boolean(x));
+  const additional = wizard.additional.notes.trim() || null;
 
-  let additional = wizard.additional.notes.trim() || null;
-  if (extraBlocks.length) {
-    const merged = [additional, ...extraBlocks].filter(Boolean).join("\n\n");
-    additional = merged.length ? merged : null;
-  }
-
-  const personalExtraLines: string[] = [];
+  const personalOptionalLines: ResumePreviewDocument["personalOptionalLines"] = [];
   if (p.dateOfBirth.trim()) {
-    personalExtraLines.push(`Date of birth: ${p.dateOfBirth.trim()}`);
+    personalOptionalLines.push({
+      label: "Date of birth",
+      value: p.dateOfBirth.trim(),
+    });
   }
   if (p.placeOfBirth.trim()) {
-    personalExtraLines.push(`Place of birth: ${p.placeOfBirth.trim()}`);
+    personalOptionalLines.push({
+      label: "Place of birth",
+      value: p.placeOfBirth.trim(),
+    });
   }
   if (p.driversLicense.trim()) {
-    personalExtraLines.push(`Driver's license: ${p.driversLicense.trim()}`);
+    personalOptionalLines.push({
+      label: "Driver's license",
+      value: p.driversLicense.trim(),
+    });
   }
   if (p.gender.trim()) {
-    personalExtraLines.push(`Gender: ${p.gender.trim()}`);
+    personalOptionalLines.push({ label: "Gender", value: p.gender.trim() });
   }
   if (p.nationality.trim()) {
-    personalExtraLines.push(`Nationality: ${p.nationality.trim()}`);
+    personalOptionalLines.push({
+      label: "Nationality",
+      value: p.nationality.trim(),
+    });
   }
   if (p.civilStatus.trim()) {
-    personalExtraLines.push(`Civil status: ${p.civilStatus.trim()}`);
+    personalOptionalLines.push({
+      label: "Civil status",
+      value: p.civilStatus.trim(),
+    });
   }
   if (p.customFieldLabel.trim() && p.customFieldValue.trim()) {
-    personalExtraLines.push(
-      `${p.customFieldLabel.trim()}: ${p.customFieldValue.trim()}`,
-    );
-  }
-  if (personalExtraLines.length) {
-    const block = personalExtraLines.join("\n");
-    additional = additional ? `${additional}\n\n${block}` : block;
+    personalOptionalLines.push({
+      label: p.customFieldLabel.trim(),
+      value: p.customFieldValue.trim(),
+    });
   }
 
   const filledSections: string[] = [];
@@ -166,6 +176,7 @@ export function mapWizardToPreviewDocument(
   if (wizard.hobbies?.lines?.trim()) filledSections.push("hobbies");
   if (wizard.courses?.lines?.trim()) filledSections.push("courses");
   if (wizard.internships?.lines?.trim()) filledSections.push("internships");
+  if (personalOptionalLines.length) filledSections.push("personalOptional");
   if (additional) filledSections.push("additional");
 
   const pageBreakBefore = buildPageBreaksFromWizard(wizard);
@@ -181,6 +192,8 @@ export function mapWizardToPreviewDocument(
       namePlacement: placement,
     },
     contact: { lines: contactLines },
+    personalOptionalLines,
+    supplementarySections,
     summary,
     skills,
     experience,

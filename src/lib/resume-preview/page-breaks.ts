@@ -19,9 +19,11 @@ export function buildPageBreaksFromWizard(wizard: WizardStateV1): ResumePreviewP
   if (src.skills) set("skills");
   if (src.certifications) set("certifications");
   if (src.projects) set("projects");
-  if (src.languages || src.hobbies || src.courses || src.internships || src.additional) {
-    set("additional");
-  }
+  if (src.languages) set("languages");
+  if (src.hobbies) set("hobbies");
+  if (src.courses) set("courses");
+  if (src.internships) set("internships");
+  if (src.additional) set("additional");
 
   return Object.keys(out).length > 0 ? out : undefined;
 }

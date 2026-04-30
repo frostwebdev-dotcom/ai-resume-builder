@@ -6,6 +6,7 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
+  Droplets,
   Gauge,
   Building2,
   LayoutGrid,
@@ -17,6 +18,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Star,
+  XIcon,
   ZoomIn,
 } from "lucide-react";
 import Link from "next/link";
@@ -33,9 +35,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
@@ -72,13 +80,18 @@ import { ALL_TEMPLATE_THEMES } from "@/lib/resume-preview/template-theme";
 import { createProjectFormAction } from "@/services/projects/actions";
 import { cn } from "@/lib/utils";
 
-const PILL_TRIGGER = cn(
-  "inline-flex h-9 max-w-full shrink-0 items-center gap-1.5 rounded-full border px-3 text-sm font-medium outline-none transition-colors",
-  "border-slate-200 bg-slate-50/80 text-slate-700",
-  "hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 data-popup-open:bg-slate-100",
+/** “All Filters” — white chip, subtle border, navy label (matches catalog reference). */
+const ALL_FILTERS_BUTTON = cn(
+  "inline-flex h-10 max-w-full shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold tracking-tight outline-none transition-[color,background-color,border-color,box-shadow]",
+  "border-slate-200 bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+  "hover:border-slate-300 hover:bg-slate-50/90",
+  "focus-visible:ring-2 focus-visible:ring-slate-900/15 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
 );
 
-const PILL_TRIGGER_ACTIVE = "border-[#2268d7]/35 bg-sky-50/90 text-slate-800";
+const ALL_FILTERS_BUTTON_ACTIVE =
+  "border-slate-300/95 bg-white text-slate-900 shadow-[0_1px_3px_rgba(15,23,42,0.06)]";
+
+const ALL_FILTERS_BUTTON_OPEN = "border-slate-400/80 bg-sky-50/60";
 
 /** Navy border + pale cyan when active/open (Career Stage, Style look). */
 const CATALOG_FILTER_MENU_TRIGGER = cn(
@@ -88,6 +101,11 @@ const CATALOG_FILTER_MENU_TRIGGER = cn(
 );
 
 const CATALOG_FILTER_MENU_TRIGGER_ON = "border-slate-900 bg-sky-100 text-slate-900 shadow-sm";
+
+const SHEET_FILTER_CHECKBOX = cn(
+  "mt-0.5 size-4 shrink-0 rounded border-2 border-slate-900 bg-white accent-slate-900",
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900/35",
+);
 
 function CreateProjectPendingInline() {
   const { pending } = useFormStatus();
@@ -118,6 +136,19 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
   const [formatMenuOpen, setFormatMenuOpen] = useState(false);
   const [colorMenuOpen, setColorMenuOpen] = useState(false);
   const [tagsMenuOpen, setTagsMenuOpen] = useState(false);
+  const [allFiltersOpen, setAllFiltersOpen] = useState(false);
+  const [filterSheetSections, setFilterSheetSections] = useState({
+    industry: true,
+    career: true,
+    style: true,
+    format: true,
+    color: true,
+    tags: true,
+  });
+
+  function toggleFilterSheetSection(key: keyof typeof filterSheetSections) {
+    setFilterSheetSections((s) => ({ ...s, [key]: !s[key] }));
+  }
 
   const filtered = useMemo(
     () => filterTemplateThemes(ALL_TEMPLATE_THEMES, criteria),
@@ -275,36 +306,55 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
   return (
     <div className={cn("w-full min-w-0", className)}>
       <div className={cn("flex min-w-0 flex-col gap-4", toolbarSurface)}>
-        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
-          <InputWithIcon
-            className="min-w-0 flex-1"
-            leading={<Search className="pointer-events-none size-4 text-muted-foreground" aria-hidden />}
-          >
-            <Input
-              type="search"
-              value={criteria.search}
-              onChange={(e) => setCriteria((c) => ({ ...c, search: e.target.value }))}
-              placeholder="Search thousands of templates"
-              autoComplete="off"
-              aria-label="Search templates"
-            />
-          </InputWithIcon>
-        </div>
+        {surface === "marketing" ? (
+          <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+            <InputWithIcon
+              className="min-w-0 flex-1"
+              leading={<Search className="pointer-events-none size-4 text-muted-foreground" aria-hidden />}
+            >
+              <Input
+                type="search"
+                value={criteria.search}
+                onChange={(e) => setCriteria((c) => ({ ...c, search: e.target.value }))}
+                placeholder="Search thousands of templates"
+                autoComplete="off"
+                aria-label="Search templates"
+              />
+            </InputWithIcon>
+          </div>
+        ) : null}
 
         <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-2.5">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              type="button"
-              className={cn(PILL_TRIGGER, hasFilters && PILL_TRIGGER_ACTIVE)}
+          {surface === "app" ? (
+            <InputWithIcon
+              className="min-w-[10rem] max-w-full flex-1 basis-[min(100%,18rem)] sm:max-w-xl md:max-w-2xl"
+              leading={<Search className="pointer-events-none size-4 text-muted-foreground" aria-hidden />}
             >
-              <SlidersHorizontal className="size-4 shrink-0 text-slate-500" aria-hidden />
-              <span className="truncate">All filters</span>
-              <ChevronDown className="size-4 shrink-0 text-slate-400" aria-hidden />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[12rem]">
-              <DropdownMenuItem onSelect={resetAll}>Reset all filters</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <Input
+                type="search"
+                value={criteria.search}
+                onChange={(e) => setCriteria((c) => ({ ...c, search: e.target.value }))}
+                placeholder="Search thousands of templates"
+                autoComplete="off"
+                aria-label="Search templates"
+              />
+            </InputWithIcon>
+          ) : null}
+
+          <button
+            type="button"
+            className={cn(
+              ALL_FILTERS_BUTTON,
+              hasFilters && ALL_FILTERS_BUTTON_ACTIVE,
+              allFiltersOpen && ALL_FILTERS_BUTTON_OPEN,
+            )}
+            onClick={() => setAllFiltersOpen(true)}
+            aria-expanded={allFiltersOpen}
+            aria-controls="template-catalog-filters-sheet"
+          >
+            <SlidersHorizontal className="size-4 shrink-0 text-slate-900" strokeWidth={2} aria-hidden />
+            <span className="truncate">All Filters</span>
+          </button>
 
           <DropdownMenu open={industryMenuOpen} onOpenChange={setIndustryMenuOpen}>
             <DropdownMenuTrigger
@@ -1000,6 +1050,336 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
           ) : null}
         </DialogContentFlanked>
       </Dialog>
+
+      <Sheet open={allFiltersOpen} onOpenChange={setAllFiltersOpen}>
+        <SheetContent
+          id="template-catalog-filters-sheet"
+          side="left"
+          showCloseButton={false}
+          className={cn(
+            "gap-0 overflow-hidden border-2 border-slate-200 bg-white p-0 shadow-[8px_0_32px_rgba(15,23,42,0.12)]",
+            "data-[side=left]:!top-auto data-[side=left]:!bottom-4 data-[side=left]:!left-3 data-[side=left]:!right-auto data-[side=left]:!h-auto",
+            "data-[side=left]:max-h-[min(calc(100dvh-2rem),42rem)] data-[side=left]:w-[min(26rem,calc(100vw-1.25rem))] data-[side=left]:!max-w-none data-[side=left]:rounded-xl",
+            "sm:data-[side=left]:!bottom-5 sm:data-[side=left]:!left-4",
+          )}
+        >
+          <SheetDescription className="sr-only">
+            Filter templates by occupation, career stage, style, format, accent color, and tags. Changes apply
+            immediately; use Apply to close this panel.
+          </SheetDescription>
+          <div className="flex max-h-[min(calc(100dvh-2rem),42rem)] min-h-0 flex-col">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+              <SheetTitle className="text-lg font-semibold tracking-tight text-slate-900">Filters</SheetTitle>
+              <SheetClose
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-9 shrink-0 rounded-full text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                  />
+                }
+              >
+                <XIcon className="size-4" aria-hidden />
+                <span className="sr-only">Close filters</span>
+              </SheetClose>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-width:thin]">
+              <div className="border-b border-slate-200">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-slate-50/90"
+                  onClick={() => toggleFilterSheetSection("industry")}
+                  aria-expanded={filterSheetSections.industry}
+                >
+                  <Building2 className="size-4 shrink-0 text-slate-800" aria-hidden />
+                  <span className="flex-1 text-sm font-semibold text-slate-900">Occupation & Industry</span>
+                  <ChevronUp
+                    className={cn(
+                      "size-4 shrink-0 text-slate-600 transition-transform duration-200",
+                      filterSheetSections.industry ? "" : "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                {filterSheetSections.industry ? (
+                  <div className="max-h-[min(14rem,38vh)] overflow-y-auto overscroll-contain px-4 pb-4 [scrollbar-width:thin]">
+                    <div className="space-y-0.5 pt-1">
+                      {TEMPLATE_CATALOG_INDUSTRY_ORDER.map((key) => {
+                        const checked = criteria.industry.includes(key);
+                        const id = `sheet-industry-${key}`;
+                        return (
+                          <label
+                            key={key}
+                            htmlFor={id}
+                            className="flex cursor-pointer items-start gap-2.5 rounded-md py-2 pr-1 text-sm leading-snug text-slate-800 hover:bg-sky-50/50"
+                          >
+                            <input
+                              id={id}
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleIndustryFilter(key)}
+                              className={SHEET_FILTER_CHECKBOX}
+                            />
+                            <span>{TEMPLATE_CATALOG_INDUSTRY_LABEL[key]}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="border-b border-slate-200">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-slate-50/90"
+                  onClick={() => toggleFilterSheetSection("career")}
+                  aria-expanded={filterSheetSections.career}
+                >
+                  <Briefcase className="size-4 shrink-0 text-slate-800" aria-hidden />
+                  <span className="flex-1 text-sm font-semibold text-slate-900">Career Stage</span>
+                  <ChevronUp
+                    className={cn(
+                      "size-4 shrink-0 text-slate-600 transition-transform duration-200",
+                      filterSheetSections.career ? "" : "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                {filterSheetSections.career ? (
+                  <div className="space-y-0.5 px-4 pb-4 pt-1">
+                    {TEMPLATE_CATALOG_CAREER_STAGE_ORDER.map((key) => {
+                      const checked = criteria.careerStages.includes(key);
+                      const id = `sheet-career-${key}`;
+                      return (
+                        <label
+                          key={key}
+                          htmlFor={id}
+                          className="flex cursor-pointer items-start gap-2.5 rounded-md py-2 pr-1 text-sm leading-snug text-slate-800 hover:bg-sky-50/50"
+                        >
+                          <input
+                            id={id}
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleCareerStage(key)}
+                            className={SHEET_FILTER_CHECKBOX}
+                          />
+                          <span>{TEMPLATE_CATALOG_CAREER_STAGE_LABEL[key]}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="border-b border-slate-200">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-slate-50/90"
+                  onClick={() => toggleFilterSheetSection("style")}
+                  aria-expanded={filterSheetSections.style}
+                >
+                  <Palette className="size-4 shrink-0 text-slate-800" aria-hidden />
+                  <span className="flex-1 text-sm font-semibold text-slate-900">Style</span>
+                  <ChevronUp
+                    className={cn(
+                      "size-4 shrink-0 text-slate-600 transition-transform duration-200",
+                      filterSheetSections.style ? "" : "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                {filterSheetSections.style ? (
+                  <div className="space-y-0.5 px-4 pb-4 pt-1">
+                    {TEMPLATE_CATALOG_STYLE_LOOK_ORDER.map((key) => {
+                      const checked = criteria.styleLooks.includes(key);
+                      const id = `sheet-style-${key}`;
+                      return (
+                        <label
+                          key={key}
+                          htmlFor={id}
+                          className="flex cursor-pointer items-start gap-2.5 rounded-md py-2 pr-1 text-sm leading-snug text-slate-800 hover:bg-sky-50/50"
+                        >
+                          <input
+                            id={id}
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleStyleLook(key)}
+                            className={SHEET_FILTER_CHECKBOX}
+                          />
+                          <span>{TEMPLATE_CATALOG_STYLE_LOOK_LABEL[key]}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="border-b border-slate-200">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-slate-50/90"
+                  onClick={() => toggleFilterSheetSection("format")}
+                  aria-expanded={filterSheetSections.format}
+                >
+                  <LayoutGrid className="size-4 shrink-0 text-slate-800" aria-hidden />
+                  <span className="flex-1 text-sm font-semibold text-slate-900">Format</span>
+                  <ChevronUp
+                    className={cn(
+                      "size-4 shrink-0 text-slate-600 transition-transform duration-200",
+                      filterSheetSections.format ? "" : "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                {filterSheetSections.format ? (
+                  <div className="space-y-0.5 px-4 pb-4 pt-1">
+                    {TEMPLATE_CATALOG_FORMAT_FACET_ORDER.map((key) => {
+                      const checked = criteria.formatFacets.includes(key);
+                      const id = `sheet-format-${key}`;
+                      return (
+                        <label
+                          key={key}
+                          htmlFor={id}
+                          className="flex cursor-pointer items-start gap-2.5 rounded-md py-2 pr-1 text-sm leading-snug text-slate-800 hover:bg-sky-50/50"
+                        >
+                          <input
+                            id={id}
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleFormatFacet(key)}
+                            className={SHEET_FILTER_CHECKBOX}
+                          />
+                          <span>{TEMPLATE_CATALOG_FORMAT_FACET_LABEL[key]}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="border-b border-slate-200">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-slate-50/90"
+                  onClick={() => toggleFilterSheetSection("color")}
+                  aria-expanded={filterSheetSections.color}
+                >
+                  <Droplets className="size-4 shrink-0 text-slate-800" aria-hidden />
+                  <span className="flex-1 text-sm font-semibold text-slate-900">Color</span>
+                  <ChevronUp
+                    className={cn(
+                      "size-4 shrink-0 text-slate-600 transition-transform duration-200",
+                      filterSheetSections.color ? "" : "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                {filterSheetSections.color ? (
+                  <div className="grid grid-cols-5 gap-2 px-4 pb-4 pt-1">
+                    {TEMPLATE_CATALOG_ACCENT_SWATCHES.map((hex) => {
+                      const canon = normalizeCatalogAccentHex(hex) ?? hex;
+                      const selected = criteria.accentSwatches.some(
+                        (h) => (normalizeCatalogAccentHex(h) ?? h) === canon,
+                      );
+                      const lightSwatch =
+                        canon === "#fafafa" ||
+                        canon === "#f1f5f9" ||
+                        canon === "#ffffff" ||
+                        canon === "#e2e8f0";
+                      return (
+                        <button
+                          key={canon}
+                          type="button"
+                          title={canon}
+                          aria-label={`Accent ${canon}`}
+                          aria-pressed={selected}
+                          onClick={() => toggleAccentSwatch(canon)}
+                          className={cn(
+                            "size-8 shrink-0 rounded-full transition-[box-shadow,transform] outline-none",
+                            "hover:scale-105 focus-visible:ring-2 focus-visible:ring-slate-900/35 focus-visible:ring-offset-2",
+                            lightSwatch && "border border-slate-300/90",
+                            selected
+                              ? "ring-2 ring-slate-900 ring-offset-2 ring-offset-white"
+                              : "ring-0 ring-offset-0",
+                          )}
+                          style={{ backgroundColor: canon }}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="border-b border-slate-200">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-slate-50/90"
+                  onClick={() => toggleFilterSheetSection("tags")}
+                  aria-expanded={filterSheetSections.tags}
+                >
+                  <Star className="size-4 shrink-0 text-slate-800" aria-hidden />
+                  <span className="flex-1 text-sm font-semibold text-slate-900">Tags</span>
+                  <ChevronUp
+                    className={cn(
+                      "size-4 shrink-0 text-slate-600 transition-transform duration-200",
+                      filterSheetSections.tags ? "" : "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                {filterSheetSections.tags ? (
+                  <div className="space-y-0.5 px-4 pb-4 pt-1">
+                    {TEMPLATE_CATALOG_TAG_ORDER.map((key) => {
+                      const checked = criteria.tagFilters.includes(key);
+                      const id = `sheet-tag-${key}`;
+                      return (
+                        <label
+                          key={key}
+                          htmlFor={id}
+                          className="flex cursor-pointer items-start gap-2.5 rounded-md py-2 pr-1 text-sm leading-snug text-slate-800 hover:bg-sky-50/50"
+                        >
+                          <input
+                            id={id}
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleTagFilter(key)}
+                            className={SHEET_FILTER_CHECKBOX}
+                          />
+                          <span>{TEMPLATE_CATALOG_TAG_LABEL[key]}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="flex shrink-0 gap-3 border-t border-slate-200 bg-slate-50/80 px-4 py-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 flex-1 rounded-full border-slate-300 bg-white text-sm font-medium text-slate-600 shadow-none hover:bg-slate-50"
+                onClick={() => {
+                  resetAll();
+                  setAllFiltersOpen(false);
+                }}
+              >
+                Clear all
+              </Button>
+              <Button
+                type="button"
+                className="h-11 flex-1 rounded-full border border-slate-300/90 bg-sky-100 text-sm font-semibold text-slate-900 shadow-sm hover:bg-sky-200/90"
+                onClick={() => setAllFiltersOpen(false)}
+              >
+                Apply
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

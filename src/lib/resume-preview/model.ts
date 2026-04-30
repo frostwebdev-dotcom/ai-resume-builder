@@ -47,7 +47,24 @@ export type ResumePreviewPageBreakKey =
   | "skills"
   | "certifications"
   | "projects"
-  | "additional";
+  | "additional"
+  | "languages"
+  | "hobbies"
+  | "courses"
+  | "internships";
+
+/** Guest-studio freeform blocks (languages, hobbies, …) in sidebar order. */
+export type ResumeSupplementarySectionId =
+  | "languages"
+  | "hobbies"
+  | "courses"
+  | "internships";
+
+export type ResumeSupplementarySection = {
+  id: ResumeSupplementarySectionId;
+  title: string;
+  body: string;
+};
 
 export type ResumePreviewPageBreaks = Partial<Record<ResumePreviewPageBreakKey, boolean>>;
 
@@ -70,12 +87,20 @@ export type ResumePreviewDocument = {
   contact: {
     lines: ResumeContactLine[];
   };
+  /**
+   * Optional personal fields (DOB, license, …) — same data as the studio
+   * "Optional fields" pills; rendered near contact/header, not after body sections.
+   */
+  personalOptionalLines: ResumeContactLine[];
+  /** Languages, hobbies, courses, internships — each with its own heading, in form order. */
+  supplementarySections: ResumeSupplementarySection[];
   summary: string | null;
   skills: string[];
   experience: ResumeExperienceBlock[];
   education: ResumeEducationBlock[];
   certifications: ResumeCertificationBlock[];
   projects: ResumeProjectBlock[];
+  /** Free-form "Additional information" notes only (not languages/hobbies). */
   additional: string | null;
   /** When set, forces a new page before the given body section (if that section renders). */
   pageBreakBefore?: ResumePreviewPageBreaks | null;

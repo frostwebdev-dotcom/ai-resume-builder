@@ -114,7 +114,7 @@ export type WizardLayoutV1 = {
   v: 1;
   /**
    * When true, the mapped preview/PDF block starts on a new page (browser print + PDF export).
-   * Guest-only rows (languages, …) map to the `additional` export block.
+   * Languages/hobbies/courses/internships map to their own preview sections; `additional` is notes only.
    */
   pageBreakBefore: Partial<Record<WizardEditorSectionId, boolean>>;
 };

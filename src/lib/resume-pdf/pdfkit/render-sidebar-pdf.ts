@@ -135,12 +135,20 @@ export function renderSidebarPdf(
   railY += 14;
 
   // ─── Sidebar: contact block
-  if (doc.contact.lines.length) {
+  if (doc.contact.lines.length || doc.personalOptionalLines.length) {
     railY = drawSidebarHeading(pdf, layout, "Contact", railX, railY, railContentW);
     pdf.font(layout.fonts.regular).fontSize(layout.smallSize - 0.5).fillColor(SIDEBAR_TEXT);
     for (const line of doc.contact.lines) {
       if (!line.value.trim()) continue;
       pdf.text(line.value.trim(), railX, railY, { width: railContentW, lineGap: 1 });
+      railY = pdf.y + 2;
+    }
+    for (const line of doc.personalOptionalLines) {
+      if (!line.value.trim()) continue;
+      const t = line.label?.trim()
+        ? `${line.label.trim()}: ${line.value.trim()}`
+        : line.value.trim();
+      pdf.text(t, railX, railY, { width: railContentW, lineGap: 1 });
       railY = pdf.y + 2;
     }
     railY += 8;
@@ -365,6 +373,51 @@ function drawMain(
     pdf.moveDown(0.25);
   }
 
+  // Education
+  const hasEdu = docData.education.some(
+    (e) => e.school || e.degreeLine !== "Education" || e.dateRange,
+  );
+  if (hasEdu) {
+    applyMainHardPageBreak(pdf, state, mainPad, pb, "education", true);
+    mainSectionTitle(pdf, layout, state, "Education");
+    for (const ed of docData.education) {
+      if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
+      ensureMainSpace(pdf, state, layout.bodySize * 2 + 6);
+
+      const startY = pdf.y;
+      const line = [ed.degreeLine, ed.school].filter(Boolean).join(" — ");
+      const dateText = ed.dateRange?.trim() ?? "";
+      const dateWidth = dateText ? 120 : 0;
+      const titleWidth = state.width - (dateText ? dateWidth + 8 : 0);
+
+      pdf
+        .font(layout.fonts.bold)
+        .fontSize(layout.bodySize + 0.5)
+        .fillColor(NAME_COLOR)
+        .text(line, state.left, startY, { width: titleWidth });
+
+      if (dateText) {
+        pdf
+          .font(layout.fonts.regular)
+          .fontSize(layout.smallSize)
+          .fillColor(META_COLOR)
+          .text(dateText, state.left + state.width - dateWidth, startY + 1, {
+            width: dateWidth,
+            align: "right",
+          });
+      }
+
+      pdf.y = Math.max(pdf.y, startY + layout.bodySize + 2);
+
+      if (ed.details?.trim()) {
+        pdf.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
+        pdf.text(ed.details.trim(), state.left, pdf.y, { width: state.width });
+        pdf.moveDown(0.2);
+      }
+      pdf.moveDown(0.15);
+    }
+  }
+
   // Experience
   const hasExp = docData.experience.some(
     (e) => e.title || e.company || e.highlights.length,
@@ -420,49 +473,11 @@ function drawMain(
     }
   }
 
-  // Education
-  const hasEdu = docData.education.some(
-    (e) => e.school || e.degreeLine !== "Education" || e.dateRange,
-  );
-  if (hasEdu) {
-    applyMainHardPageBreak(pdf, state, mainPad, pb, "education", true);
-    mainSectionTitle(pdf, layout, state, "Education");
-    for (const ed of docData.education) {
-      if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
-      ensureMainSpace(pdf, state, layout.bodySize * 2 + 6);
-
-      const startY = pdf.y;
-      const line = [ed.degreeLine, ed.school].filter(Boolean).join(" — ");
-      const dateText = ed.dateRange?.trim() ?? "";
-      const dateWidth = dateText ? 120 : 0;
-      const titleWidth = state.width - (dateText ? dateWidth + 8 : 0);
-
-      pdf
-        .font(layout.fonts.bold)
-        .fontSize(layout.bodySize + 0.5)
-        .fillColor(NAME_COLOR)
-        .text(line, state.left, startY, { width: titleWidth });
-
-      if (dateText) {
-        pdf
-          .font(layout.fonts.regular)
-          .fontSize(layout.smallSize)
-          .fillColor(META_COLOR)
-          .text(dateText, state.left + state.width - dateWidth, startY + 1, {
-            width: dateWidth,
-            align: "right",
-          });
-      }
-
-      pdf.y = Math.max(pdf.y, startY + layout.bodySize + 2);
-
-      if (ed.details?.trim()) {
-        pdf.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
-        pdf.text(ed.details.trim(), state.left, pdf.y, { width: state.width });
-        pdf.moveDown(0.2);
-      }
-      pdf.moveDown(0.15);
-    }
+  for (const s of docData.supplementarySections) {
+    if (!s.body.trim()) continue;
+    applyMainHardPageBreak(pdf, state, mainPad, pb, s.id, true);
+    mainSectionTitle(pdf, layout, state, s.title);
+    mainParagraph(pdf, layout, state, s.body.trim());
   }
 
   // Projects

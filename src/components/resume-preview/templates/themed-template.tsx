@@ -5,7 +5,10 @@ import {
   ResumeSectionTitle,
   type SectionTitleVariant,
 } from "@/components/resume-preview/shared-parts";
-import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
+import type {
+  ResumePreviewDocument,
+  ResumeSupplementarySection,
+} from "@/lib/resume-preview/model";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import {
   mergeTemplateWithStyle,
@@ -113,6 +116,13 @@ export function ThemedTemplate({ doc, slug, resumeStyle = null, className }: Pro
                 className="mt-2 text-[10.5px] leading-snug opacity-90"
                 accent="#ffffff"
               />
+              {doc.personalOptionalLines.length > 0 ? (
+                <ContactStack
+                  lines={doc.personalOptionalLines}
+                  className="mt-2 space-y-0.5 text-[10px] leading-snug opacity-90 [&_span.text-neutral-500]:text-white/65"
+                  accent="#ffffff"
+                />
+              ) : null}
             </div>
           </div>
           <div
@@ -222,6 +232,13 @@ function Header({
           className="mt-2 text-[10.5px] leading-snug text-neutral-600"
           accent={effective.accent}
         />
+        {doc.personalOptionalLines.length > 0 ? (
+          <ContactStack
+            lines={doc.personalOptionalLines}
+            className="mt-2 text-[10px] leading-snug text-neutral-600"
+            accent={effective.accent}
+          />
+        ) : null}
         <div
           className={cn(
             "mt-3 h-[1.25px] w-1/3",
@@ -277,6 +294,18 @@ function Header({
               )}
               accent={effective.accent}
             />
+            {doc.personalOptionalLines.length > 0 ? (
+              <ContactStack
+                lines={doc.personalOptionalLines}
+                className={cn(
+                  "mt-2 text-[10px] leading-relaxed sm:text-[11px]",
+                  ha === "right" && "sm:ml-auto sm:max-w-[16rem]",
+                  ha === "center" && "sm:mx-auto sm:max-w-[16rem]",
+                  ha === "left" && "sm:mr-auto sm:max-w-[16rem]",
+                )}
+                accent={effective.accent}
+              />
+            ) : null}
           </div>
         </header>
         <div className="flex items-center gap-2" aria-hidden>
@@ -322,6 +351,13 @@ function Header({
         className="mt-1 text-[9.75px] leading-snug text-neutral-700"
         accent={effective.accent}
       />
+      {doc.personalOptionalLines.length > 0 ? (
+        <ContactStack
+          lines={doc.personalOptionalLines}
+          className="mt-1.5 text-[9.75px] leading-snug text-neutral-700"
+          accent={effective.accent}
+        />
+      ) : null}
       <div
         aria-hidden
         className="mt-2 h-px w-full"
@@ -351,7 +387,6 @@ function Body({
   const bulletIndent = density === "compact" ? "pl-3.5" : "pl-4";
   const accent = effective.accent;
   const accentStrong = effective.accentStrong;
-  const twoCol = theme.twoColumnMeta;
 
   return (
     <div
@@ -374,6 +409,36 @@ function Body({
             Summary
           </ResumeSectionTitle>
           <ResumeProfileSummary text={doc.summary} />
+        </section>
+      ) : null}
+
+      {doc.education.some((e) => e.school || e.degreeLine !== "Education") ? (
+        <section
+          className={cn("space-y-2", doc.pageBreakBefore?.education && resumePageBreakBeforeClass)}
+        >
+          <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
+            Education
+          </ResumeSectionTitle>
+          <ul className="space-y-2">
+            {doc.education.map((ed) => (
+              <li key={ed.id}>
+                <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
+                  <div>
+                    <span className="font-semibold">{ed.degreeLine}</span>
+                    {ed.school ? <span className="text-neutral-800"> — {ed.school}</span> : null}
+                  </div>
+                  {ed.dateRange ? (
+                    <span className="shrink-0 text-[10px] text-neutral-600 tabular-nums">
+                      {ed.dateRange}
+                    </span>
+                  ) : null}
+                </div>
+                {ed.details ? (
+                  <p className="mt-1 text-neutral-700">{ed.details}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 
@@ -443,119 +508,66 @@ function Body({
         </section>
       ) : null}
 
-      {doc.education.some((e) => e.school || e.degreeLine !== "Education") ? (
+      {doc.skills.length > 0 ? (
         <section
-          className={cn("space-y-2", doc.pageBreakBefore?.education && resumePageBreakBeforeClass)}
+          className={cn("space-y-2", doc.pageBreakBefore?.skills && resumePageBreakBeforeClass)}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
-            Education
+            Skills
           </ResumeSectionTitle>
-          <ul className="space-y-2">
-            {doc.education.map((ed) => (
-              <li key={ed.id}>
-                <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-4">
-                  <div>
-                    <span className="font-semibold">{ed.degreeLine}</span>
-                    {ed.school ? <span className="text-neutral-800"> — {ed.school}</span> : null}
-                  </div>
-                  {ed.dateRange ? (
-                    <span className="shrink-0 text-[10px] text-neutral-600 tabular-nums">
-                      {ed.dateRange}
-                    </span>
-                  ) : null}
-                </div>
-                {ed.details ? (
-                  <p className="mt-1 text-neutral-700">{ed.details}</p>
+          <p
+            className={cn(
+              "text-neutral-800",
+              density === "compact" ? "text-[10.5px] leading-snug" : undefined,
+            )}
+          >
+            {doc.skills.join(" · ")}
+          </p>
+        </section>
+      ) : null}
+
+      {doc.supplementarySections.map((s) => (
+        <SupplementaryThemedSection
+          key={s.id}
+          section={s}
+          sectionTitle={sectionTitle}
+          accentStrong={accentStrong}
+          pageBreakBefore={doc.pageBreakBefore}
+        />
+      ))}
+
+      {doc.certifications.some((c) => c.name || c.issuer) ? (
+        <section
+          className={cn(
+            "space-y-2",
+            doc.pageBreakBefore?.certifications && resumePageBreakBeforeClass,
+          )}
+        >
+          <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
+            Certifications
+          </ResumeSectionTitle>
+          <ul className={density === "compact" ? "space-y-1 text-[10.5px]" : "space-y-1"}>
+            {doc.certifications.map((c) => (
+              <li key={c.id} className="flex flex-wrap justify-between gap-2">
+                <span>
+                  <span className="font-medium">{c.name || "Certification"}</span>
+                  {c.issuer ? <span className="text-neutral-700"> — {c.issuer}</span> : null}
+                </span>
+                {c.dateLine ? (
+                  <span
+                    className={cn(
+                      "text-neutral-600 tabular-nums",
+                      density === "compact" ? "text-[9.5px]" : "text-[10px]",
+                    )}
+                  >
+                    {c.dateLine}
+                  </span>
                 ) : null}
               </li>
             ))}
           </ul>
         </section>
       ) : null}
-
-      {twoCol ? (
-        <div className="grid gap-5 sm:grid-cols-2 sm:gap-6">
-          {doc.skills.length > 0 ? (
-            <section
-              className={cn("space-y-2", doc.pageBreakBefore?.skills && resumePageBreakBeforeClass)}
-            >
-              <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
-                Skills
-              </ResumeSectionTitle>
-              <p className="text-[10.5px] leading-snug text-neutral-800">
-                {doc.skills.join(" · ")}
-              </p>
-            </section>
-          ) : null}
-          {doc.certifications.some((c) => c.name || c.issuer) ? (
-            <section
-              className={cn(
-                "space-y-2",
-                doc.pageBreakBefore?.certifications && resumePageBreakBeforeClass,
-              )}
-            >
-              <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
-                Certifications
-              </ResumeSectionTitle>
-              <ul className="space-y-1 text-[10.5px]">
-                {doc.certifications.map((c) => (
-                  <li key={c.id} className="flex flex-wrap justify-between gap-2">
-                    <span>
-                      <span className="font-medium">{c.name || "Certification"}</span>
-                      {c.issuer ? <span className="text-neutral-700"> — {c.issuer}</span> : null}
-                    </span>
-                    {c.dateLine ? (
-                      <span className="text-[9.5px] text-neutral-600 tabular-nums">
-                        {c.dateLine}
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-        </div>
-      ) : (
-        <>
-          {doc.skills.length > 0 ? (
-            <section
-              className={cn("space-y-2", doc.pageBreakBefore?.skills && resumePageBreakBeforeClass)}
-            >
-              <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
-                Skills
-              </ResumeSectionTitle>
-              <p className="text-neutral-800">{doc.skills.join(" · ")}</p>
-            </section>
-          ) : null}
-          {doc.certifications.some((c) => c.name || c.issuer) ? (
-            <section
-              className={cn(
-                "space-y-2",
-                doc.pageBreakBefore?.certifications && resumePageBreakBeforeClass,
-              )}
-            >
-              <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
-                Certifications
-              </ResumeSectionTitle>
-              <ul className="space-y-1">
-                {doc.certifications.map((c) => (
-                  <li key={c.id} className="flex flex-wrap justify-between gap-2">
-                    <span>
-                      <span className="font-medium">{c.name || "Certification"}</span>
-                      {c.issuer ? <span className="text-neutral-700"> — {c.issuer}</span> : null}
-                    </span>
-                    {c.dateLine ? (
-                      <span className="text-[10px] text-neutral-600 tabular-nums">
-                        {c.dateLine}
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-        </>
-      )}
 
       {doc.projects.some((p) => p.name || p.description) ? (
         <section
@@ -606,5 +618,27 @@ function Body({
         </section>
       ) : null}
     </div>
+  );
+}
+
+function SupplementaryThemedSection({
+  section,
+  sectionTitle,
+  accentStrong,
+  pageBreakBefore,
+}: {
+  section: ResumeSupplementarySection;
+  sectionTitle: SectionTitleVariant;
+  accentStrong: string;
+  pageBreakBefore: ResumePreviewDocument["pageBreakBefore"];
+}) {
+  const pb = pageBreakBefore?.[section.id];
+  return (
+    <section className={cn("space-y-2", pb && resumePageBreakBeforeClass)}>
+      <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
+        {section.title}
+      </ResumeSectionTitle>
+      <p className="whitespace-pre-wrap text-neutral-800">{section.body}</p>
+    </section>
   );
 }

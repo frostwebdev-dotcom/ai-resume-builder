@@ -184,7 +184,8 @@ function renderHeaderBanner(
   const textX = layout.pageMargin + avatarSize + avatarGap;
   const textW = w - avatarSize - avatarGap;
 
-  const approxLines = (headline ? 1 : 0) + (lines.length ? 1 : 0);
+  const personalRows = docData.personalOptionalLines.filter((l) => l.value.trim()).length;
+  const approxLines = (headline ? 1 : 0) + (lines.length ? 1 : 0) + personalRows;
   const bannerHeight = Math.max(
     bannerTopPad + layout.nameSize + approxLines * (layout.smallSize + 6) + bannerBottomPad,
     hasAvatar ? bannerTopPad + avatarSize + bannerBottomPad : 0,
@@ -245,6 +246,18 @@ function renderHeaderBanner(
     );
   }
 
+  const po = docData.personalOptionalLines.filter((l) => l.value.trim());
+  if (po.length) {
+    doc.font(layout.fonts.regular).fontSize(layout.smallSize - 0.5).fillColor(BANNER_META_COLOR);
+    for (const line of po) {
+      const text = line.label?.trim()
+        ? `${line.label.trim()}: ${line.value.trim()}`
+        : line.value.trim();
+      doc.text(text, textX, cursor + 4, { width: textW, align: "left", lineGap: 1 });
+      cursor = doc.y;
+    }
+  }
+
   const ruleY = Math.max(cursor + 6, bannerTopPad + avatarSize + 6);
   doc
     .strokeColor(layout.accent)
@@ -300,6 +313,19 @@ function renderHeader(
       doc.moveDown(0.4);
     }
 
+    const poCenter = docData.personalOptionalLines.filter((l) => l.value.trim());
+    if (poCenter.length) {
+      doc.font(layout.fonts.regular).fontSize(layout.smallSize - 0.5).fillColor(META_COLOR);
+      for (const line of poCenter) {
+        const text = line.label?.trim()
+          ? `${line.label.trim()}: ${line.value.trim()}`
+          : line.value.trim();
+        doc.text(text, layout.pageMargin, doc.y, { width: w, align: "center", lineGap: 1 });
+        doc.moveDown(0.12);
+      }
+      doc.moveDown(0.25);
+    }
+
     const y = doc.y;
     doc
       .strokeColor(layout.accent)
@@ -334,11 +360,36 @@ function renderHeader(
       leftEnd = doc.y;
     }
 
+    let rightBottom = startY;
     if (lines.length) {
-      renderContactLine(doc, layout, lines, rightX, startY, rightW, "right");
+      rightBottom = renderContactLine(
+        doc,
+        layout,
+        lines,
+        rightX,
+        startY,
+        rightW,
+        "right",
+        META_COLOR,
+      );
     }
 
-    const y = Math.max(leftEnd, doc.y) + 6;
+    let splitRightEnd = rightBottom;
+    const poSplit = docData.personalOptionalLines.filter((l) => l.value.trim());
+    if (poSplit.length) {
+      doc.font(layout.fonts.regular).fontSize(layout.smallSize - 0.5).fillColor(META_COLOR);
+      let cy = rightBottom + 4;
+      for (const line of poSplit) {
+        const text = line.label?.trim()
+          ? `${line.label.trim()}: ${line.value.trim()}`
+          : line.value.trim();
+        doc.text(text, rightX, cy, { width: rightW, align: "right", lineGap: 1 });
+        cy = doc.y + 2;
+      }
+      splitRightEnd = cy;
+    }
+
+    const y = Math.max(leftEnd, splitRightEnd) + 6;
     doc
       .strokeColor(layout.accent)
       .lineWidth(1.5)
@@ -372,6 +423,18 @@ function renderHeader(
     renderContactLine(doc, layout, lines, layout.pageMargin, doc.y, w, "left");
     doc.moveDown(0.35);
   }
+  const poCompact = docData.personalOptionalLines.filter((l) => l.value.trim());
+  if (poCompact.length) {
+    doc.font(layout.fonts.regular).fontSize(layout.smallSize - 0.5).fillColor(META_COLOR);
+    for (const line of poCompact) {
+      const text = line.label?.trim()
+        ? `${line.label.trim()}: ${line.value.trim()}`
+        : line.value.trim();
+      doc.text(text, layout.pageMargin, doc.y, { width: w, align: "left", lineGap: 1 });
+      doc.moveDown(0.12);
+    }
+    doc.moveDown(0.2);
+  }
   const y = doc.y;
   doc
     .strokeColor(layout.accent)
@@ -390,6 +453,51 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
     writeSectionTitle(doc, layout, "Summary");
     writeParagraph(doc, layout, profileHtmlToPlainText(docData.summary));
     doc.moveDown(0.25);
+  }
+
+  const hasEdu = docData.education.some(
+    (e) => e.school || e.degreeLine !== "Education" || e.dateRange,
+  );
+  if (hasEdu) {
+    applyHardPageBreak(doc, layout, pb, "education", true);
+    writeSectionTitle(doc, layout, "Education");
+    for (const ed of docData.education) {
+      if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
+      ensureSpace(doc, layout, layout.bodySize * 2 + 6);
+
+      const w = contentWidth(doc, layout);
+      const startY = doc.y;
+      const line = [ed.degreeLine, ed.school].filter(Boolean).join(" — ");
+      const dateText = ed.dateRange?.trim() ?? "";
+      const dateWidth = dateText ? 140 : 0;
+      const titleWidth = w - (dateText ? dateWidth + 8 : 0);
+
+      doc
+        .font(layout.fonts.bold)
+        .fontSize(layout.bodySize + 0.5)
+        .fillColor(NAME_COLOR)
+        .text(line, layout.pageMargin, startY, { width: titleWidth });
+
+      if (dateText) {
+        doc
+          .font(layout.fonts.regular)
+          .fontSize(layout.smallSize)
+          .fillColor(META_COLOR)
+          .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
+            width: dateWidth,
+            align: "right",
+          });
+      }
+
+      doc.y = Math.max(doc.y, startY + layout.bodySize + 2);
+
+      if (ed.details?.trim()) {
+        doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
+        doc.text(ed.details.trim(), layout.pageMargin, doc.y, { width: w });
+        doc.moveDown(0.2);
+      }
+      doc.moveDown(0.15);
+    }
   }
 
   const hasExp = docData.experience.some(
@@ -444,55 +552,17 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
     }
   }
 
-  const hasEdu = docData.education.some(
-    (e) => e.school || e.degreeLine !== "Education" || e.dateRange,
-  );
-  if (hasEdu) {
-    applyHardPageBreak(doc, layout, pb, "education", true);
-    writeSectionTitle(doc, layout, "Education");
-    for (const ed of docData.education) {
-      if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
-      ensureSpace(doc, layout, layout.bodySize * 2 + 6);
-
-      const w = contentWidth(doc, layout);
-      const startY = doc.y;
-      const line = [ed.degreeLine, ed.school].filter(Boolean).join(" — ");
-      const dateText = ed.dateRange?.trim() ?? "";
-      const dateWidth = dateText ? 140 : 0;
-      const titleWidth = w - (dateText ? dateWidth + 8 : 0);
-
-      doc
-        .font(layout.fonts.bold)
-        .fontSize(layout.bodySize + 0.5)
-        .fillColor(NAME_COLOR)
-        .text(line, layout.pageMargin, startY, { width: titleWidth });
-
-      if (dateText) {
-        doc
-          .font(layout.fonts.regular)
-          .fontSize(layout.smallSize)
-          .fillColor(META_COLOR)
-          .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
-            width: dateWidth,
-            align: "right",
-          });
-      }
-
-      doc.y = Math.max(doc.y, startY + layout.bodySize + 2);
-
-      if (ed.details?.trim()) {
-        doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
-        doc.text(ed.details.trim(), layout.pageMargin, doc.y, { width: w });
-        doc.moveDown(0.2);
-      }
-      doc.moveDown(0.15);
-    }
-  }
-
   if (docData.skills.length) {
     applyHardPageBreak(doc, layout, pb, "skills", true);
     writeSectionTitle(doc, layout, "Skills");
     writeParagraph(doc, layout, docData.skills.join("  ·  "));
+  }
+
+  for (const s of docData.supplementarySections) {
+    if (!s.body.trim()) continue;
+    applyHardPageBreak(doc, layout, pb, s.id, true);
+    writeSectionTitle(doc, layout, s.title);
+    writeParagraph(doc, layout, s.body.trim());
   }
 
   const hasCert = docData.certifications.some((c) => c.name || c.issuer);
