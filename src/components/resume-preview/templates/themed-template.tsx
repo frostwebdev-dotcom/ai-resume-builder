@@ -14,6 +14,8 @@ import {
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme, type TemplateTheme } from "@/lib/resume-preview/template-theme";
 import { nameShowsInResumeHeader } from "@/lib/resume-preview/name-placement";
+import { mergeStudioPreviewSection } from "@/lib/resume-preview/studio-preview-focus";
+import type { WizardEditorSectionId } from "@/lib/resume-wizard/types";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -22,6 +24,7 @@ type Props = {
   /** Saved per-project overrides (colors, type, spacing). */
   resumeStyle?: ResumeStyleV1 | null;
   className?: string;
+  studioFocusSection?: WizardEditorSectionId | null;
 };
 
 function headerAlignClass(ha: EffectiveResumeTheme["headerTextAlign"]): string {
@@ -45,7 +48,13 @@ function densityOf(theme: TemplateTheme): Density {
  * `getTemplateTheme`. Add a new template by adding a row to
  * `template-theme.ts`; no code changes here.
  */
-export function ThemedTemplate({ doc, slug, resumeStyle = null, className }: Props) {
+export function ThemedTemplate({
+  doc,
+  slug,
+  resumeStyle = null,
+  className,
+  studioFocusSection = null,
+}: Props) {
   const theme = getTemplateTheme(slug);
   const effective = mergeTemplateWithStyle(theme, resumeStyle);
   const density = densityOf(theme);
@@ -83,7 +92,12 @@ export function ThemedTemplate({ doc, slug, resumeStyle = null, className }: Pro
     <article className={paperClasses} data-template={slug}>
       {isBanner ? (
         <div
-          className={cn("w-full text-white", padX, "pt-[clamp(10mm,3vw,14mm)]", "pb-5")}
+          {...mergeStudioPreviewSection(
+            "personal",
+            studioFocusSection,
+            "rail",
+            cn("w-full text-white", padX, "pt-[clamp(10mm,3vw,14mm)]", "pb-5"),
+          )}
           style={{ backgroundColor: effective.accentStrong }}
         >
           <div
@@ -133,13 +147,25 @@ export function ThemedTemplate({ doc, slug, resumeStyle = null, className }: Pro
       ) : null}
 
       <div className={cn(padX, !isBanner && padY, isBanner && "pt-6 pb-[clamp(10mm,3vw,14mm)]")}>
-        {!isBanner ? <Header doc={doc} theme={theme} effective={effective} /> : null}
+        {!isBanner ? (
+          <div
+            {...mergeStudioPreviewSection(
+              "personal",
+              studioFocusSection,
+              "paper",
+              undefined,
+            )}
+          >
+            <Header doc={doc} theme={theme} effective={effective} />
+          </div>
+        ) : null}
         <Body
           doc={doc}
           theme={theme}
           effective={effective}
           sectionTitle={sectionTitle}
           topGap={isBanner ? "mt-0" : undefined}
+          studioFocusSection={studioFocusSection}
         />
       </div>
     </article>
@@ -368,12 +394,14 @@ function Body({
   effective,
   sectionTitle,
   topGap,
+  studioFocusSection = null,
 }: {
   doc: ResumePreviewDocument;
   theme: TemplateTheme;
   effective: EffectiveResumeTheme;
   sectionTitle: SectionTitleVariant;
   topGap?: string;
+  studioFocusSection?: WizardEditorSectionId | null;
 }) {
   const density = densityOf(theme);
   return (
@@ -383,6 +411,7 @@ function Body({
       effective={effective}
       density={density}
       topGap={topGap}
+      studioFocusSection={studioFocusSection}
     />
   );
 }

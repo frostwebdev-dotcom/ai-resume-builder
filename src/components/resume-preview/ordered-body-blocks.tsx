@@ -11,6 +11,8 @@ import type {
   ResumePreviewDocument,
   ResumeSupplementarySection,
 } from "@/lib/resume-preview/model";
+import { mergeStudioPreviewSection } from "@/lib/resume-preview/studio-preview-focus";
+import type { WizardEditorSectionId } from "@/lib/resume-wizard/types";
 import type { EffectiveResumeTheme } from "@/lib/resume-preview/resume-style";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +22,8 @@ type SidebarMainCtx = {
   accent: string;
   accentStrong: string;
   sectionGapScale: number;
+  /** Open studio accordion section — highlights matching preview block. */
+  studioFocusSection?: WizardEditorSectionId | null;
 };
 
 /** Main column for sidebar layout (no skills / certifications — those render in the rail). */
@@ -29,6 +33,7 @@ export function SidebarTemplateMainBlocks({
   accent,
   accentStrong,
   sectionGapScale,
+  studioFocusSection = null,
 }: SidebarMainCtx) {
   const mainBlocks = doc.bodySectionOrder.filter(
     (b) => b !== "skills" && b !== "certifications",
@@ -42,7 +47,15 @@ export function SidebarTemplateMainBlocks({
       }}
     >
       {mainBlocks.map((blockId) => (
-        <Fragment key={blockId}>{sidebarMainBlock(blockId, { doc, sectionTitle, accent, accentStrong })}</Fragment>
+        <Fragment key={blockId}>
+          {sidebarMainBlock(blockId, {
+            doc,
+            sectionTitle,
+            accent,
+            accentStrong,
+            studioFocusSection,
+          })}
+        </Fragment>
       ))}
     </div>
   );
@@ -50,16 +63,24 @@ export function SidebarTemplateMainBlocks({
 
 function sidebarMainBlock(
   blockId: ResumePreviewBodyBlockId,
-  ctx: Pick<SidebarMainCtx, "doc" | "sectionTitle" | "accent" | "accentStrong">,
+  ctx: Pick<
+    SidebarMainCtx,
+    "doc" | "sectionTitle" | "accent" | "accentStrong" | "studioFocusSection"
+  >,
 ): ReactNode {
-  const { doc, sectionTitle, accent, accentStrong } = ctx;
+  const { doc, sectionTitle, accent, accentStrong, studioFocusSection } = ctx;
   const pb = doc.pageBreakBefore;
 
   switch (blockId) {
     case "summary":
       return doc.summary ? (
         <section
-          className={cn("space-y-2", pb?.summary && resumePageBreakBeforeClass)}
+          {...mergeStudioPreviewSection(
+            "summary",
+            studioFocusSection,
+            "paper",
+            cn("space-y-2", pb?.summary && resumePageBreakBeforeClass),
+          )}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Summary
@@ -70,7 +91,12 @@ function sidebarMainBlock(
     case "education":
       return doc.education.some((e) => e.school || e.degreeLine !== "Education") ? (
         <section
-          className={cn("space-y-2", pb?.education && resumePageBreakBeforeClass)}
+          {...mergeStudioPreviewSection(
+            "education",
+            studioFocusSection,
+            "paper",
+            cn("space-y-2", pb?.education && resumePageBreakBeforeClass),
+          )}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Education
@@ -102,7 +128,12 @@ function sidebarMainBlock(
     case "experience":
       return doc.experience.some((e) => e.title || e.company || e.highlights.length) ? (
         <section
-          className={cn("space-y-3", pb?.experience && resumePageBreakBeforeClass)}
+          {...mergeStudioPreviewSection(
+            "experience",
+            studioFocusSection,
+            "paper",
+            cn("space-y-3", pb?.experience && resumePageBreakBeforeClass),
+          )}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Experience
@@ -160,13 +191,19 @@ function sidebarMainBlock(
           sectionTitle={sectionTitle}
           accentStrong={accentStrong}
           pageBreakBefore={doc.pageBreakBefore}
+          studioFocusSection={studioFocusSection}
         />
       ) : null;
     }
     case "projects":
       return doc.projects.some((p) => p.name || p.description) ? (
         <section
-          className={cn("space-y-2", pb?.projects && resumePageBreakBeforeClass)}
+          {...mergeStudioPreviewSection(
+            "projects",
+            studioFocusSection,
+            "paper",
+            cn("space-y-2", pb?.projects && resumePageBreakBeforeClass),
+          )}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Projects
@@ -204,7 +241,12 @@ function sidebarMainBlock(
     case "additional":
       return doc.additional ? (
         <section
-          className={cn("space-y-2", pb?.additional && resumePageBreakBeforeClass)}
+          {...mergeStudioPreviewSection(
+            "additional",
+            studioFocusSection,
+            "paper",
+            cn("space-y-2", pb?.additional && resumePageBreakBeforeClass),
+          )}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Additional
@@ -220,10 +262,15 @@ function sidebarMainBlock(
 type SidebarRailCtx = {
   doc: ResumePreviewDocument;
   accent: string;
+  studioFocusSection?: WizardEditorSectionId | null;
 };
 
 /** Left-rail skills / certifications in studio order. */
-export function SidebarTemplateRailBlocks({ doc, accent }: SidebarRailCtx) {
+export function SidebarTemplateRailBlocks({
+  doc,
+  accent,
+  studioFocusSection = null,
+}: SidebarRailCtx) {
   const railBlocks = doc.bodySectionOrder.filter(
     (b) => b === "skills" || b === "certifications",
   );
@@ -238,9 +285,12 @@ export function SidebarTemplateRailBlocks({ doc, accent }: SidebarRailCtx) {
             <section
               key="skills"
               aria-label="Skills"
-              className={
-                doc.pageBreakBefore?.skills ? resumePageBreakBeforeClass : undefined
-              }
+              {...mergeStudioPreviewSection(
+                "skills",
+                studioFocusSection,
+                "rail",
+                doc.pageBreakBefore?.skills ? resumePageBreakBeforeClass : undefined,
+              )}
             >
               <SidebarRailHeading accent={accent}>Skills</SidebarRailHeading>
               <ul className="mt-2 space-y-1 text-[10px]">
@@ -263,11 +313,14 @@ export function SidebarTemplateRailBlocks({ doc, accent }: SidebarRailCtx) {
             <section
               key="certifications"
               aria-label="Certifications"
-              className={
+              {...mergeStudioPreviewSection(
+                "certifications",
+                studioFocusSection,
+                "rail",
                 doc.pageBreakBefore?.certifications
                   ? resumePageBreakBeforeClass
-                  : undefined
-              }
+                  : undefined,
+              )}
             >
               <SidebarRailHeading accent={accent}>Certifications</SidebarRailHeading>
               <ul className="mt-2 space-y-1.5 text-[10px]">
@@ -319,15 +372,24 @@ function SupplementarySidebarSection({
   sectionTitle,
   accentStrong,
   pageBreakBefore,
+  studioFocusSection = null,
 }: {
   section: ResumeSupplementarySection;
   sectionTitle: SectionTitleVariant;
   accentStrong: string;
   pageBreakBefore: ResumePreviewDocument["pageBreakBefore"];
+  studioFocusSection?: WizardEditorSectionId | null;
 }) {
   const pb = pageBreakBefore?.[section.id];
   return (
-    <section className={cn("space-y-2", pb && resumePageBreakBeforeClass)}>
+    <section
+      {...mergeStudioPreviewSection(
+        section.id,
+        studioFocusSection,
+        "paper",
+        cn("space-y-2", pb && resumePageBreakBeforeClass),
+      )}
+    >
       <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
         {section.title}
       </ResumeSectionTitle>
@@ -346,6 +408,7 @@ type ThemedBodyCtx = {
   bulletIndent: string;
   accent: string;
   accentStrong: string;
+  studioFocusSection?: WizardEditorSectionId | null;
 };
 
 export function ThemedTemplateBodyBlocks({
@@ -354,12 +417,14 @@ export function ThemedTemplateBodyBlocks({
   effective,
   density,
   topGap,
+  studioFocusSection = null,
 }: {
   doc: ResumePreviewDocument;
   sectionTitle: SectionTitleVariant;
   effective: EffectiveResumeTheme;
   density: ThemedDensity;
   topGap?: string;
+  studioFocusSection?: WizardEditorSectionId | null;
 }) {
   const baseGap =
     density === "compact" ? 10 : density === "airy" ? 22 : 18;
@@ -375,6 +440,7 @@ export function ThemedTemplateBodyBlocks({
     bulletIndent,
     accent,
     accentStrong,
+    studioFocusSection,
   };
 
   return (
@@ -394,15 +460,28 @@ export function ThemedTemplateBodyBlocks({
 }
 
 function themedBodyBlock(blockId: ResumePreviewBodyBlockId, ctx: ThemedBodyCtx): ReactNode {
-  const { doc, sectionTitle, effective, density, bulletIndent, accent, accentStrong } =
-    ctx;
+  const {
+    doc,
+    sectionTitle,
+    effective,
+    density,
+    bulletIndent,
+    accent,
+    accentStrong,
+    studioFocusSection,
+  } = ctx;
   const pb = doc.pageBreakBefore;
 
   switch (blockId) {
     case "summary":
       return doc.summary ? (
         <section
-          className={cn("space-y-2", pb?.summary && resumePageBreakBeforeClass)}
+          {...mergeStudioPreviewSection(
+            "summary",
+            studioFocusSection,
+            "paper",
+            cn("space-y-2", pb?.summary && resumePageBreakBeforeClass),
+          )}
           style={{ lineHeight: effective.lineHeight }}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
@@ -414,7 +493,12 @@ function themedBodyBlock(blockId: ResumePreviewBodyBlockId, ctx: ThemedBodyCtx):
     case "education":
       return doc.education.some((e) => e.school || e.degreeLine !== "Education") ? (
         <section
-          className={cn("space-y-2", pb?.education && resumePageBreakBeforeClass)}
+          {...mergeStudioPreviewSection(
+            "education",
+            studioFocusSection,
+            "paper",
+            cn("space-y-2", pb?.education && resumePageBreakBeforeClass),
+          )}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Education
@@ -446,9 +530,11 @@ function themedBodyBlock(blockId: ResumePreviewBodyBlockId, ctx: ThemedBodyCtx):
     case "experience":
       return doc.experience.some((e) => e.title || e.company || e.highlights.length) ? (
         <section
-          className={cn(
-            "space-y-3",
-            pb?.experience && resumePageBreakBeforeClass,
+          {...mergeStudioPreviewSection(
+            "experience",
+            studioFocusSection,
+            "paper",
+            cn("space-y-3", pb?.experience && resumePageBreakBeforeClass),
           )}
           style={{ lineHeight: effective.lineHeight }}
         >
@@ -512,7 +598,12 @@ function themedBodyBlock(blockId: ResumePreviewBodyBlockId, ctx: ThemedBodyCtx):
     case "skills":
       return doc.skills.length > 0 ? (
         <section
-          className={cn("space-y-2", pb?.skills && resumePageBreakBeforeClass)}
+          {...mergeStudioPreviewSection(
+            "skills",
+            studioFocusSection,
+            "paper",
+            cn("space-y-2", pb?.skills && resumePageBreakBeforeClass),
+          )}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Skills
@@ -538,15 +629,18 @@ function themedBodyBlock(blockId: ResumePreviewBodyBlockId, ctx: ThemedBodyCtx):
           sectionTitle={sectionTitle}
           accentStrong={accentStrong}
           pageBreakBefore={doc.pageBreakBefore}
+          studioFocusSection={studioFocusSection}
         />
       ) : null;
     }
     case "certifications":
       return doc.certifications.some((c) => c.name || c.issuer) ? (
         <section
-          className={cn(
-            "space-y-2",
-            pb?.certifications && resumePageBreakBeforeClass,
+          {...mergeStudioPreviewSection(
+            "certifications",
+            studioFocusSection,
+            "paper",
+            cn("space-y-2", pb?.certifications && resumePageBreakBeforeClass),
           )}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
@@ -579,7 +673,12 @@ function themedBodyBlock(blockId: ResumePreviewBodyBlockId, ctx: ThemedBodyCtx):
     case "projects":
       return doc.projects.some((p) => p.name || p.description) ? (
         <section
-          className={cn("space-y-2", pb?.projects && resumePageBreakBeforeClass)}
+          {...mergeStudioPreviewSection(
+            "projects",
+            studioFocusSection,
+            "paper",
+            cn("space-y-2", pb?.projects && resumePageBreakBeforeClass),
+          )}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
             Projects
@@ -617,9 +716,11 @@ function themedBodyBlock(blockId: ResumePreviewBodyBlockId, ctx: ThemedBodyCtx):
     case "additional":
       return doc.additional ? (
         <section
-          className={cn(
-            "space-y-2",
-            pb?.additional && resumePageBreakBeforeClass,
+          {...mergeStudioPreviewSection(
+            "additional",
+            studioFocusSection,
+            "paper",
+            cn("space-y-2", pb?.additional && resumePageBreakBeforeClass),
           )}
         >
           <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
@@ -638,15 +739,24 @@ function ThemedSupplementarySection({
   sectionTitle,
   accentStrong,
   pageBreakBefore,
+  studioFocusSection = null,
 }: {
   section: ResumeSupplementarySection;
   sectionTitle: SectionTitleVariant;
   accentStrong: string;
   pageBreakBefore: ResumePreviewDocument["pageBreakBefore"];
+  studioFocusSection?: WizardEditorSectionId | null;
 }) {
   const pb = pageBreakBefore?.[section.id];
   return (
-    <section className={cn("space-y-2", pb && resumePageBreakBeforeClass)}>
+    <section
+      {...mergeStudioPreviewSection(
+        section.id,
+        studioFocusSection,
+        "paper",
+        cn("space-y-2", pb && resumePageBreakBeforeClass),
+      )}
+    >
       <ResumeSectionTitle variant={sectionTitle} accent={accentStrong}>
         {section.title}
       </ResumeSectionTitle>

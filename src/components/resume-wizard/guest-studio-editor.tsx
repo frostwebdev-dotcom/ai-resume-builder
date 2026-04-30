@@ -352,8 +352,8 @@ export function GuestStudioEditor({
   const [templateHoverSlug, setTemplateHoverSlug] = useState<TemplateSlug | null>(null);
   const [focusMode, setFocusMode] = useState(false);
 
-  /** Fit-to-panel (no inner scroll) until user clicks the preview, then 1:1 + scroll. */
-  const [previewZoomed, setPreviewZoomed] = useState(false);
+  /** Zoomed (1:1 + scroll) on first open; user can shrink to fit from the preview chip. */
+  const [previewZoomed, setPreviewZoomed] = useState(true);
   const [fitScale, setFitScale] = useState(1);
   /** Unscaled content size — used to clip + center the scaled preview in fit mode. */
   const [fitContentSize, setFitContentSize] = useState({ w: 0, h: 0 });
@@ -495,13 +495,43 @@ export function GuestStudioEditor({
     return () => ro.disconnect();
   }, [previewZoomed, previewDocument, templateSlug, resumeStyle, templateHoverSlug]);
 
+  /** Scroll the preview so the block for the open studio section stays in view. */
+  useLayoutEffect(() => {
+    if (openSection == null) return;
+    const root = previewFitBodyRef.current;
+    if (!root) return;
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      const el = root.querySelector<HTMLElement>(
+        `[data-studio-section="${openSection}"]`,
+      );
+      if (!el) return;
+      const reduceMotion =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      el.scrollIntoView({
+        behavior: reduceMotion ? "auto" : "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    };
+    const id = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(run);
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(id);
+    };
+  }, [openSection, previewDocument, previewZoomed, previewTemplateSlug]);
+
   return (
     <ResumeStudioSplitLayout
       focusMode={focusMode}
       mobilePreviewOpen={mobilePreviewOpen}
       previewAccent={previewTheme.accent}
       editor={(
-        <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+        <div className="w-full min-w-0 space-y-4 px-4 py-5 sm:px-6 sm:py-6">
           {persistMode === "guest" ? (
             <SaveBadge
               status={guestAutosave.saveStatus}
@@ -919,6 +949,7 @@ export function GuestStudioEditor({
                       document={previewDocument}
                       templateSlug={previewTemplateSlug}
                       resumeStyle={resumeStyle}
+                      studioFocusSection={openSection}
                     />
                   </PreviewViewport>
                 </div>
@@ -945,6 +976,7 @@ export function GuestStudioEditor({
                             document={previewDocument}
                             templateSlug={previewTemplateSlug}
                             resumeStyle={resumeStyle}
+                            studioFocusSection={openSection}
                           />
                         </PreviewViewport>
                       </div>
@@ -963,6 +995,7 @@ export function GuestStudioEditor({
                           document={previewDocument}
                           templateSlug={previewTemplateSlug}
                           resumeStyle={resumeStyle}
+                          studioFocusSection={openSection}
                         />
                       </PreviewViewport>
                     </div>

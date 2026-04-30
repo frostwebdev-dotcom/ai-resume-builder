@@ -25,28 +25,29 @@ export function GuestDraftLocalSaveNote({ className, signedIn = false }: Props) 
       )}
       aria-label="How your draft is saved"
     >
-      <div className="mx-auto flex w-full max-w-5xl min-w-0 items-start justify-center gap-2 sm:justify-start">
+      <div className="mx-auto flex w-full max-w-5xl min-w-0 items-start justify-start gap-2">
         <Info
           className="mt-0.5 size-3.5 shrink-0 text-slate-400"
           aria-hidden
         />
-        <div className="min-w-0 flex-1 overflow-x-auto [-webkit-overflow-scrolling:touch]">
-          <p className="text-center text-[0.8125rem] leading-snug text-balance text-slate-600 sm:text-left">
+        <div className="min-w-0 flex-1">
+          <p className="text-left text-[0.8125rem] leading-snug text-balance text-slate-600">
             {signedIn ? (
               <>
-                New visits open with sample résumé content you can replace. You&apos;re signed in, but this page
-                still saves in this browser only until you create a{" "}
-                <strong className="font-medium text-slate-800">resume project</strong> on your dashboard, then
-                open <strong className="font-medium text-slate-800">Draft</strong>—same studio layout, saved to
-                your account.                 PDF export is <strong className="font-medium text-slate-800">{RESUME_PDF_EXPORT_PRICE_USD} once</strong>{" "}
-                per project from <strong className="font-medium text-slate-800">Preview &amp; export</strong> (see{" "}
+                You&apos;re signed in, but this page still saves in your browser only until you create a resume
+                project from your dashboard and open Draft—the same studio experience, synced to your account. We
+                start you with sample résumé content you can edit or replace. PDF export is{" "}
+                <span className="font-medium text-slate-800">
+                  {RESUME_PDF_EXPORT_PRICE_USD} once per project
+                </span>{" "}
+                from Preview &amp; export (see{" "}
                 <Link
                   href={ROUTES.pricing}
                   className="font-medium text-[#2268d7] underline-offset-2 hover:underline"
                 >
                   Pricing
                 </Link>
-                ). Clearing this site&apos;s data removes only this local draft.{" "}
+                ); clearing this site&apos;s data here removes only this local draft.{" "}
                 <Link
                   href={ROUTES.faq}
                   className="font-medium text-[#2268d7] underline-offset-2 hover:underline"
@@ -56,20 +57,21 @@ export function GuestDraftLocalSaveNote({ className, signedIn = false }: Props) 
               </>
             ) : (
               <>
-                New visits open with sample résumé content you can replace. Your work autosaves in this browser
-                only.{" "}
-                <strong className="font-medium text-slate-800">Sign in</strong>, create a resume project on your
-                dashboard, then open <strong className="font-medium text-slate-800">Draft</strong>—same studio
-                editor, synced to your account.                 PDF export is <strong className="font-medium text-slate-800">{RESUME_PDF_EXPORT_PRICE_USD} once</strong>{" "}
-                per project from <strong className="font-medium text-slate-800">Preview &amp; export</strong> (see{" "}
+                We open with sample résumé content you can edit or replace, and your work autosaves in this browser
+                only. When you&apos;re ready, sign in, create a resume project from your dashboard, and open Draft
+                to continue in the same studio with your work synced to your account. PDF export is{" "}
+                <span className="font-medium text-slate-800">
+                  {RESUME_PDF_EXPORT_PRICE_USD} once per project
+                </span>{" "}
+                from Preview &amp; export (see{" "}
                 <Link
                   href={ROUTES.pricing}
                   className="font-medium text-[#2268d7] underline-offset-2 hover:underline"
                 >
                   Pricing
                 </Link>
-                ). Clearing this site&apos;s data or another device won&apos;t remove work you already saved to
-                your account.{" "}
+                ); anything you have already saved to your account stays available if you clear this site&apos;s
+                data or switch devices.{" "}
                 <Link
                   href={ROUTES.faq}
                   className="font-medium text-[#2268d7] underline-offset-2 hover:underline"
