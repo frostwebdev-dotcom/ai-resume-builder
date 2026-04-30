@@ -117,6 +117,10 @@ export type WizardLayoutV1 = {
    * Languages/hobbies/courses/internships map to their own preview sections; `additional` is notes only.
    */
   pageBreakBefore: Partial<Record<WizardEditorSectionId, boolean>>;
+  /**
+   * Guest studio accordion order (drag handles). Drives preview/PDF section order; normalized on load.
+   */
+  sectionOrder: WizardEditorSectionId[];
 };
 
 export type WizardStateV1 = {

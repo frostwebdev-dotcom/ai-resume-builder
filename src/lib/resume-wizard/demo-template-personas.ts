@@ -1,6 +1,7 @@
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { TEMPLATE_SLUG_ORDER } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme, templateSupportsAvatar } from "@/lib/resume-preview/template-theme";
+import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-order";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 
 /** Stable portrait URLs (Unsplash) for sidebar / photo-banner previews only. */
@@ -758,6 +759,7 @@ export function buildDemoWizardStateForTemplateSlug(slug: TemplateSlug): WizardS
     layout: {
       v: 1,
       pageBreakBefore: {},
+      sectionOrder: [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
     },
   };
 }

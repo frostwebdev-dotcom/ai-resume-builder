@@ -60,6 +60,20 @@ export type ResumeSupplementarySectionId =
   | "courses"
   | "internships";
 
+/** Main + rail blocks (excludes `personal` — rendered with contact/header). */
+export type ResumePreviewBodyBlockId =
+  | "summary"
+  | "education"
+  | "experience"
+  | "skills"
+  | "languages"
+  | "hobbies"
+  | "courses"
+  | "internships"
+  | "certifications"
+  | "projects"
+  | "additional";
+
 export type ResumeSupplementarySection = {
   id: ResumeSupplementarySectionId;
   title: string;
@@ -94,6 +108,11 @@ export type ResumePreviewDocument = {
   personalOptionalLines: ResumeContactLine[];
   /** Languages, hobbies, courses, internships — each with its own heading, in form order. */
   supplementarySections: ResumeSupplementarySection[];
+  /**
+   * Preview/PDF section order from the studio (excluding personal).
+   * Sidebar templates render `skills` / `certifications` in the left rail; other ids in the main column.
+   */
+  bodySectionOrder: ResumePreviewBodyBlockId[];
   summary: string | null;
   skills: string[];
   experience: ResumeExperienceBlock[];

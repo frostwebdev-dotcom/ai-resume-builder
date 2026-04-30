@@ -1,5 +1,6 @@
 import { createEmptyWizardState } from "@/lib/resume-wizard/defaults";
 import { ensureEntryId } from "@/lib/resume-wizard/ids";
+import { normalizeWizardSectionOrder } from "@/lib/resume-wizard/section-order";
 import { wizardStateSchema } from "@/lib/resume-wizard/schema";
 import type {
   CertificationEntry,
@@ -94,25 +95,36 @@ export function hydrateWizardState(raw: unknown): WizardStateV1 {
         ? (o.additional as WizardStateV1["additional"])
         : {}),
     },
-    layout: {
-      ...defaults.layout,
-      ...(typeof o.layout === "object" && o.layout !== null
-        ? (o.layout as WizardStateV1["layout"])
-        : {}),
-      pageBreakBefore: {
-        ...defaults.layout.pageBreakBefore,
-        ...(typeof o.layout === "object" &&
-        o.layout !== null &&
-        typeof (o.layout as { pageBreakBefore?: unknown }).pageBreakBefore === "object" &&
-        (o.layout as { pageBreakBefore?: unknown }).pageBreakBefore !== null
-          ? ((o.layout as { pageBreakBefore: Record<string, boolean> }).pageBreakBefore ?? {})
-          : {}),
-      },
-    },
+    layout: (() => {
+      const rawLo =
+        typeof o.layout === "object" && o.layout !== null
+          ? (o.layout as Record<string, unknown>)
+          : {};
+      return {
+        v: 1 as const,
+        pageBreakBefore: {
+          ...defaults.layout.pageBreakBefore,
+          ...(typeof rawLo.pageBreakBefore === "object" &&
+          rawLo.pageBreakBefore !== null &&
+          !Array.isArray(rawLo.pageBreakBefore)
+            ? (rawLo.pageBreakBefore as Record<string, boolean>)
+            : {}),
+        },
+        sectionOrder: normalizeWizardSectionOrder(rawLo.sectionOrder),
+      };
+    })(),
   };
 
   const parsed = wizardStateSchema.safeParse(merged);
-  return parsed.success ? parsed.data : defaults;
+  if (!parsed.success) return defaults;
+  const d = parsed.data;
+  return {
+    ...d,
+    layout: {
+      ...d.layout,
+      sectionOrder: normalizeWizardSectionOrder(d.layout.sectionOrder),
+    },
+  };
 }
 
 function normalizeExperienceEntries(

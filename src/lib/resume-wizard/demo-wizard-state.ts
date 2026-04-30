@@ -1,6 +1,7 @@
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
-import { wizardStateSchema } from "@/lib/resume-wizard/schema";
 import { buildDemoWizardStateForTemplateSlug } from "@/lib/resume-wizard/demo-template-personas";
+import { wizardStateSchema } from "@/lib/resume-wizard/schema";
+import { normalizeWizardSectionOrder } from "@/lib/resume-wizard/section-order";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 
 function parseDemo(raw: WizardStateV1): WizardStateV1 {
@@ -9,7 +10,14 @@ function parseDemo(raw: WizardStateV1): WizardStateV1 {
     console.error("[demo-wizard-state] schema drift", parsed.error.flatten());
     throw new Error("Demo wizard state failed validation; update demo-template-personas.ts.");
   }
-  return parsed.data;
+  const d = parsed.data;
+  return {
+    ...d,
+    layout: {
+      ...d.layout,
+      sectionOrder: normalizeWizardSectionOrder(d.layout.sectionOrder),
+    },
+  };
 }
 
 /**

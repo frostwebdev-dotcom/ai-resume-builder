@@ -62,6 +62,7 @@ import {
 import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import { isProfileDescriptionEmpty } from "@/lib/profile-description-html";
 import { ensureEntryId } from "@/lib/resume-wizard/ids";
+import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-order";
 import type { WizardEditorSectionId, WizardStateV1 } from "@/lib/resume-wizard/types";
 import {
   AdditionalAiPanel,
@@ -119,6 +120,34 @@ const SPACING_PRESETS: { id: "tight" | "cozy" | "airy"; label: string; scale: nu
   { id: "cozy", label: "Cozy", scale: 1 },
   { id: "airy", label: "Airy", scale: 1.2 },
 ];
+
+function moveSectionOrder(
+  order: WizardEditorSectionId[],
+  dragId: WizardEditorSectionId,
+  targetId: WizardEditorSectionId,
+): WizardEditorSectionId[] {
+  if (dragId === targetId) return order;
+  const next = order.filter((id) => id !== dragId);
+  const idx = next.indexOf(targetId);
+  if (idx === -1) return order;
+  next.splice(idx, 0, dragId);
+  return next;
+}
+
+/** Swap `id` with its neighbor in the list (keyboard / button reorder). */
+function swapSectionWithNeighbor(
+  order: WizardEditorSectionId[],
+  id: WizardEditorSectionId,
+  delta: -1 | 1,
+): WizardEditorSectionId[] {
+  const i = order.indexOf(id);
+  if (i === -1) return order;
+  const j = i + delta;
+  if (j < 0 || j >= order.length) return order;
+  const next = [...order];
+  [next[i], next[j]] = [next[j], next[i]];
+  return next;
+}
 
 const COLOR_SWATCHES = [
   "#0f172a",
@@ -209,6 +238,17 @@ export function GuestStudioEditor({
     () => mapWizardToPreviewDocument(stateForPreview, { avatarUrl: previewAvatarForMap }),
     [stateForPreview, previewAvatarForMap],
   );
+
+  const sectionOrderResolved = useMemo(
+    () => state.layout.sectionOrder ?? [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
+    [state.layout.sectionOrder],
+  );
+
+  const orderedSections = useMemo((): SectionDef[] => {
+    return sectionOrderResolved
+      .map((id) => SECTIONS.find((s) => s.id === id))
+      .filter((s): s is SectionDef => Boolean(s));
+  }, [sectionOrderResolved]);
 
   const exportHref =
     persistMode === "project" && projectPreviewHref
@@ -448,9 +488,37 @@ export function GuestStudioEditor({
             className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm"
             aria-label="Resume sections"
           >
-            {SECTIONS.map((section) => (
-              <SectionCard
+            {orderedSections.map((section) => {
+              const idx = sectionOrderResolved.indexOf(section.id);
+              const canMoveUp = idx > 0;
+              const canMoveDown = idx >= 0 && idx < sectionOrderResolved.length - 1;
+              return (
+              <div
                 key={section.id}
+                className="border-t border-neutral-200 first:border-t-0"
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const dragId = e.dataTransfer.getData("text/plain") as WizardEditorSectionId;
+                  if (!dragId || dragId === section.id) return;
+                  setState((s) => ({
+                    ...s,
+                    layout: {
+                      ...s.layout,
+                      v: 1,
+                      sectionOrder: moveSectionOrder(
+                        s.layout.sectionOrder ?? [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
+                        dragId,
+                        section.id,
+                      ),
+                    },
+                  }));
+                }}
+              >
+              <SectionCard
                 section={section}
                 displayLabel={sectionLabelOverrides[section.id] ?? section.label}
                 open={openSection === section.id}
@@ -461,6 +529,42 @@ export function GuestStudioEditor({
                 onTitleDraftChange={setSectionTitleDraft}
                 onTitleCommit={() => commitSectionTitle(section.id, section.label)}
                 onTitleCancel={cancelSectionTitleEdit}
+                sectionReorder={
+                  canMoveUp || canMoveDown
+                    ? {
+                        canMoveUp,
+                        canMoveDown,
+                        onMoveUp: () =>
+                          setState((s) => ({
+                            ...s,
+                            layout: {
+                              ...s.layout,
+                              v: 1,
+                              sectionOrder: swapSectionWithNeighbor(
+                                s.layout.sectionOrder ??
+                                  [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
+                                section.id,
+                                -1,
+                              ),
+                            },
+                          })),
+                        onMoveDown: () =>
+                          setState((s) => ({
+                            ...s,
+                            layout: {
+                              ...s.layout,
+                              v: 1,
+                              sectionOrder: swapSectionWithNeighbor(
+                                s.layout.sectionOrder ??
+                                  [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
+                                section.id,
+                                1,
+                              ),
+                            },
+                          })),
+                      }
+                    : undefined
+                }
                 headerMenu={
                   openSection === section.id ? (
                     <SectionOverflowMenu
@@ -477,7 +581,13 @@ export function GuestStudioEditor({
                           else delete pageBreakBefore[section.id];
                           return {
                             ...s,
-                            layout: { ...s.layout, v: 1, pageBreakBefore },
+                            layout: {
+                              ...s.layout,
+                              v: 1,
+                              pageBreakBefore,
+                              sectionOrder:
+                                s.layout.sectionOrder ?? [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
+                            },
                           };
                         })
                       }
@@ -507,7 +617,9 @@ export function GuestStudioEditor({
                   jobAssist={jobAssist}
                 />
               </SectionCard>
-            ))}
+              </div>
+            );
+            })}
           </nav>
 
           <footer className="mt-6 border-t border-neutral-200/90 pt-6">
@@ -1472,6 +1584,7 @@ function SectionCard({
   onTitleCommit,
   onTitleCancel,
   headerMenu,
+  sectionReorder,
   children,
 }: {
   section: SectionDef;
@@ -1485,25 +1598,69 @@ function SectionCard({
   onTitleCommit: () => void;
   onTitleCancel: () => void;
   headerMenu: ReactNode;
+  sectionReorder?: {
+    canMoveUp: boolean;
+    canMoveDown: boolean;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
+  };
   children: ReactNode;
 }) {
   const skipBlurCommitRef = useRef(false);
 
   return (
     <section
-      className={cn(
-        "border-t border-neutral-200 first:border-t-0",
-        open && "bg-neutral-50/60",
-      )}
+      className={cn(open && "bg-neutral-50/60")}
     >
       <div className="flex w-full items-center gap-2 px-4 py-[1.05rem] sm:py-[1.15rem] sm:pl-5 sm:pr-4">
         <span
-          className="inline-flex shrink-0 cursor-grab touch-none text-neutral-300"
-          aria-hidden
-          title="Section order"
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData("text/plain", section.id);
+            e.dataTransfer.effectAllowed = "move";
+          }}
+          className="inline-flex shrink-0 cursor-grab touch-none text-neutral-400 hover:text-neutral-500"
+          aria-label="Drag to reorder sections"
+          title="Drag to reorder sections"
         >
-          <GripVertical className="size-4" />
+          <GripVertical className="size-4" aria-hidden />
         </span>
+        {sectionReorder ? (
+          <div
+            className="flex shrink-0 flex-col gap-px"
+            role="group"
+            aria-label={`Reorder ${displayLabel}`}
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={!sectionReorder.canMoveUp}
+              onClick={(e) => {
+                e.stopPropagation();
+                sectionReorder.onMoveUp();
+              }}
+              className="size-7 shrink-0 text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
+              aria-label={`Move ${displayLabel} up in the list`}
+            >
+              <ChevronUp className="size-3.5" aria-hidden />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={!sectionReorder.canMoveDown}
+              onClick={(e) => {
+                e.stopPropagation();
+                sectionReorder.onMoveDown();
+              }}
+              className="size-7 shrink-0 text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
+              aria-label={`Move ${displayLabel} down in the list`}
+            >
+              <ChevronDown className="size-3.5" aria-hidden />
+            </Button>
+          </div>
+        ) : null}
         {titleEditing ? (
           <div
             className="min-w-0 flex-1"

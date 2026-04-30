@@ -4,7 +4,8 @@ import {
   isProfileDescriptionEmpty,
   profileHtmlToPlainText,
 } from "@/lib/profile-description-html";
-import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
+import type { ResumePreviewBodyBlockId, ResumePreviewDocument } from "@/lib/resume-preview/model";
+import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-order";
 import type { PdfLayout } from "@/lib/resume-pdf/pdfkit/layouts";
 
 type Pdf = InstanceType<typeof PDFDocument>;
@@ -38,6 +39,13 @@ export function renderSidebarPdf(
   doc: ResumePreviewDocument,
   avatarPng: Buffer | null,
 ): void {
+  const resolvedBodyOrder: ResumePreviewBodyBlockId[] =
+    doc.bodySectionOrder.length > 0
+      ? doc.bodySectionOrder
+      : (DEFAULT_GUEST_STUDIO_SECTION_ORDER.filter(
+          (id): id is ResumePreviewBodyBlockId => id !== "personal",
+        ) as ResumePreviewBodyBlockId[]);
+
   const pageW = pdf.page.width;
   const pageH = pdf.page.height;
   const sidebarW = Math.round(pageW * SIDEBAR_RATIO);
@@ -154,55 +162,54 @@ export function renderSidebarPdf(
     railY += 8;
   }
 
-  // ─── Sidebar: skills
-  if (doc.skills.length) {
-    railY = drawSidebarHeading(pdf, layout, "Skills", railX, railY, railContentW);
-    pdf.font(layout.fonts.regular).fontSize(layout.smallSize - 0.5).fillColor(SIDEBAR_TEXT);
-    for (const s of doc.skills) {
-      // Bullet dot in accent color.
-      pdf
-        .save()
-        .fillColor(layout.accent)
-        .circle(railX + 2, railY + (layout.smallSize - 0.5) * 0.45, 1.1)
-        .fill()
-        .restore();
-      pdf.fillColor(SIDEBAR_TEXT).text(s, railX + 8, railY, {
-        width: railContentW - 8,
-        lineGap: 1,
-      });
-      railY = pdf.y + 2;
-    }
-    railY += 8;
-  }
-
-  // ─── Sidebar: certifications
+  const railOrder = resolvedBodyOrder.filter((b) => b === "skills" || b === "certifications");
   const certs = doc.certifications.filter((c) => c.name || c.issuer);
-  if (certs.length) {
-    railY = drawSidebarHeading(pdf, layout, "Certifications", railX, railY, railContentW);
-    for (const c of certs) {
-      pdf
-        .font(layout.fonts.bold)
-        .fontSize(layout.smallSize - 0.5)
-        .fillColor(SIDEBAR_TEXT)
-        .text(c.name || "Certification", railX, railY, { width: railContentW });
-      railY = pdf.y + 1;
-      if (c.issuer) {
+  for (const rid of railOrder) {
+    if (rid === "skills" && doc.skills.length) {
+      railY = drawSidebarHeading(pdf, layout, "Skills", railX, railY, railContentW);
+      pdf.font(layout.fonts.regular).fontSize(layout.smallSize - 0.5).fillColor(SIDEBAR_TEXT);
+      for (const s of doc.skills) {
         pdf
-          .font(layout.fonts.regular)
+          .save()
+          .fillColor(layout.accent)
+          .circle(railX + 2, railY + (layout.smallSize - 0.5) * 0.45, 1.1)
+          .fill()
+          .restore();
+        pdf.fillColor(SIDEBAR_TEXT).text(s, railX + 8, railY, {
+          width: railContentW - 8,
+          lineGap: 1,
+        });
+        railY = pdf.y + 2;
+      }
+      railY += 8;
+    }
+    if (rid === "certifications" && certs.length) {
+      railY = drawSidebarHeading(pdf, layout, "Certifications", railX, railY, railContentW);
+      for (const c of certs) {
+        pdf
+          .font(layout.fonts.bold)
           .fontSize(layout.smallSize - 0.5)
-          .fillColor(SIDEBAR_TEXT_DIM)
-          .text(c.issuer, railX, railY, { width: railContentW });
+          .fillColor(SIDEBAR_TEXT)
+          .text(c.name || "Certification", railX, railY, { width: railContentW });
         railY = pdf.y + 1;
+        if (c.issuer) {
+          pdf
+            .font(layout.fonts.regular)
+            .fontSize(layout.smallSize - 0.5)
+            .fillColor(SIDEBAR_TEXT_DIM)
+            .text(c.issuer, railX, railY, { width: railContentW });
+          railY = pdf.y + 1;
+        }
+        if (c.dateLine) {
+          pdf
+            .font(layout.fonts.regular)
+            .fontSize(layout.smallSize - 1.5)
+            .fillColor("rgba(255,255,255,0.75)")
+            .text(c.dateLine, railX, railY, { width: railContentW });
+          railY = pdf.y + 1;
+        }
+        railY += 4;
       }
-      if (c.dateLine) {
-        pdf
-          .font(layout.fonts.regular)
-          .fontSize(layout.smallSize - 1.5)
-          .fillColor("rgba(255,255,255,0.75)")
-          .text(c.dateLine, railX, railY, { width: railContentW });
-        railY = pdf.y + 1;
-      }
-      railY += 4;
     }
   }
 
@@ -233,7 +240,7 @@ export function renderSidebarPdf(
     state.onOverflow();
   });
 
-  drawMain(pdf, layout, doc, state, mainPad);
+  drawMain(pdf, layout, doc, state, mainPad, resolvedBodyOrder);
 }
 
 type MainState = {
@@ -356,169 +363,190 @@ function mainBullets(pdf: Pdf, layout: PdfLayout, state: MainState, items: strin
   }
 }
 
+const FALLBACK_SIDEBAR_MAIN_ORDER: ResumePreviewBodyBlockId[] =
+  DEFAULT_GUEST_STUDIO_SECTION_ORDER.filter(
+    (id): id is ResumePreviewBodyBlockId => id !== "personal",
+  ).filter((id) => id !== "skills" && id !== "certifications");
+
 function drawMain(
   pdf: Pdf,
   layout: PdfLayout,
   docData: ResumePreviewDocument,
   state: MainState,
   mainPad: number,
+  resolvedBodyOrder: ResumePreviewBodyBlockId[],
 ): void {
   const pb = docData.pageBreakBefore;
-
-  // Summary
-  if (docData.summary && !isProfileDescriptionEmpty(docData.summary)) {
-    applyMainHardPageBreak(pdf, state, mainPad, pb, "summary", true);
-    mainSectionTitle(pdf, layout, state, "Summary");
-    mainParagraph(pdf, layout, state, profileHtmlToPlainText(docData.summary));
-    pdf.moveDown(0.25);
-  }
-
-  // Education
-  const hasEdu = docData.education.some(
-    (e) => e.school || e.degreeLine !== "Education" || e.dateRange,
+  const mainOrder = resolvedBodyOrder.filter(
+    (b) => b !== "skills" && b !== "certifications",
   );
-  if (hasEdu) {
-    applyMainHardPageBreak(pdf, state, mainPad, pb, "education", true);
-    mainSectionTitle(pdf, layout, state, "Education");
-    for (const ed of docData.education) {
-      if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
-      ensureMainSpace(pdf, state, layout.bodySize * 2 + 6);
 
-      const startY = pdf.y;
-      const line = [ed.degreeLine, ed.school].filter(Boolean).join(" — ");
-      const dateText = ed.dateRange?.trim() ?? "";
-      const dateWidth = dateText ? 120 : 0;
-      const titleWidth = state.width - (dateText ? dateWidth + 8 : 0);
+  for (const blockId of mainOrder.length ? mainOrder : FALLBACK_SIDEBAR_MAIN_ORDER) {
+    switch (blockId) {
+      case "summary":
+        if (docData.summary && !isProfileDescriptionEmpty(docData.summary)) {
+          applyMainHardPageBreak(pdf, state, mainPad, pb, "summary", true);
+          mainSectionTitle(pdf, layout, state, "Summary");
+          mainParagraph(pdf, layout, state, profileHtmlToPlainText(docData.summary));
+          pdf.moveDown(0.25);
+        }
+        break;
+      case "education": {
+        const hasEdu = docData.education.some(
+          (e) => e.school || e.degreeLine !== "Education" || e.dateRange,
+        );
+        if (!hasEdu) break;
+        applyMainHardPageBreak(pdf, state, mainPad, pb, "education", true);
+        mainSectionTitle(pdf, layout, state, "Education");
+        for (const ed of docData.education) {
+          if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
+          ensureMainSpace(pdf, state, layout.bodySize * 2 + 6);
 
-      pdf
-        .font(layout.fonts.bold)
-        .fontSize(layout.bodySize + 0.5)
-        .fillColor(NAME_COLOR)
-        .text(line, state.left, startY, { width: titleWidth });
+          const startY = pdf.y;
+          const line = [ed.degreeLine, ed.school].filter(Boolean).join(" — ");
+          const dateText = ed.dateRange?.trim() ?? "";
+          const dateWidth = dateText ? 120 : 0;
+          const titleWidth = state.width - (dateText ? dateWidth + 8 : 0);
 
-      if (dateText) {
-        pdf
-          .font(layout.fonts.regular)
-          .fontSize(layout.smallSize)
-          .fillColor(META_COLOR)
-          .text(dateText, state.left + state.width - dateWidth, startY + 1, {
-            width: dateWidth,
-            align: "right",
-          });
+          pdf
+            .font(layout.fonts.bold)
+            .fontSize(layout.bodySize + 0.5)
+            .fillColor(NAME_COLOR)
+            .text(line, state.left, startY, { width: titleWidth });
+
+          if (dateText) {
+            pdf
+              .font(layout.fonts.regular)
+              .fontSize(layout.smallSize)
+              .fillColor(META_COLOR)
+              .text(dateText, state.left + state.width - dateWidth, startY + 1, {
+                width: dateWidth,
+                align: "right",
+              });
+          }
+
+          pdf.y = Math.max(pdf.y, startY + layout.bodySize + 2);
+
+          if (ed.details?.trim()) {
+            pdf.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
+            pdf.text(ed.details.trim(), state.left, pdf.y, { width: state.width });
+            pdf.moveDown(0.2);
+          }
+          pdf.moveDown(0.15);
+        }
+        break;
       }
+      case "experience": {
+        const hasExp = docData.experience.some(
+          (e) => e.title || e.company || e.highlights.length,
+        );
+        if (!hasExp) break;
+        applyMainHardPageBreak(pdf, state, mainPad, pb, "experience", true);
+        mainSectionTitle(pdf, layout, state, "Experience");
+        for (const ex of docData.experience) {
+          if (!ex.title && !ex.company && ex.highlights.length === 0) continue;
+          ensureMainSpace(pdf, state, layout.bodySize * 3 + 10);
 
-      pdf.y = Math.max(pdf.y, startY + layout.bodySize + 2);
+          const startY = pdf.y;
+          const titleLine = [ex.title || "Role", ex.company ? `— ${ex.company}` : ""]
+            .filter(Boolean)
+            .join(" ");
 
-      if (ed.details?.trim()) {
-        pdf.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
-        pdf.text(ed.details.trim(), state.left, pdf.y, { width: state.width });
-        pdf.moveDown(0.2);
+          const dateText = ex.dateRange?.trim() ?? "";
+          const dateWidth = dateText ? 130 : 0;
+          const titleWidth = state.width - (dateText ? dateWidth + 8 : 0);
+
+          pdf
+            .font(layout.fonts.bold)
+            .fontSize(layout.bodySize + 0.5)
+            .fillColor(NAME_COLOR)
+            .text(titleLine, state.left, startY, { width: titleWidth });
+
+          if (dateText) {
+            pdf
+              .font(layout.fonts.regular)
+              .fontSize(layout.smallSize)
+              .fillColor(META_COLOR)
+              .text(dateText, state.left + state.width - dateWidth, startY + 1, {
+                width: dateWidth,
+                align: "right",
+              });
+          }
+
+          pdf.y = Math.max(pdf.y, startY + layout.bodySize + 2);
+
+          if (ex.location?.trim()) {
+            pdf
+              .font(layout.fonts.italic)
+              .fontSize(layout.smallSize)
+              .fillColor(FAINT_COLOR)
+              .text(ex.location, state.left, pdf.y, { width: state.width });
+            pdf.moveDown(0.15);
+          }
+
+          if (ex.highlights.length) {
+            mainBullets(pdf, layout, state, ex.highlights);
+          }
+          pdf.moveDown(layout.entryGap / layout.bodySize);
+        }
+        break;
       }
-      pdf.moveDown(0.15);
+      case "languages":
+      case "hobbies":
+      case "courses":
+      case "internships": {
+        const s = docData.supplementarySections.find((x) => x.id === blockId);
+        if (!s?.body.trim()) break;
+        applyMainHardPageBreak(pdf, state, mainPad, pb, s.id, true);
+        mainSectionTitle(pdf, layout, state, s.title);
+        mainParagraph(pdf, layout, state, s.body.trim());
+        break;
+      }
+      case "projects": {
+        const hasProj = docData.projects.some((p) => p.name || p.description);
+        if (!hasProj) break;
+        applyMainHardPageBreak(pdf, state, mainPad, pb, "projects", true);
+        mainSectionTitle(pdf, layout, state, "Projects");
+        for (const p of docData.projects) {
+          if (!p.name && !p.description) continue;
+          ensureMainSpace(pdf, state, layout.bodySize * 3 + 6);
+          pdf
+            .font(layout.fonts.bold)
+            .fontSize(layout.bodySize + 0.5)
+            .fillColor(NAME_COLOR)
+            .text(p.name || "Project", state.left, pdf.y, { width: state.width });
+          pdf.moveDown(0.1);
+
+          if (p.description?.trim()) {
+            pdf
+              .font(layout.fonts.regular)
+              .fontSize(layout.bodySize)
+              .fillColor(BODY_COLOR)
+              .text(p.description.trim(), state.left, pdf.y, { width: state.width });
+            pdf.moveDown(0.15);
+          }
+          if (p.technologies?.trim()) {
+            pdf
+              .font(layout.fonts.italic)
+              .fontSize(layout.smallSize)
+              .fillColor(FAINT_COLOR)
+              .text(`Stack: ${p.technologies.trim()}`, state.left, pdf.y, { width: state.width });
+            pdf.moveDown(0.2);
+          }
+          pdf.moveDown(layout.entryGap / (layout.bodySize * 2));
+        }
+        break;
+      }
+      case "additional":
+        if (docData.additional?.trim()) {
+          applyMainHardPageBreak(pdf, state, mainPad, pb, "additional", true);
+          mainSectionTitle(pdf, layout, state, "Additional");
+          mainParagraph(pdf, layout, state, docData.additional.trim());
+        }
+        break;
+      default:
+        break;
     }
-  }
-
-  // Experience
-  const hasExp = docData.experience.some(
-    (e) => e.title || e.company || e.highlights.length,
-  );
-  if (hasExp) {
-    applyMainHardPageBreak(pdf, state, mainPad, pb, "experience", true);
-    mainSectionTitle(pdf, layout, state, "Experience");
-    for (const ex of docData.experience) {
-      if (!ex.title && !ex.company && ex.highlights.length === 0) continue;
-      ensureMainSpace(pdf, state, layout.bodySize * 3 + 10);
-
-      const startY = pdf.y;
-      const titleLine = [ex.title || "Role", ex.company ? `— ${ex.company}` : ""]
-        .filter(Boolean)
-        .join(" ");
-
-      const dateText = ex.dateRange?.trim() ?? "";
-      const dateWidth = dateText ? 130 : 0;
-      const titleWidth = state.width - (dateText ? dateWidth + 8 : 0);
-
-      pdf
-        .font(layout.fonts.bold)
-        .fontSize(layout.bodySize + 0.5)
-        .fillColor(NAME_COLOR)
-        .text(titleLine, state.left, startY, { width: titleWidth });
-
-      if (dateText) {
-        pdf
-          .font(layout.fonts.regular)
-          .fontSize(layout.smallSize)
-          .fillColor(META_COLOR)
-          .text(dateText, state.left + state.width - dateWidth, startY + 1, {
-            width: dateWidth,
-            align: "right",
-          });
-      }
-
-      pdf.y = Math.max(pdf.y, startY + layout.bodySize + 2);
-
-      if (ex.location?.trim()) {
-        pdf
-          .font(layout.fonts.italic)
-          .fontSize(layout.smallSize)
-          .fillColor(FAINT_COLOR)
-          .text(ex.location, state.left, pdf.y, { width: state.width });
-        pdf.moveDown(0.15);
-      }
-
-      if (ex.highlights.length) {
-        mainBullets(pdf, layout, state, ex.highlights);
-      }
-      pdf.moveDown(layout.entryGap / layout.bodySize);
-    }
-  }
-
-  for (const s of docData.supplementarySections) {
-    if (!s.body.trim()) continue;
-    applyMainHardPageBreak(pdf, state, mainPad, pb, s.id, true);
-    mainSectionTitle(pdf, layout, state, s.title);
-    mainParagraph(pdf, layout, state, s.body.trim());
-  }
-
-  // Projects
-  const hasProj = docData.projects.some((p) => p.name || p.description);
-  if (hasProj) {
-    applyMainHardPageBreak(pdf, state, mainPad, pb, "projects", true);
-    mainSectionTitle(pdf, layout, state, "Projects");
-    for (const p of docData.projects) {
-      if (!p.name && !p.description) continue;
-      ensureMainSpace(pdf, state, layout.bodySize * 3 + 6);
-      pdf
-        .font(layout.fonts.bold)
-        .fontSize(layout.bodySize + 0.5)
-        .fillColor(NAME_COLOR)
-        .text(p.name || "Project", state.left, pdf.y, { width: state.width });
-      pdf.moveDown(0.1);
-
-      if (p.description?.trim()) {
-        pdf
-          .font(layout.fonts.regular)
-          .fontSize(layout.bodySize)
-          .fillColor(BODY_COLOR)
-          .text(p.description.trim(), state.left, pdf.y, { width: state.width });
-        pdf.moveDown(0.15);
-      }
-      if (p.technologies?.trim()) {
-        pdf
-          .font(layout.fonts.italic)
-          .fontSize(layout.smallSize)
-          .fillColor(FAINT_COLOR)
-          .text(`Stack: ${p.technologies.trim()}`, state.left, pdf.y, { width: state.width });
-        pdf.moveDown(0.2);
-      }
-      pdf.moveDown(layout.entryGap / (layout.bodySize * 2));
-    }
-  }
-
-  if (docData.additional?.trim()) {
-    applyMainHardPageBreak(pdf, state, mainPad, pb, "additional", true);
-    mainSectionTitle(pdf, layout, state, "Additional");
-    mainParagraph(pdf, layout, state, docData.additional.trim());
   }
 }
 

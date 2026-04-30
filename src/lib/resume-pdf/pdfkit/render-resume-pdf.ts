@@ -5,7 +5,12 @@ import {
   isProfileDescriptionEmpty,
   profileHtmlToPlainText,
 } from "@/lib/profile-description-html";
-import type { ResumeContactLine, ResumePreviewDocument } from "@/lib/resume-preview/model";
+import type {
+  ResumeContactLine,
+  ResumePreviewBodyBlockId,
+  ResumePreviewDocument,
+} from "@/lib/resume-preview/model";
+import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-order";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getPdfLayout, type PdfLayout } from "@/lib/resume-pdf/pdfkit/layouts";
@@ -445,213 +450,240 @@ function renderHeader(
   doc.moveDown(0.55);
 }
 
+const FALLBACK_CLASSIC_BODY_ORDER: ResumePreviewBodyBlockId[] =
+  DEFAULT_GUEST_STUDIO_SECTION_ORDER.filter(
+    (id): id is ResumePreviewBodyBlockId => id !== "personal",
+  );
+
 function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument): void {
   const pb = docData.pageBreakBefore;
+  const order =
+    docData.bodySectionOrder.length > 0
+      ? docData.bodySectionOrder
+      : FALLBACK_CLASSIC_BODY_ORDER;
 
-  if (docData.summary && !isProfileDescriptionEmpty(docData.summary)) {
-    applyHardPageBreak(doc, layout, pb, "summary", true);
-    writeSectionTitle(doc, layout, "Summary");
-    writeParagraph(doc, layout, profileHtmlToPlainText(docData.summary));
-    doc.moveDown(0.25);
-  }
-
-  const hasEdu = docData.education.some(
-    (e) => e.school || e.degreeLine !== "Education" || e.dateRange,
-  );
-  if (hasEdu) {
-    applyHardPageBreak(doc, layout, pb, "education", true);
-    writeSectionTitle(doc, layout, "Education");
-    for (const ed of docData.education) {
-      if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
-      ensureSpace(doc, layout, layout.bodySize * 2 + 6);
-
-      const w = contentWidth(doc, layout);
-      const startY = doc.y;
-      const line = [ed.degreeLine, ed.school].filter(Boolean).join(" — ");
-      const dateText = ed.dateRange?.trim() ?? "";
-      const dateWidth = dateText ? 140 : 0;
-      const titleWidth = w - (dateText ? dateWidth + 8 : 0);
-
-      doc
-        .font(layout.fonts.bold)
-        .fontSize(layout.bodySize + 0.5)
-        .fillColor(NAME_COLOR)
-        .text(line, layout.pageMargin, startY, { width: titleWidth });
-
-      if (dateText) {
-        doc
-          .font(layout.fonts.regular)
-          .fontSize(layout.smallSize)
-          .fillColor(META_COLOR)
-          .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
-            width: dateWidth,
-            align: "right",
-          });
-      }
-
-      doc.y = Math.max(doc.y, startY + layout.bodySize + 2);
-
-      if (ed.details?.trim()) {
-        doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
-        doc.text(ed.details.trim(), layout.pageMargin, doc.y, { width: w });
-        doc.moveDown(0.2);
-      }
-      doc.moveDown(0.15);
-    }
-  }
-
-  const hasExp = docData.experience.some(
-    (e) => e.title || e.company || e.highlights.length,
-  );
-  if (hasExp) {
-    applyHardPageBreak(doc, layout, pb, "experience", true);
-    writeSectionTitle(doc, layout, "Experience");
-    for (const ex of docData.experience) {
-      if (!ex.title && !ex.company && ex.highlights.length === 0) continue;
-      ensureSpace(doc, layout, layout.bodySize * 3 + 10);
-
-      const w = contentWidth(doc, layout);
-      const startY = doc.y;
-
-      const titleLine = [ex.title || "Role", ex.company ? `— ${ex.company}` : ""]
-        .filter(Boolean)
-        .join(" ");
-
-      doc.font(layout.fonts.bold).fontSize(layout.bodySize + 0.5).fillColor(NAME_COLOR);
-      const dateText = ex.dateRange?.trim() ?? "";
-      const dateWidth = dateText ? 150 : 0;
-      const titleWidth = w - (dateText ? dateWidth + 8 : 0);
-      doc.text(titleLine, layout.pageMargin, startY, { width: titleWidth });
-
-      if (dateText) {
-        doc
-          .font(layout.fonts.regular)
-          .fontSize(layout.smallSize)
-          .fillColor(META_COLOR)
-          .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
-            width: dateWidth,
-            align: "right",
-          });
-      }
-
-      doc.y = Math.max(doc.y, startY + layout.bodySize + 2);
-
-      if (ex.location?.trim()) {
-        doc
-          .font(layout.fonts.italic)
-          .fontSize(layout.smallSize)
-          .fillColor(FAINT_COLOR)
-          .text(ex.location, layout.pageMargin, doc.y, { width: w });
-        doc.moveDown(0.15);
-      }
-
-      if (ex.highlights.length) {
-        writeBullets(doc, layout, ex.highlights);
-      }
-      doc.moveDown(layout.entryGap / layout.bodySize);
-    }
-  }
-
-  if (docData.skills.length) {
-    applyHardPageBreak(doc, layout, pb, "skills", true);
-    writeSectionTitle(doc, layout, "Skills");
-    writeParagraph(doc, layout, docData.skills.join("  ·  "));
-  }
-
-  for (const s of docData.supplementarySections) {
-    if (!s.body.trim()) continue;
-    applyHardPageBreak(doc, layout, pb, s.id, true);
-    writeSectionTitle(doc, layout, s.title);
-    writeParagraph(doc, layout, s.body.trim());
-  }
-
-  const hasCert = docData.certifications.some((c) => c.name || c.issuer);
-  if (hasCert) {
-    applyHardPageBreak(doc, layout, pb, "certifications", true);
-    writeSectionTitle(doc, layout, "Certifications");
-    for (const c of docData.certifications) {
-      if (!c.name && !c.issuer) continue;
-      ensureSpace(doc, layout, 18);
-      const left = [c.name, c.issuer].filter(Boolean).join(" — ");
-      const w = contentWidth(doc, layout);
-      const startY = doc.y;
-      const dateText = c.dateLine?.trim() ?? "";
-      const dateWidth = dateText ? 130 : 0;
-      const titleWidth = w - (dateText ? dateWidth + 8 : 0);
-      doc
-        .font(layout.fonts.regular)
-        .fontSize(layout.bodySize)
-        .fillColor(BODY_COLOR)
-        .text(left, layout.pageMargin, startY, { width: titleWidth });
-      if (dateText) {
-        doc
-          .font(layout.fonts.regular)
-          .fontSize(layout.smallSize)
-          .fillColor(META_COLOR)
-          .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
-            width: dateWidth,
-            align: "right",
-          });
-      }
-      doc.y = Math.max(doc.y, startY + layout.bodySize + 1);
-    }
-    doc.moveDown(0.2);
-  }
-
-  const hasProj = docData.projects.some((p) => p.name || p.description);
-  if (hasProj) {
-    applyHardPageBreak(doc, layout, pb, "projects", true);
-    writeSectionTitle(doc, layout, "Projects");
-    for (const p of docData.projects) {
-      if (!p.name && !p.description) continue;
-      ensureSpace(doc, layout, layout.bodySize * 3 + 6);
-
-      const w = contentWidth(doc, layout);
-      doc
-        .font(layout.fonts.bold)
-        .fontSize(layout.bodySize + 0.5)
-        .fillColor(NAME_COLOR)
-        .text(p.name || "Project", layout.pageMargin, doc.y, { width: w });
-      doc.moveDown(0.1);
-
-      if (p.url) {
-        const href = normaliseUrl(p.url);
-        doc.font(layout.fonts.regular).fontSize(layout.smallSize);
-        if (href) {
-          doc
-            .fillColor(layout.accent)
-            .text(p.url, layout.pageMargin, doc.y, { width: w, link: href });
-        } else {
-          doc.fillColor(META_COLOR).text(p.url, layout.pageMargin, doc.y, { width: w });
+  for (const blockId of order) {
+    switch (blockId) {
+      case "summary":
+        if (docData.summary && !isProfileDescriptionEmpty(docData.summary)) {
+          applyHardPageBreak(doc, layout, pb, "summary", true);
+          writeSectionTitle(doc, layout, "Summary");
+          writeParagraph(doc, layout, profileHtmlToPlainText(docData.summary));
+          doc.moveDown(0.25);
         }
-        doc.moveDown(0.15);
-      }
+        break;
+      case "education": {
+        const hasEdu = docData.education.some(
+          (e) => e.school || e.degreeLine !== "Education" || e.dateRange,
+        );
+        if (!hasEdu) break;
+        applyHardPageBreak(doc, layout, pb, "education", true);
+        writeSectionTitle(doc, layout, "Education");
+        for (const ed of docData.education) {
+          if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
+          ensureSpace(doc, layout, layout.bodySize * 2 + 6);
 
-      if (p.description?.trim()) {
-        doc
-          .font(layout.fonts.regular)
-          .fontSize(layout.bodySize)
-          .fillColor(BODY_COLOR)
-          .text(p.description.trim(), layout.pageMargin, doc.y, { width: w });
-        doc.moveDown(0.15);
-      }
+          const w = contentWidth(doc, layout);
+          const startY = doc.y;
+          const line = [ed.degreeLine, ed.school].filter(Boolean).join(" — ");
+          const dateText = ed.dateRange?.trim() ?? "";
+          const dateWidth = dateText ? 140 : 0;
+          const titleWidth = w - (dateText ? dateWidth + 8 : 0);
 
-      if (p.technologies?.trim()) {
-        doc
-          .font(layout.fonts.italic)
-          .fontSize(layout.smallSize)
-          .fillColor(FAINT_COLOR)
-          .text(`Stack: ${p.technologies.trim()}`, layout.pageMargin, doc.y, { width: w });
+          doc
+            .font(layout.fonts.bold)
+            .fontSize(layout.bodySize + 0.5)
+            .fillColor(NAME_COLOR)
+            .text(line, layout.pageMargin, startY, { width: titleWidth });
+
+          if (dateText) {
+            doc
+              .font(layout.fonts.regular)
+              .fontSize(layout.smallSize)
+              .fillColor(META_COLOR)
+              .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
+                width: dateWidth,
+                align: "right",
+              });
+          }
+
+          doc.y = Math.max(doc.y, startY + layout.bodySize + 2);
+
+          if (ed.details?.trim()) {
+            doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
+            doc.text(ed.details.trim(), layout.pageMargin, doc.y, { width: w });
+            doc.moveDown(0.2);
+          }
+          doc.moveDown(0.15);
+        }
+        break;
+      }
+      case "experience": {
+        const hasExp = docData.experience.some(
+          (e) => e.title || e.company || e.highlights.length,
+        );
+        if (!hasExp) break;
+        applyHardPageBreak(doc, layout, pb, "experience", true);
+        writeSectionTitle(doc, layout, "Experience");
+        for (const ex of docData.experience) {
+          if (!ex.title && !ex.company && ex.highlights.length === 0) continue;
+          ensureSpace(doc, layout, layout.bodySize * 3 + 10);
+
+          const w = contentWidth(doc, layout);
+          const startY = doc.y;
+
+          const titleLine = [ex.title || "Role", ex.company ? `— ${ex.company}` : ""]
+            .filter(Boolean)
+            .join(" ");
+
+          doc.font(layout.fonts.bold).fontSize(layout.bodySize + 0.5).fillColor(NAME_COLOR);
+          const dateText = ex.dateRange?.trim() ?? "";
+          const dateWidth = dateText ? 150 : 0;
+          const titleWidth = w - (dateText ? dateWidth + 8 : 0);
+          doc.text(titleLine, layout.pageMargin, startY, { width: titleWidth });
+
+          if (dateText) {
+            doc
+              .font(layout.fonts.regular)
+              .fontSize(layout.smallSize)
+              .fillColor(META_COLOR)
+              .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
+                width: dateWidth,
+                align: "right",
+              });
+          }
+
+          doc.y = Math.max(doc.y, startY + layout.bodySize + 2);
+
+          if (ex.location?.trim()) {
+            doc
+              .font(layout.fonts.italic)
+              .fontSize(layout.smallSize)
+              .fillColor(FAINT_COLOR)
+              .text(ex.location, layout.pageMargin, doc.y, { width: w });
+            doc.moveDown(0.15);
+          }
+
+          if (ex.highlights.length) {
+            writeBullets(doc, layout, ex.highlights);
+          }
+          doc.moveDown(layout.entryGap / layout.bodySize);
+        }
+        break;
+      }
+      case "skills":
+        if (docData.skills.length) {
+          applyHardPageBreak(doc, layout, pb, "skills", true);
+          writeSectionTitle(doc, layout, "Skills");
+          writeParagraph(doc, layout, docData.skills.join("  ·  "));
+        }
+        break;
+      case "languages":
+      case "hobbies":
+      case "courses":
+      case "internships": {
+        const s = docData.supplementarySections.find((x) => x.id === blockId);
+        if (!s?.body.trim()) break;
+        applyHardPageBreak(doc, layout, pb, s.id, true);
+        writeSectionTitle(doc, layout, s.title);
+        writeParagraph(doc, layout, s.body.trim());
+        break;
+      }
+      case "certifications": {
+        const hasCert = docData.certifications.some((c) => c.name || c.issuer);
+        if (!hasCert) break;
+        applyHardPageBreak(doc, layout, pb, "certifications", true);
+        writeSectionTitle(doc, layout, "Certifications");
+        for (const c of docData.certifications) {
+          if (!c.name && !c.issuer) continue;
+          ensureSpace(doc, layout, 18);
+          const left = [c.name, c.issuer].filter(Boolean).join(" — ");
+          const w = contentWidth(doc, layout);
+          const startY = doc.y;
+          const dateText = c.dateLine?.trim() ?? "";
+          const dateWidth = dateText ? 130 : 0;
+          const titleWidth = w - (dateText ? dateWidth + 8 : 0);
+          doc
+            .font(layout.fonts.regular)
+            .fontSize(layout.bodySize)
+            .fillColor(BODY_COLOR)
+            .text(left, layout.pageMargin, startY, { width: titleWidth });
+          if (dateText) {
+            doc
+              .font(layout.fonts.regular)
+              .fontSize(layout.smallSize)
+              .fillColor(META_COLOR)
+              .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
+                width: dateWidth,
+                align: "right",
+              });
+          }
+          doc.y = Math.max(doc.y, startY + layout.bodySize + 1);
+        }
         doc.moveDown(0.2);
+        break;
       }
-      doc.moveDown(layout.entryGap / (layout.bodySize * 2));
-    }
-  }
+      case "projects": {
+        const hasProj = docData.projects.some((p) => p.name || p.description);
+        if (!hasProj) break;
+        applyHardPageBreak(doc, layout, pb, "projects", true);
+        writeSectionTitle(doc, layout, "Projects");
+        for (const p of docData.projects) {
+          if (!p.name && !p.description) continue;
+          ensureSpace(doc, layout, layout.bodySize * 3 + 6);
 
-  if (docData.additional?.trim()) {
-    applyHardPageBreak(doc, layout, pb, "additional", true);
-    writeSectionTitle(doc, layout, "Additional");
-    writeParagraph(doc, layout, docData.additional.trim());
+          const w = contentWidth(doc, layout);
+          doc
+            .font(layout.fonts.bold)
+            .fontSize(layout.bodySize + 0.5)
+            .fillColor(NAME_COLOR)
+            .text(p.name || "Project", layout.pageMargin, doc.y, { width: w });
+          doc.moveDown(0.1);
+
+          if (p.url) {
+            const href = normaliseUrl(p.url);
+            doc.font(layout.fonts.regular).fontSize(layout.smallSize);
+            if (href) {
+              doc
+                .fillColor(layout.accent)
+                .text(p.url, layout.pageMargin, doc.y, { width: w, link: href });
+            } else {
+              doc.fillColor(META_COLOR).text(p.url, layout.pageMargin, doc.y, { width: w });
+            }
+            doc.moveDown(0.15);
+          }
+
+          if (p.description?.trim()) {
+            doc
+              .font(layout.fonts.regular)
+              .fontSize(layout.bodySize)
+              .fillColor(BODY_COLOR)
+              .text(p.description.trim(), layout.pageMargin, doc.y, { width: w });
+            doc.moveDown(0.15);
+          }
+
+          if (p.technologies?.trim()) {
+            doc
+              .font(layout.fonts.italic)
+              .fontSize(layout.smallSize)
+              .fillColor(FAINT_COLOR)
+              .text(`Stack: ${p.technologies.trim()}`, layout.pageMargin, doc.y, { width: w });
+            doc.moveDown(0.2);
+          }
+          doc.moveDown(layout.entryGap / (layout.bodySize * 2));
+        }
+        break;
+      }
+      case "additional":
+        if (docData.additional?.trim()) {
+          applyHardPageBreak(doc, layout, pb, "additional", true);
+          writeSectionTitle(doc, layout, "Additional");
+          writeParagraph(doc, layout, docData.additional.trim());
+        }
+        break;
+      default:
+        break;
+    }
   }
 }
 

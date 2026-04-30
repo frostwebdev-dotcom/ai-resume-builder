@@ -206,6 +206,25 @@ export const wizardStateSchema = z.object({
     .object({
       v: z.literal(1),
       pageBreakBefore: z.record(z.string(), z.boolean()).optional().default({}),
+      sectionOrder: z
+        .array(
+          z.enum([
+            "personal",
+            "summary",
+            "education",
+            "experience",
+            "skills",
+            "languages",
+            "hobbies",
+            "courses",
+            "internships",
+            "certifications",
+            "projects",
+            "additional",
+          ]),
+        )
+        .max(16)
+        .optional(),
     })
     .default({ v: 1, pageBreakBefore: {} }),
 });

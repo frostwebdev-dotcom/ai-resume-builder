@@ -1,3 +1,4 @@
+import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-order";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 
 function newId(): string {
@@ -99,6 +100,7 @@ export function createEmptyWizardState(): WizardStateV1 {
     layout: {
       v: 1,
       pageBreakBefore: {},
+      sectionOrder: [...DEFAULT_GUEST_STUDIO_SECTION_ORDER],
     },
   };
 }

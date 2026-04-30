@@ -8,9 +8,11 @@ import {
   formatExperienceDateRange,
 } from "@/lib/resume-preview/format-dates";
 import type {
+  ResumePreviewBodyBlockId,
   ResumePreviewDocument,
   ResumeSupplementarySection,
 } from "@/lib/resume-preview/model";
+import { normalizeWizardSectionOrder } from "@/lib/resume-wizard/section-order";
 
 function splitSkills(lines: string): string[] {
   return lines
@@ -102,19 +104,27 @@ export function mapWizardToPreviewDocument(
     technologies: p.technologies.trim(),
   }));
 
+  const bodySectionOrder = normalizeWizardSectionOrder(
+    wizard.layout.sectionOrder,
+  ).filter((id): id is ResumePreviewBodyBlockId => id !== "personal");
+
   const supplementarySections: ResumeSupplementarySection[] = [];
-  const pushSupp = (
-    id: ResumeSupplementarySection["id"],
-    title: string,
-    lines: string | undefined,
-  ) => {
-    const body = lines?.trim();
-    if (body) supplementarySections.push({ id, title, body });
+  const supLines: Record<
+    ResumeSupplementarySection["id"],
+    { title: string; lines: string | undefined }
+  > = {
+    languages: { title: "Languages", lines: wizard.languages?.lines },
+    hobbies: { title: "Hobbies", lines: wizard.hobbies?.lines },
+    courses: { title: "Courses", lines: wizard.courses?.lines },
+    internships: { title: "Internships", lines: wizard.internships?.lines },
   };
-  pushSupp("languages", "Languages", wizard.languages?.lines);
-  pushSupp("hobbies", "Hobbies", wizard.hobbies?.lines);
-  pushSupp("courses", "Courses", wizard.courses?.lines);
-  pushSupp("internships", "Internships", wizard.internships?.lines);
+  for (const id of bodySectionOrder) {
+    if (id !== "languages" && id !== "hobbies" && id !== "courses" && id !== "internships") {
+      continue;
+    }
+    const body = supLines[id].lines?.trim();
+    if (body) supplementarySections.push({ id, title: supLines[id].title, body });
+  }
 
   const additional = wizard.additional.notes.trim() || null;
 
@@ -194,6 +204,7 @@ export function mapWizardToPreviewDocument(
     contact: { lines: contactLines },
     personalOptionalLines,
     supplementarySections,
+    bodySectionOrder,
     summary,
     skills,
     experience,
