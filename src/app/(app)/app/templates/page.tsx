@@ -34,21 +34,22 @@ export default async function AppTemplatesPage() {
             </GuestAppRouteBanner>
           ) : null}
 
-          <header className="mx-auto max-w-4xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Templates</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+          <header className="min-w-0 border-b border-slate-200/90 pb-5 sm:pb-6">
+            <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              Templates
+            </p>
+            <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
               Resume templates
             </h1>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
-              Search and filter below, then click a card to start with that layout (or use the magnifier to preview).
-              In the studio you can{" "}
-              <span className="font-medium text-slate-800">switch templates any time</span> from the template strip
-              beside the live preview. Export when you are ready from{" "}
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[0.9375rem]">
+              Search and filter, then open a layout to start. In the studio you can{" "}
+              <span className="font-medium text-slate-800">switch templates anytime</span> from the strip next to the
+              preview. Export when you&apos;re ready from{" "}
               <span className="font-medium text-slate-800">Preview &amp; export</span>.
             </p>
           </header>
 
-          <TemplatesCatalog surface="app" guest={!ctx} className="mx-auto mt-8 w-full" />
+          <TemplatesCatalog surface="app" guest={!ctx} className="mx-auto mt-6 w-full" />
 
           <div className="mx-auto mt-12 flex max-w-2xl flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8">
             <p className="text-sm text-slate-600">

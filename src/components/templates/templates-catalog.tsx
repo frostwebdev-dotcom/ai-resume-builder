@@ -93,6 +93,16 @@ const ALL_FILTERS_BUTTON_ACTIVE =
 
 const ALL_FILTERS_BUTTON_OPEN = "border-slate-400/80 bg-sky-50/60";
 
+/** Search field — same height, radius, and chrome as “All Filters” / toolbar. */
+const CATALOG_SEARCH_INPUT = cn(
+  "h-10 min-h-10 w-full rounded-lg border border-slate-200 bg-white py-0 text-sm font-normal text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+  "placeholder:text-slate-500",
+  "transition-[border-color,box-shadow,color] outline-none",
+  "focus-visible:border-slate-300 focus-visible:ring-2 focus-visible:ring-slate-900/12 focus-visible:ring-offset-0",
+  "disabled:cursor-not-allowed disabled:opacity-50",
+  "sm:h-10 sm:min-h-10",
+);
+
 /** Navy border + pale cyan when active/open (Career Stage, Style look). */
 const CATALOG_FILTER_MENU_TRIGGER = cn(
   "inline-flex h-9 max-w-full shrink-0 items-center gap-1.5 rounded-lg border-2 px-3 text-sm font-semibold outline-none transition-colors",
@@ -301,7 +311,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
   const toolbarSurface =
     surface === "marketing"
       ? "rounded-2xl border border-border/70 bg-white p-4 shadow-soft sm:p-5"
-      : "rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5";
+      : "rounded-lg border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5";
 
   return (
     <div className={cn("w-full min-w-0", className)}>
@@ -310,7 +320,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
           <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
             <InputWithIcon
               className="min-w-0 flex-1"
-              leading={<Search className="pointer-events-none size-4 text-muted-foreground" aria-hidden />}
+              leading={<Search className="pointer-events-none size-4 text-slate-500" aria-hidden />}
             >
               <Input
                 type="search"
@@ -319,6 +329,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
                 placeholder="Search thousands of templates"
                 autoComplete="off"
                 aria-label="Search templates"
+                className={CATALOG_SEARCH_INPUT}
               />
             </InputWithIcon>
           </div>
@@ -327,8 +338,8 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
         <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:thin] sm:gap-2.5 sm:pb-0">
           {surface === "app" ? (
             <InputWithIcon
-              className="min-h-10 min-w-0 max-w-full flex-1 basis-0 sm:min-w-[12rem]"
-              leading={<Search className="pointer-events-none size-4 text-muted-foreground" aria-hidden />}
+              className="min-h-10 min-w-0 max-w-full flex-1 basis-0 items-center sm:min-w-[12rem]"
+              leading={<Search className="pointer-events-none size-4 text-slate-500" aria-hidden />}
             >
               <Input
                 type="search"
@@ -337,6 +348,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
                 placeholder="Search thousands of templates"
                 autoComplete="off"
                 aria-label="Search templates"
+                className={CATALOG_SEARCH_INPUT}
               />
             </InputWithIcon>
           ) : null}
