@@ -2571,6 +2571,29 @@ function SummaryBody({
   );
 }
 
+/** When one entry card is active, dim siblings (click-outside clears). */
+function useDimInactiveEntryStack<T extends { id: string }>(entries: readonly T[]) {
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
+  const stackRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (activeEntryId === null) return;
+    if (!entries.some((e) => e.id === activeEntryId)) {
+      setActiveEntryId(null);
+    }
+  }, [entries, activeEntryId]);
+  useEffect(() => {
+    if (activeEntryId === null) return;
+    const onDocDown = (e: MouseEvent) => {
+      if (!stackRef.current?.contains(e.target as Node)) {
+        setActiveEntryId(null);
+      }
+    };
+    document.addEventListener("mousedown", onDocDown);
+    return () => document.removeEventListener("mousedown", onDocDown);
+  }, [activeEntryId]);
+  return { activeEntryId, setActiveEntryId, stackRef };
+}
+
 function ExperienceBody({
   state,
   setState,
@@ -2581,8 +2604,9 @@ function ExperienceBody({
   jobAssist?: StudioJobAssistProps;
 }) {
   const entries = state.experience.entries;
+  const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
-    <div className="space-y-3">
+    <div ref={stackRef} className="space-y-3">
       {entries.map((entry, index) => (
         <EntryCard
           key={entry.id}
@@ -2601,6 +2625,9 @@ function ExperienceBody({
                   }))
               : undefined
           }
+          dimmed={activeEntryId !== null && activeEntryId !== entry.id}
+          elevated={activeEntryId === entry.id}
+          onActivate={() => setActiveEntryId(entry.id)}
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <Field id={`exp-title-${entry.id}`} label="Job title">
@@ -2781,8 +2808,12 @@ function ExperienceBody({
       <Button
         type="button"
         variant="outline"
-        className="w-full justify-center"
-        onClick={() =>
+        className={cn(
+          "w-full justify-center motion-safe:transition-[opacity,filter] motion-safe:duration-200",
+          activeEntryId !== null && "opacity-[0.42] saturate-[0.65]",
+        )}
+        onClick={() => {
+          setActiveEntryId(null);
           setState((s) => ({
             ...s,
             experience: {
@@ -2800,8 +2831,8 @@ function ExperienceBody({
                 },
               ],
             },
-          }))
-        }
+          }));
+        }}
       >
         <Plus className="size-4" aria-hidden />
         Add position
@@ -2812,8 +2843,9 @@ function ExperienceBody({
 
 function EducationBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
   const entries = state.education.entries;
+  const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
-    <div className="space-y-3">
+    <div ref={stackRef} className="space-y-3">
       {entries.map((entry, index) => (
         <EntryCard
           key={entry.id}
@@ -2828,6 +2860,9 @@ function EducationBody({ state, setState }: { state: WizardStateV1; setState: Se
                   }))
               : undefined
           }
+          dimmed={activeEntryId !== null && activeEntryId !== entry.id}
+          elevated={activeEntryId === entry.id}
+          onActivate={() => setActiveEntryId(entry.id)}
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <Field id={`edu-school-${entry.id}`} label="School">
@@ -2920,8 +2955,12 @@ function EducationBody({ state, setState }: { state: WizardStateV1; setState: Se
       <Button
         type="button"
         variant="outline"
-        className="w-full justify-center"
-        onClick={() =>
+        className={cn(
+          "w-full justify-center motion-safe:transition-[opacity,filter] motion-safe:duration-200",
+          activeEntryId !== null && "opacity-[0.42] saturate-[0.65]",
+        )}
+        onClick={() => {
+          setActiveEntryId(null);
           setState((s) => ({
             ...s,
             education: {
@@ -2939,8 +2978,8 @@ function EducationBody({ state, setState }: { state: WizardStateV1; setState: Se
                 },
               ],
             },
-          }))
-        }
+          }));
+        }}
       >
         <Plus className="size-4" aria-hidden />
         Add education
@@ -3022,8 +3061,9 @@ function SkillsBody({
 
 function ProjectsBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
   const entries = state.projects.entries;
+  const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
-    <div className="space-y-3">
+    <div ref={stackRef} className="space-y-3">
       {entries.map((entry, index) => (
         <EntryCard
           key={entry.id}
@@ -3038,6 +3078,9 @@ function ProjectsBody({ state, setState }: { state: WizardStateV1; setState: Set
                   }))
               : undefined
           }
+          dimmed={activeEntryId !== null && activeEntryId !== entry.id}
+          elevated={activeEntryId === entry.id}
+          onActivate={() => setActiveEntryId(entry.id)}
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <Field id={`proj-name-${entry.id}`} label="Project name">
@@ -3102,8 +3145,12 @@ function ProjectsBody({ state, setState }: { state: WizardStateV1; setState: Set
       <Button
         type="button"
         variant="outline"
-        className="w-full justify-center"
-        onClick={() =>
+        className={cn(
+          "w-full justify-center motion-safe:transition-[opacity,filter] motion-safe:duration-200",
+          activeEntryId !== null && "opacity-[0.42] saturate-[0.65]",
+        )}
+        onClick={() => {
+          setActiveEntryId(null);
           setState((s) => ({
             ...s,
             projects: {
@@ -3118,8 +3165,8 @@ function ProjectsBody({ state, setState }: { state: WizardStateV1; setState: Set
                 },
               ],
             },
-          }))
-        }
+          }));
+        }}
       >
         <Plus className="size-4" aria-hidden />
         Add project
@@ -3130,8 +3177,9 @@ function ProjectsBody({ state, setState }: { state: WizardStateV1; setState: Set
 
 function CertificationsBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
   const entries = state.certifications.entries;
+  const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
-    <div className="space-y-3">
+    <div ref={stackRef} className="space-y-3">
       {entries.map((entry, index) => (
         <EntryCard
           key={entry.id}
@@ -3148,6 +3196,9 @@ function CertificationsBody({ state, setState }: { state: WizardStateV1; setStat
                   }))
               : undefined
           }
+          dimmed={activeEntryId !== null && activeEntryId !== entry.id}
+          elevated={activeEntryId === entry.id}
+          onActivate={() => setActiveEntryId(entry.id)}
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <Field id={`cert-name-${entry.id}`} label="Name">
@@ -3210,8 +3261,12 @@ function CertificationsBody({ state, setState }: { state: WizardStateV1; setStat
       <Button
         type="button"
         variant="outline"
-        className="w-full justify-center"
-        onClick={() =>
+        className={cn(
+          "w-full justify-center motion-safe:transition-[opacity,filter] motion-safe:duration-200",
+          activeEntryId !== null && "opacity-[0.42] saturate-[0.65]",
+        )}
+        onClick={() => {
+          setActiveEntryId(null);
           setState((s) => ({
             ...s,
             certifications: {
@@ -3226,8 +3281,8 @@ function CertificationsBody({ state, setState }: { state: WizardStateV1; setStat
                 },
               ],
             },
-          }))
-        }
+          }));
+        }}
       >
         <Plus className="size-4" aria-hidden />
         Add certification
@@ -3277,14 +3332,32 @@ function EntryCard({
   subtitle,
   onRemove,
   children,
+  dimmed = false,
+  elevated = false,
+  onActivate,
 }: {
   title: string;
   subtitle?: string | null;
   onRemove?: () => void;
   children: ReactNode;
+  /** When another card in the stack is active, this card is visually de-emphasized. */
+  dimmed?: boolean;
+  /** Subtle emphasis for the card the user is editing. */
+  elevated?: boolean;
+  onActivate?: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-border/70 bg-white p-3 sm:p-4">
+    <div
+      data-studio-entry-card
+      onPointerDownCapture={() => onActivate?.()}
+      onFocusCapture={() => onActivate?.()}
+      className={cn(
+        "rounded-lg border border-border/70 bg-white p-3 sm:p-4 motion-safe:transition-[opacity,filter,box-shadow,ring-color] motion-safe:duration-200 motion-safe:ease-out",
+        dimmed && "pointer-events-auto opacity-[0.42] saturate-[0.68] contrast-[0.98]",
+        elevated &&
+          "relative z-[1] opacity-100 ring-2 ring-[#2d9f6d]/35 shadow-sm contrast-100 saturate-100",
+      )}
+    >
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">{title}</p>
