@@ -4,15 +4,22 @@ import {
   MarketingAuthLinks,
   MarketingPrimaryNav,
 } from "@/components/layout/marketing-header-nav";
+import { pageGutterXClass } from "@/components/layout/page-container";
 import { getOptionalAuth } from "@/lib/auth/guards";
 import { APP_NAME, ROUTES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 export async function MarketingHeader() {
   const ctx = await getOptionalAuth();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/65">
-      <div className="mx-auto flex h-14 min-h-14 w-full min-w-0 max-w-6xl items-center gap-2 px-4 sm:gap-4 sm:px-6 lg:px-8">
+      <div
+        className={cn(
+          "mx-auto flex h-14 min-h-14 w-full min-w-0 max-w-6xl items-center gap-2 sm:gap-4",
+          pageGutterXClass,
+        )}
+      >
         <Link
           href={ROUTES.home}
           aria-label={`${APP_NAME} — home`}

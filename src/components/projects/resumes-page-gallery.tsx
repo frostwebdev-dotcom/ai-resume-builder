@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { DashboardProject } from "@/services/projects/queries";
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
+import { pageGutterXClass } from "@/components/layout/page-container";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -285,7 +286,7 @@ export function ResumesPageGallery({ projects, guest = false }: Props) {
   const { openLogin } = useAppLoginPanel();
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+    <div className={cn("mx-auto w-full min-w-0 max-w-6xl py-6 sm:py-8", pageGutterXClass)}>
       {guest ? (
         <div className="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm sm:px-5">
           <span className="text-slate-700">
@@ -304,8 +305,10 @@ export function ResumesPageGallery({ projects, guest = false }: Props) {
           </button>
         </div>
       ) : null}
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Resumes</h1>
+      <div className="mb-6 flex min-w-0 flex-wrap items-center justify-between gap-3 gap-y-2 sm:gap-4">
+        <h1 className="min-w-0 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          Resumes
+        </h1>
         <div
           className="inline-flex shrink-0 rounded-full border border-slate-200 bg-white p-0.5 shadow-sm"
           role="group"

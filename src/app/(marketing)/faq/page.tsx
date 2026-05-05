@@ -70,8 +70,8 @@ export default function FaqPage() {
               key={item.q}
               className="group px-5 py-5 transition-colors hover:bg-muted/30 sm:px-7 [&_summary::-webkit-details-marker]:hidden"
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-base font-semibold text-foreground marker:content-none">
-                <span>{item.q}</span>
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-left text-base font-semibold text-foreground marker:content-none sm:gap-4">
+                <span className="min-w-0 flex-1 pr-1">{item.q}</span>
                 <ChevronDown
                   className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-out group-open:rotate-180 group-open:text-brand"
                   aria-hidden

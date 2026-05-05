@@ -93,7 +93,7 @@ export default function PrivacyPage() {
             </div>
           </aside>
 
-          <article className="max-w-3xl">
+          <article className="min-w-0 max-w-3xl">
             {sections.map((s, i) => (
               <section
                 key={s.id}

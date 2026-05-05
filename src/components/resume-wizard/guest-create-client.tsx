@@ -279,7 +279,6 @@ export function GuestCreateClient() {
             lastError={lastError}
             onRetry={retry}
             surface="dark"
-            className="max-w-[min(11rem,calc(100vw-8rem))] sm:max-w-none"
           />
         }
       />
@@ -287,7 +286,7 @@ export function GuestCreateClient() {
         <Alert variant="success" className="shrink-0 rounded-none border-x-0 border-t-0 sm:rounded-none">
           <AlertTitle>You&apos;re signed in</AlertTitle>
           <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span>
+            <span className="min-w-0 text-pretty">
               Next: create a <strong className="font-medium text-foreground">resume project</strong> on your
               dashboard—you&apos;ll open <strong className="font-medium text-foreground">Draft</strong> in the
               same studio editor as here, with autosave to your account. PDF export is{" "}
@@ -367,8 +366,10 @@ function TopBar({
       {/*
         Equal `1fr | auto | 1fr` columns so the title block stays in the true horizontal
         center of the header (not the center of the remaining flex space).
+        Autosave lives on its own row so it never collides with undo/tools/export at any width.
       */}
-      <div className="grid h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 px-2 sm:h-14 sm:gap-x-3 sm:px-4">
+      <div className="flex flex-col">
+      <div className="grid h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:h-14 sm:gap-x-3 sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))]">
         <div className="flex min-w-0 items-center justify-self-start">
           <Link
             href={ROUTES.app.root}
@@ -383,7 +384,7 @@ function TopBar({
           </Link>
         </div>
 
-        <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100vw-7.5rem))] justify-self-center sm:max-w-[min(32rem,calc(100vw-11rem))]">
+        <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100dvw_-_7.5rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))] justify-self-center sm:max-w-[min(32rem,calc(100dvw_-_11rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))]">
           {/* Minimal “underline” title + sync icon — matches compact doc-editor chrome */}
           <div className="flex w-full min-w-0 items-end gap-2.5 sm:gap-3">
             <input
@@ -406,9 +407,6 @@ function TopBar({
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center justify-end justify-self-end gap-x-1 gap-y-1.5 sm:gap-x-2">
-        <div className="order-first flex min-w-0 basis-full justify-end sm:order-last sm:basis-auto sm:justify-end">
-          {autosave}
-        </div>
         <button
           type="button"
           onClick={onUndo}
@@ -490,6 +488,10 @@ function TopBar({
           Sign in to export
         </Link>
         </div>
+      </div>
+      <div className="flex w-full min-w-0 items-center justify-center border-t border-white/[0.08] pb-2 pt-1 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:justify-end sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pt-1.5">
+        {autosave}
+      </div>
       </div>
     </header>
   );

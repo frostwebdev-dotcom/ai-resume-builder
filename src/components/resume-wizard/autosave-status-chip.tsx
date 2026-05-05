@@ -30,7 +30,7 @@ export function AutosaveStatusChip({
   className,
 }: Props) {
   const baseChip =
-    "inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset sm:min-h-0";
+    "inline-flex min-h-8 max-w-full min-w-0 items-center justify-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold leading-tight ring-1 ring-inset sm:min-h-9 sm:px-2.5 sm:py-1 sm:text-xs sm:leading-normal";
 
   const idleSuffix = context === "guestDevice" ? "this device" : "project";
   const dark = surface === "dark";
@@ -40,7 +40,7 @@ export function AutosaveStatusChip({
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      className={cn("min-w-0 text-right", className)}
+      className={cn("flex w-full min-w-0 justify-center sm:justify-end", className)}
     >
       {status === "saving" ? (
         <span
@@ -94,6 +94,7 @@ export function AutosaveStatusChip({
         <span
           className={cn(
             baseChip,
+            "text-balance",
             dark
               ? "bg-sky-400/15 text-sky-100 ring-sky-300/35"
               : "bg-brand-muted text-brand ring-brand/15",
@@ -106,7 +107,8 @@ export function AutosaveStatusChip({
         >
           <CloudCheck className="size-3.5 shrink-0" aria-hidden />
           <span className="min-w-0">
-            Autosave on{" "}
+            <span className="sm:hidden">On </span>
+            <span className="hidden sm:inline">Autosave on </span>
             <span className={dark ? "text-sky-200/90" : "text-brand/80"}>· {idleSuffix}</span>
           </span>
         </span>

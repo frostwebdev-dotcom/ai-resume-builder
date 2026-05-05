@@ -192,6 +192,7 @@ export function ProjectStudioShell({
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
       <header className="shrink-0 border-b border-black/30 bg-[#17191d] pt-[env(safe-area-inset-top,0px)] text-white">
+        <div className="flex flex-col">
         <div className="grid h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 px-2 sm:h-14 sm:gap-x-3 sm:px-4">
           <div className="flex min-w-0 items-center justify-self-start">
             <Link
@@ -220,16 +221,6 @@ export function ProjectStudioShell({
           </div>
 
           <div className="flex min-w-0 flex-wrap items-center justify-end justify-self-end gap-x-1 gap-y-1.5 sm:gap-x-2">
-            <div className="order-first flex min-w-0 basis-full justify-end sm:order-last sm:basis-auto sm:justify-end">
-              <AutosaveStatusChip
-                context="project"
-                status={saveStatus}
-                lastError={lastError}
-                onRetry={retry}
-                surface="dark"
-                className="max-w-[min(11rem,calc(100vw-8rem))] sm:max-w-none"
-              />
-            </div>
             <button
               type="button"
               onClick={handleUndoContent}
@@ -262,6 +253,16 @@ export function ProjectStudioShell({
               Preview &amp; export
             </Link>
           </div>
+        </div>
+        <div className="flex w-full min-w-0 items-center justify-center border-t border-white/[0.08] pb-2 pt-1 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:justify-end sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pt-1.5">
+          <AutosaveStatusChip
+            context="project"
+            status={saveStatus}
+            lastError={lastError}
+            onRetry={retry}
+            surface="dark"
+          />
+        </div>
         </div>
       </header>
 

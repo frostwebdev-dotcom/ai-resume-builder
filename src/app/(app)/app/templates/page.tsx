@@ -22,7 +22,7 @@ export default async function AppTemplatesPage() {
 
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-slate-100">
-      <div className="min-h-0 flex-1 basis-0 overflow-y-auto overflow-x-hidden overscroll-y-auto px-4 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-8">
+      <div className="min-h-0 flex-1 basis-0 overflow-y-auto overflow-x-hidden overscroll-y-auto pb-10 pt-6 sm:pb-12 sm:pt-8">
         <PageContainer className="max-w-[min(100%,90rem)]">
           {!ctx ? (
             <GuestAppRouteBanner nextPath={ROUTES.app.templates}>
