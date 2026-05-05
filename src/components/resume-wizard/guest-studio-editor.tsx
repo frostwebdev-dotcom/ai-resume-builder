@@ -16,6 +16,7 @@ import {
   type SetStateAction,
 } from "react";
 import {
+  BookOpenCheck,
   Camera,
   Check,
   ChevronDown,
@@ -63,6 +64,7 @@ import {
 } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import { isProfileDescriptionEmpty } from "@/lib/profile-description-html";
+import { createDemoWizardStateForTemplate } from "@/lib/resume-wizard/demo-wizard-state";
 import { ensureEntryId } from "@/lib/resume-wizard/ids";
 import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-order";
 import type { WizardEditorSectionId, WizardStateV1 } from "@/lib/resume-wizard/types";
@@ -80,10 +82,22 @@ import {
 } from "@/components/resume-wizard/job-tailor-sections";
 import { ProfileDescriptionEditor } from "@/components/resume-wizard/profile-description-editor";
 import { ResumeStudioSplitLayout } from "@/components/resume-wizard/resume-studio-split-layout";
+import { SelectTemplateForExampleModal } from "@/components/resume-wizard/select-template-for-example-modal";
 import type { TailoringCompareV1 } from "@/lib/job-target/types";
 import { cn } from "@/lib/utils";
 
 type SectionId = WizardEditorSectionId;
+
+type PersonalPillKey =
+  | "dateOfBirth"
+  | "placeOfBirth"
+  | "driversLicense"
+  | "gender"
+  | "nationality"
+  | "civilStatus"
+  | "websitePill"
+  | "linkedInPill"
+  | "custom";
 
 type SectionDef = {
   id: SectionId;
@@ -254,6 +268,12 @@ export function GuestStudioEditor({
 
   // Only one section is expanded at a time — keeps the left panel calm and focused.
   const [openSection, setOpenSection] = useState<SectionId | null>("personal");
+  /** When set (e.g. from intake shortcuts), Personal details opens optional pills like LinkedIn. */
+  const [personalPillOpenRequest, setPersonalPillOpenRequest] = useState<{
+    id: number;
+    keys: PersonalPillKey[];
+  } | null>(null);
+  const [selectExampleTemplateOpen, setSelectExampleTemplateOpen] = useState(false);
   const [sectionLabelOverrides, setSectionLabelOverrides] = useState<
     Partial<Record<SectionId, string>>
   >({});
@@ -294,6 +314,24 @@ export function GuestStudioEditor({
 
   const toggleSection = useCallback((id: SectionId) => {
     setOpenSection((cur) => (cur === id ? null : id));
+  }, []);
+
+  const applyExampleForTemplate = useCallback(
+    (slug: TemplateSlug) => {
+      setState(createDemoWizardStateForTemplate(slug));
+      onTemplateChange(slug);
+      setOpenSection("personal");
+      setSelectExampleTemplateOpen(false);
+    },
+    [setState, onTemplateChange],
+  );
+
+  const handleLinkedInIntakeShortcut = useCallback(() => {
+    setOpenSection("personal");
+    setPersonalPillOpenRequest({
+      id: typeof performance !== "undefined" ? performance.now() : Date.now(),
+      keys: ["linkedInPill"],
+    });
   }, []);
 
   const commitSectionTitle = useCallback((sectionId: SectionId, defaultLabel: string) => {
@@ -541,7 +579,21 @@ export function GuestStudioEditor({
             />
           ) : null}
 
-          <IntakeShortcuts />
+          {persistMode === "guest" ? (
+            <IntakeShortcuts
+              onOpenSelectExampleTemplate={() => setSelectExampleTemplateOpen(true)}
+              onLinkedInImport={handleLinkedInIntakeShortcut}
+            />
+          ) : null}
+
+          {persistMode === "guest" ? (
+            <SelectTemplateForExampleModal
+              open={selectExampleTemplateOpen}
+              onOpenChange={setSelectExampleTemplateOpen}
+              currentSlug={templateSlug}
+              onSelectTemplate={applyExampleForTemplate}
+            />
+          ) : null}
 
           <nav
             className={cn(
@@ -736,6 +788,7 @@ export function GuestStudioEditor({
                   setState={setState}
                   loginHref={loginHref}
                   jobAssist={jobAssist}
+                  personalPillOpenRequest={personalPillOpenRequest}
                 />
               </SectionCard>
               </div>
@@ -1704,25 +1757,113 @@ function sectionRowDragAllowed(
   return true;
 }
 
-function IntakeShortcuts() {
+function IntakeShortcuts({
+  onOpenSelectExampleTemplate,
+  onLinkedInImport,
+}: {
+  onOpenSelectExampleTemplate: () => void;
+  onLinkedInImport: () => void;
+}) {
+  const cardBase =
+    "flex min-h-[7.75rem] w-full flex-col items-center justify-center gap-3 rounded-xl border px-4 py-4 text-center outline-none transition-[border-color,box-shadow,transform] duration-200 sm:min-h-[8.25rem] sm:gap-3.5 sm:py-5";
+
   return (
-    <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      <button
-        type="button"
-        className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-white px-3 text-sm font-medium text-muted-foreground transition-colors hover:border-brand/50 hover:text-foreground"
-      >
-        <FileUp className="size-4" aria-hidden />
-        Upload existing resume
-      </button>
-      <button
-        type="button"
-        className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-white px-3 text-sm font-medium text-muted-foreground transition-colors hover:border-brand/50 hover:text-foreground"
-      >
-        <span className="inline-flex size-4 items-center justify-center rounded-[3px] bg-[#0a66c2] text-[0.55rem] font-bold text-white">
-          in
-        </span>
-        Import LinkedIn profile
-      </button>
+    <section
+      className="rounded-2xl border border-slate-200/90 bg-gradient-to-b from-slate-50/90 via-white to-white p-4 shadow-sm ring-1 ring-slate-950/[0.03] sm:p-5"
+      aria-labelledby="guest-intake-heading"
+    >
+      <div className="mb-3.5 sm:mb-4">
+        <h2
+          id="guest-intake-heading"
+          className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-slate-500"
+        >
+          Choose a starting point
+        </h2>
+        <p className="mt-1 max-w-prose text-xs leading-snug text-slate-500 sm:text-[0.8125rem]">
+          Three ways to begin — switch or combine approaches anytime while you edit.
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-3.5">
+        <button
+          type="button"
+          onClick={onOpenSelectExampleTemplate}
+          className={cn(
+            cardBase,
+            "group border-slate-200/90 bg-white shadow-sm",
+            "hover:border-emerald-300/80 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2",
+            "motion-safe:active:scale-[0.99] motion-reduce:active:scale-100",
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-900/[0.06] transition-colors sm:size-[3.25rem]",
+              "group-hover:bg-emerald-100/95 group-hover:text-emerald-800",
+            )}
+            aria-hidden
+          >
+            <BookOpenCheck className="size-6 sm:size-[1.65rem]" strokeWidth={1.75} />
+          </span>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-sm font-semibold tracking-tight text-slate-900">Start from example</span>
+            <span className="text-pretty text-xs font-medium leading-snug text-slate-500">
+              Pick a template — we&apos;ll load a demo résumé you can edit right away
+            </span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          disabled
+          title="Resume file import is coming soon."
+          aria-describedby="guest-intake-upload-hint"
+          className={cn(
+            cardBase,
+            "cursor-not-allowed border-dashed border-slate-200/95 bg-slate-50/70 text-slate-600 opacity-[0.88] shadow-none",
+          )}
+        >
+          <span
+            className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-900/[0.05] sm:size-[3.25rem]"
+            aria-hidden
+          >
+            <FileUp className="size-6 sm:size-[1.65rem]" strokeWidth={1.75} />
+          </span>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-sm font-semibold tracking-tight text-slate-800">Upload existing resume</span>
+            <span id="guest-intake-upload-hint" className="text-pretty text-xs font-medium leading-snug text-slate-500">
+              PDF & Word — coming soon
+            </span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onLinkedInImport}
+          className={cn(
+            cardBase,
+            "group border-slate-200/90 bg-white shadow-sm",
+            "hover:border-[#0a66c2]/40 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2",
+            "motion-safe:active:scale-[0.99] motion-reduce:active:scale-100",
+          )}
+        >
+          <span
+            className={cn(
+              "flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#0a66c2]/10 ring-1 ring-[#0a66c2]/15 transition-colors sm:size-[3.25rem]",
+              "group-hover:bg-[#0a66c2]/14",
+            )}
+            aria-hidden
+          >
+            <span className="flex size-9 items-center justify-center rounded-lg bg-[#0a66c2] text-[0.68rem] font-bold leading-none text-white shadow-sm">
+              in
+            </span>
+          </span>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-sm font-semibold tracking-tight text-slate-900">Import LinkedIn profile</span>
+            <span className="text-pretty text-xs font-medium leading-snug text-slate-500">
+              Opens Personal details with LinkedIn — paste your profile URL
+            </span>
+          </span>
+        </button>
+      </div>
     </section>
   );
 }
@@ -2044,16 +2185,24 @@ function SectionBody({
   setState,
   loginHref,
   jobAssist,
+  personalPillOpenRequest = null,
 }: {
   section: SectionId;
   state: WizardStateV1;
   setState: Dispatch<SetStateAction<WizardStateV1>>;
   loginHref: string;
   jobAssist?: StudioJobAssistProps;
+  personalPillOpenRequest?: { id: number; keys: PersonalPillKey[] } | null;
 }) {
   switch (section) {
     case "personal":
-      return <PersonalBody state={state} setState={setState} />;
+      return (
+        <PersonalBody
+          state={state}
+          setState={setState}
+          pillOpenRequest={personalPillOpenRequest}
+        />
+      );
     case "summary":
       return (
         <SummaryBody state={state} setState={setState} loginHref={loginHref} jobAssist={jobAssist} />
@@ -2121,20 +2270,38 @@ function SectionBody({
 
 type Setter = Dispatch<SetStateAction<WizardStateV1>>;
 
-type PersonalPillKey =
-  | "dateOfBirth"
-  | "placeOfBirth"
-  | "driversLicense"
-  | "gender"
-  | "nationality"
-  | "civilStatus"
-  | "websitePill"
-  | "linkedInPill"
-  | "custom";
-
-function PersonalBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
+function PersonalBody({
+  state,
+  setState,
+  pillOpenRequest = null,
+}: {
+  state: WizardStateV1;
+  setState: Setter;
+  pillOpenRequest?: { id: number; keys: PersonalPillKey[] } | null;
+}) {
   const p = state.personal;
   const [openPills, setOpenPills] = useState<Set<PersonalPillKey>>(() => new Set());
+  const linkedInShortcutFocusRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!pillOpenRequest?.keys.length) return;
+    const keys = pillOpenRequest.keys;
+    setOpenPills((prev) => {
+      const n = new Set(prev);
+      for (const k of keys) {
+        n.add(k);
+      }
+      return n;
+    });
+  }, [pillOpenRequest?.id, pillOpenRequest]);
+
+  useLayoutEffect(() => {
+    if (!pillOpenRequest?.keys?.includes("linkedInPill")) return;
+    if (!openPills.has("linkedInPill")) return;
+    if (linkedInShortcutFocusRef.current === pillOpenRequest.id) return;
+    linkedInShortcutFocusRef.current = pillOpenRequest.id;
+    document.getElementById("li-pill")?.querySelector<HTMLInputElement>("input")?.focus();
+  }, [openPills, pillOpenRequest]);
 
   const togglePill = (key: PersonalPillKey) => {
     setOpenPills((prev) => {
