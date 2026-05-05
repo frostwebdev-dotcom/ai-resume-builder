@@ -24,7 +24,6 @@ import {
   ChevronRight,
   ChevronUp,
   Download,
-  FileUp,
   GripVertical,
   LayoutGrid,
   Maximize2,
@@ -82,6 +81,7 @@ import {
 } from "@/components/resume-wizard/job-tailor-sections";
 import { ProfileDescriptionEditor } from "@/components/resume-wizard/profile-description-editor";
 import { ResumeStudioSplitLayout } from "@/components/resume-wizard/resume-studio-split-layout";
+import { GuestResumeUploadIntake } from "@/components/resume-wizard/guest-resume-upload-intake";
 import { SelectTemplateForExampleModal } from "@/components/resume-wizard/select-template-for-example-modal";
 import type { TailoringCompareV1 } from "@/lib/job-target/types";
 import { cn } from "@/lib/utils";
@@ -324,6 +324,14 @@ export function GuestStudioEditor({
       setSelectExampleTemplateOpen(false);
     },
     [setState, onTemplateChange],
+  );
+
+  const handleResumeImported = useCallback(
+    (wizard: WizardStateV1) => {
+      setState(wizard);
+      setOpenSection("personal");
+    },
+    [setState],
   );
 
   const handleLinkedInIntakeShortcut = useCallback(() => {
@@ -582,6 +590,13 @@ export function GuestStudioEditor({
           {persistMode === "guest" ? (
             <IntakeShortcuts
               onOpenSelectExampleTemplate={() => setSelectExampleTemplateOpen(true)}
+              resumeUpload={
+                <GuestResumeUploadIntake
+                  templateSlug={templateSlug}
+                  onImported={handleResumeImported}
+                  cardClassName="flex min-h-[7.75rem] w-full flex-col items-center justify-center gap-3 rounded-xl border px-4 py-4 text-center outline-none transition-[border-color,box-shadow,transform] duration-200 sm:min-h-[8.25rem] sm:gap-3.5 sm:py-5"
+                />
+              }
               onLinkedInImport={handleLinkedInIntakeShortcut}
             />
           ) : null}
@@ -1759,9 +1774,11 @@ function sectionRowDragAllowed(
 
 function IntakeShortcuts({
   onOpenSelectExampleTemplate,
+  resumeUpload,
   onLinkedInImport,
 }: {
   onOpenSelectExampleTemplate: () => void;
+  resumeUpload: ReactNode;
   onLinkedInImport: () => void;
 }) {
   const cardBase =
@@ -1811,29 +1828,7 @@ function IntakeShortcuts({
           </span>
         </button>
 
-        <button
-          type="button"
-          disabled
-          title="Resume file import is coming soon."
-          aria-describedby="guest-intake-upload-hint"
-          className={cn(
-            cardBase,
-            "cursor-not-allowed border-dashed border-slate-200/95 bg-slate-50/70 text-slate-600 opacity-[0.88] shadow-none",
-          )}
-        >
-          <span
-            className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-900/[0.05] sm:size-[3.25rem]"
-            aria-hidden
-          >
-            <FileUp className="size-6 sm:size-[1.65rem]" strokeWidth={1.75} />
-          </span>
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-sm font-semibold tracking-tight text-slate-800">Upload existing resume</span>
-            <span id="guest-intake-upload-hint" className="text-pretty text-xs font-medium leading-snug text-slate-500">
-              PDF & Word — coming soon
-            </span>
-          </span>
-        </button>
+        {resumeUpload}
 
         <button
           type="button"

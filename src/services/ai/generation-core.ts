@@ -70,6 +70,8 @@ function temperatureForOperation(operationId: AiOperationId): number {
       return 0.38;
     case AI_OPERATION_IDS.EDUCATION_POLISH_DETAILS:
       return 0.32;
+    case AI_OPERATION_IDS.RESUME_IMPORT_PARSE:
+      return 0.22;
     default:
       return 0.32;
   }
@@ -93,10 +95,16 @@ export async function runStructuredGeneration<T>(opts: {
   userMessage: string;
   outputSchema: z.ZodType<T>;
   maxRetries?: number;
+  /** When true, skips per-user AI quota (caller must enforce its own limiter). */
+  skipUsageCheck?: boolean;
+  /** When true, skips `ai_generation_logs` insert (e.g. anonymous guest import). */
+  skipLogging?: boolean;
 }): Promise<GenerationSuccess<T> | GenerationFailure> {
-  const quota = await checkAiUsageAllowed(opts.userId);
-  if (!quota.allowed) {
-    return { ok: false, error: quota.reason, code: "RATE_LIMIT" };
+  if (!opts.skipUsageCheck) {
+    const quota = await checkAiUsageAllowed(opts.userId);
+    if (!quota.allowed) {
+      return { ok: false, error: quota.reason, code: "RATE_LIMIT" };
+    }
   }
 
   if (!serverEnv.OPENAI_API_KEY) {
@@ -133,18 +141,20 @@ export async function runStructuredGeneration<T>(opts: {
       const usage = completion.usage;
 
       if (!choice?.trim()) {
-        await logAiGeneration({
-          userId: opts.userId,
-          projectId: opts.projectId,
-          operationId: opts.operationId,
-          model,
-          promptHash,
-          ok: false,
-          errorCode: "EMPTY_RESPONSE",
-          latencyMs: latency,
-          tokensPrompt: usage?.prompt_tokens ?? null,
-          tokensCompletion: usage?.completion_tokens ?? null,
-        });
+        if (!opts.skipLogging) {
+          await logAiGeneration({
+            userId: opts.userId,
+            projectId: opts.projectId,
+            operationId: opts.operationId,
+            model,
+            promptHash,
+            ok: false,
+            errorCode: "EMPTY_RESPONSE",
+            latencyMs: latency,
+            tokensPrompt: usage?.prompt_tokens ?? null,
+            tokensCompletion: usage?.completion_tokens ?? null,
+          });
+        }
         return {
           ok: false,
           error: "The model returned empty content. Please try again.",
@@ -156,18 +166,20 @@ export async function runStructuredGeneration<T>(opts: {
       try {
         parsed = extractJsonObject(choice);
       } catch {
-        await logAiGeneration({
-          userId: opts.userId,
-          projectId: opts.projectId,
-          operationId: opts.operationId,
-          model,
-          promptHash,
-          ok: false,
-          errorCode: "JSON_PARSE",
-          latencyMs: latency,
-          tokensPrompt: usage?.prompt_tokens ?? null,
-          tokensCompletion: usage?.completion_tokens ?? null,
-        });
+        if (!opts.skipLogging) {
+          await logAiGeneration({
+            userId: opts.userId,
+            projectId: opts.projectId,
+            operationId: opts.operationId,
+            model,
+            promptHash,
+            ok: false,
+            errorCode: "JSON_PARSE",
+            latencyMs: latency,
+            tokensPrompt: usage?.prompt_tokens ?? null,
+            tokensCompletion: usage?.completion_tokens ?? null,
+          });
+        }
         return {
           ok: false,
           error: "Could not read the AI response. Try again in a moment.",
@@ -177,18 +189,20 @@ export async function runStructuredGeneration<T>(opts: {
 
       const safe = opts.outputSchema.safeParse(parsed);
       if (!safe.success) {
-        await logAiGeneration({
-          userId: opts.userId,
-          projectId: opts.projectId,
-          operationId: opts.operationId,
-          model,
-          promptHash,
-          ok: false,
-          errorCode: "SCHEMA_MISMATCH",
-          latencyMs: latency,
-          tokensPrompt: usage?.prompt_tokens ?? null,
-          tokensCompletion: usage?.completion_tokens ?? null,
-        });
+        if (!opts.skipLogging) {
+          await logAiGeneration({
+            userId: opts.userId,
+            projectId: opts.projectId,
+            operationId: opts.operationId,
+            model,
+            promptHash,
+            ok: false,
+            errorCode: "SCHEMA_MISMATCH",
+            latencyMs: latency,
+            tokensPrompt: usage?.prompt_tokens ?? null,
+            tokensCompletion: usage?.completion_tokens ?? null,
+          });
+        }
         return {
           ok: false,
           error: "The response did not match the expected format. Please retry.",
@@ -196,18 +210,20 @@ export async function runStructuredGeneration<T>(opts: {
         };
       }
 
-      await logAiGeneration({
-        userId: opts.userId,
-        projectId: opts.projectId,
-        operationId: opts.operationId,
-        model,
-        promptHash,
-        ok: true,
-        errorCode: null,
-        latencyMs: latency,
-        tokensPrompt: usage?.prompt_tokens ?? null,
-        tokensCompletion: usage?.completion_tokens ?? null,
-      });
+      if (!opts.skipLogging) {
+        await logAiGeneration({
+          userId: opts.userId,
+          projectId: opts.projectId,
+          operationId: opts.operationId,
+          model,
+          promptHash,
+          ok: true,
+          errorCode: null,
+          latencyMs: latency,
+          tokensPrompt: usage?.prompt_tokens ?? null,
+          tokensCompletion: usage?.completion_tokens ?? null,
+        });
+      }
 
       trackServerEvent(ANALYTICS_EVENTS.AI_GENERATION_USED, {
         operation: opts.operationId,
@@ -228,18 +244,20 @@ export async function runStructuredGeneration<T>(opts: {
   const code =
     lastError instanceof OpenAI.APIError ? String(lastError.status) : "UNKNOWN";
 
-  await logAiGeneration({
-    userId: opts.userId,
-    projectId: opts.projectId,
-    operationId: opts.operationId,
-    model,
-    promptHash,
-    ok: false,
-    errorCode: code.slice(0, 80),
-    latencyMs: latency,
-    tokensPrompt: null,
-    tokensCompletion: null,
-  });
+  if (!opts.skipLogging) {
+    await logAiGeneration({
+      userId: opts.userId,
+      projectId: opts.projectId,
+      operationId: opts.operationId,
+      model,
+      promptHash,
+      ok: false,
+      errorCode: code.slice(0, 80),
+      latencyMs: latency,
+      tokensPrompt: null,
+      tokensCompletion: null,
+    });
+  }
 
   return {
     ok: false,

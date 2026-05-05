@@ -10,6 +10,7 @@ import {
   getCheckoutPollRateLimiter,
   getCheckoutStartRateLimiter,
   getPdfDownloadRateLimiter,
+  getResumeImportRateLimiter,
 } from "@/lib/redis/rate-limit";
 
 import { logSuspicious } from "./abuse-log";
@@ -25,6 +26,8 @@ const MSG_CHECKOUT =
 const MSG_POLL = "Too many requests. Please wait a moment.";
 const MSG_PDF =
   "Too many download requests. Please wait a moment before trying again.";
+const MSG_RESUME_IMPORT =
+  "Too many résumé imports from this network. Please wait an hour and try again.";
 
 function retryAfterSecFromReset(resetMs: number): number {
   if (!Number.isFinite(resetMs)) return 60;
@@ -56,6 +59,25 @@ export async function enforceAiGenerationLimit(userId: string): Promise<RateLimi
   return {
     ok: false,
     message: MSG_AI,
+    retryAfterSec: retryAfterSecFromReset(reset),
+  };
+}
+
+/** Key should be `u:${userId}` or `ip:${clientIp}`. */
+export async function enforceResumeImportLimit(key: string): Promise<RateLimitOk | RateLimitDenied> {
+  const limiter = getResumeImportRateLimiter();
+  if (!limiter) {
+    if (serverEnv.NODE_ENV === "production") {
+      return { ok: false, message: MSG_AI_REDIS_REQUIRED };
+    }
+    return { ok: true };
+  }
+  const { success, reset } = await limiter.limit(key);
+  if (success) return { ok: true };
+  logSuspicious("rate_limit_resume_import", { userId: key, reset });
+  return {
+    ok: false,
+    message: MSG_RESUME_IMPORT,
     retryAfterSec: retryAfterSecFromReset(reset),
   };
 }

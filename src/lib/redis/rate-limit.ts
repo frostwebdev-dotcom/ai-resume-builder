@@ -55,6 +55,11 @@ export function getPdfDownloadRateLimiter(): Ratelimit | null {
   return getLimiter("pdf_user", 40, "15 m");
 }
 
+/** AI résumé file import (guest or signed) — per IP or per user id key. */
+export function getResumeImportRateLimiter(): Ratelimit | null {
+  return getLimiter("resume_import", 15, "1 h");
+}
+
 /** Stripe checkout session creation — per user. */
 export function getCheckoutStartRateLimiter(): Ratelimit | null {
   return getLimiter("checkout_start", 25, "1 h");

@@ -1,4 +1,5 @@
 import { RESUME_AI_SYSTEM_RULES } from "@/services/ai/prompts/system-base";
+import { RESUME_IMPORT_PARSE_RULES } from "@/services/ai/prompts/resume-import-rules";
 
 /** Stable ids for logging, metrics, and future A/B tests. */
 export const AI_OPERATION_IDS = {
@@ -18,6 +19,7 @@ export const AI_OPERATION_IDS = {
   SKILLS_TAILOR_JOB: "skills.tailor_job",
   EXPERIENCE_TAILOR_JOB: "experience.tailor_job",
   EDUCATION_POLISH_DETAILS: "education.polish_details",
+  RESUME_IMPORT_PARSE: "resume.import_parse",
 } as const;
 
 export type AiOperationId = (typeof AI_OPERATION_IDS)[keyof typeof AI_OPERATION_IDS];
@@ -92,11 +94,19 @@ export const PROMPT_REGISTRY: Record<AiOperationId, RegistryEntry> = {
     version: "1.0.0",
     description: "Polish education details using school/degree/field context only",
   },
+  [AI_OPERATION_IDS.RESUME_IMPORT_PARSE]: {
+    version: "1.0.0",
+    description: "Map extracted resume file text into structured wizard JSON",
+  },
 };
 
 export function buildSystemPrompt(operationId: AiOperationId): string {
   const meta = PROMPT_REGISTRY[operationId];
-  return `${RESUME_AI_SYSTEM_RULES}
+  const importBlock =
+    operationId === AI_OPERATION_IDS.RESUME_IMPORT_PARSE
+      ? `\n\n${RESUME_IMPORT_PARSE_RULES}`
+      : "";
+  return `${RESUME_AI_SYSTEM_RULES}${importBlock}
 
 Operation: ${operationId}
 Prompt bundle version: ${meta.version}`;
