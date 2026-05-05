@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Info } from "lucide-react";
 
+import { pageGutterXClass } from "@/components/layout/page-container";
 import { RESUME_PDF_EXPORT_PRICE_USD } from "@/lib/billing/monetization-copy";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,8 @@ export function GuestDraftLocalSaveNote({ className, signedIn = false }: Props) 
   return (
     <aside
       className={cn(
-        "shrink-0 border-b border-slate-200/90 bg-slate-50/90 px-3 py-2 sm:px-4",
+        "shrink-0 border-b border-slate-200/90 bg-slate-50/90 py-2",
+        pageGutterXClass,
         className,
       )}
       aria-label="How your draft is saved"
