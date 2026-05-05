@@ -68,6 +68,7 @@ import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-
 import type { WizardEditorSectionId, WizardStateV1 } from "@/lib/resume-wizard/types";
 import {
   AdditionalAiPanel,
+  EducationEntryAiPanel,
   ExperienceEntryAiPanel,
   SkillsAiPanel,
   SummaryAiPanel,
@@ -2060,7 +2061,7 @@ function SectionBody({
     case "experience":
       return <ExperienceBody state={state} setState={setState} jobAssist={jobAssist} />;
     case "education":
-      return <EducationBody state={state} setState={setState} />;
+      return <EducationBody state={state} setState={setState} jobAssist={jobAssist} />;
     case "skills":
       return <SkillsBody state={state} setState={setState} jobAssist={jobAssist} />;
     case "languages":
@@ -2841,7 +2842,15 @@ function ExperienceBody({
   );
 }
 
-function EducationBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
+function EducationBody({
+  state,
+  setState,
+  jobAssist,
+}: {
+  state: WizardStateV1;
+  setState: Setter;
+  jobAssist?: StudioJobAssistProps;
+}) {
   const entries = state.education.entries;
   const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
@@ -2950,6 +2959,19 @@ function EducationBody({ state, setState }: { state: WizardStateV1; setState: Se
               placeholder="Honors, thesis, coursework, GPA."
             />
           </Field>
+          {jobAssist ? (
+            <EducationEntryAiPanel
+              projectId={jobAssist.projectId}
+              entry={entry}
+              onApplyDetails={(details) => {
+                setState((s) => {
+                  const next = [...s.education.entries];
+                  next[index] = { ...next[index], details };
+                  return { ...s, education: { entries: next } };
+                });
+              }}
+            />
+          ) : null}
         </EntryCard>
       ))}
       <Button

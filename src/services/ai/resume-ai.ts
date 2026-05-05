@@ -6,6 +6,7 @@ import { AI_OPERATION_IDS } from "@/services/ai/prompts/registry";
 import * as UserMessages from "@/services/ai/prompts/user-messages";
 import {
   bulletsOutputSchema,
+  educationDetailsOutputSchema,
   linesOutputSchema,
   summaryPairOutputSchema,
   textOutputSchema,
@@ -13,6 +14,7 @@ import {
 import {
   assertReasonablePayloadSize,
   additionalTextInput,
+  educationPolishInput,
   experienceBulletsInput,
   skillsTextInput,
   summaryGenerateInput,
@@ -375,6 +377,32 @@ export async function aiTailorExperienceToJob(
     projectId: input.projectId,
     userMessage,
     outputSchema: bulletsOutputSchema,
+  });
+}
+
+export async function aiPolishEducationDetails(
+  userId: string,
+  input: z.infer<typeof educationPolishInput>,
+): GenAsync<{ details: string }> {
+  const g = await guardProject(userId, input.projectId);
+  if (g !== true) return g;
+  const p = tryPayload(
+    [input.school, input.degree, input.field, input.details],
+    "Education",
+  );
+  if (p !== true) return p;
+  const userMessage = UserMessages.userMessageEducationPolishDetails({
+    school: input.school,
+    degree: input.degree,
+    field: input.field,
+    details: input.details,
+  });
+  return runStructuredGeneration({
+    operationId: AI_OPERATION_IDS.EDUCATION_POLISH_DETAILS,
+    userId,
+    projectId: input.projectId,
+    userMessage,
+    outputSchema: educationDetailsOutputSchema,
   });
 }
 

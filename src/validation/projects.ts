@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { isTemplateSlug } from "@/lib/resume-preview/template-ids";
+import { resumeStyleV1Schema } from "@/validation/resume-style";
 
 export const createProjectSchema = z
   .object({
@@ -43,3 +44,21 @@ export const setProjectTemplateSchema = z.object({
   projectId: z.string().uuid("Invalid project."),
   templateId: z.string().uuid("Invalid template."),
 });
+
+/** Payload to create a server project from the public `/create` guest draft (wizard + look). */
+export const importGuestDraftPayloadSchema = z
+  .object({
+    title: z.string().trim().max(120).optional(),
+    templateSlug: z.string().trim(),
+    resumeStyle: resumeStyleV1Schema,
+    wizard: z.unknown(),
+  })
+  .superRefine((data, ctx) => {
+    if (!isTemplateSlug(data.templateSlug)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid template.",
+        path: ["templateSlug"],
+      });
+    }
+  });

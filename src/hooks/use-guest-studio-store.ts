@@ -56,6 +56,16 @@ export function loadGuestPresentationFromStorage(): GuestStudioPresentation | nu
   return null;
 }
 
+/** Clears template/style/title persisted for the guest studio (after account sync). */
+export function clearGuestPresentationFromStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
  * Debounced persistence for the visual presentation (template + style + title).
  * Writes the latest value back to `localStorage` ~500ms after the last change.

@@ -28,7 +28,7 @@ export const serverEnvSchema = z.object({
   STRIPE_WEBHOOK_SECRET: optionalSecret,
 
   OPENAI_API_KEY: optionalSecret,
-  /** Chat model for resume AI (e.g. gpt-4o-mini, gpt-4o). */
+  /** Chat model for resume AI (e.g. gpt-4o, gpt-4o-mini). */
   OPENAI_MODEL: z.preprocess(
     emptyToUndefined,
     z.string().min(1).optional(),

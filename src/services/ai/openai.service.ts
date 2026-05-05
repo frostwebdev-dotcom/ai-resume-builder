@@ -16,9 +16,9 @@ function getOpenAI(): OpenAI {
   return openai;
 }
 
-/** Configurable via `OPENAI_MODEL` (defaults to gpt-4o-mini). */
+/** Configurable via `OPENAI_MODEL` (defaults to gpt-4o for stronger drafting). */
 export function getOpenAiChatModel(): string {
-  return serverEnv.OPENAI_MODEL ?? "gpt-4o-mini";
+  return serverEnv.OPENAI_MODEL ?? "gpt-4o";
 }
 
 /**

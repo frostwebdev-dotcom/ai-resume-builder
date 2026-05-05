@@ -17,6 +17,10 @@ export const textOutputSchema = z.object({
   text: z.string(),
 });
 
+export const educationDetailsOutputSchema = z.object({
+  details: z.string(),
+});
+
 export type SummaryPairOutput = z.infer<typeof summaryPairOutputSchema>;
 export type BulletsOutput = z.infer<typeof bulletsOutputSchema>;
 export type LinesOutput = z.infer<typeof linesOutputSchema>;

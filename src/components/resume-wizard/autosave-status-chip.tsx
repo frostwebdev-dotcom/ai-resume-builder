@@ -14,6 +14,10 @@ type Props = {
   onRetry: () => void;
   /** Dark chrome (e.g. guest `/create` header) — higher-contrast chip colors. */
   surface?: "light" | "dark";
+  /**
+   * `toolbar`: inline beside nav (e.g. Home on `/create`) — compact height, no full-width stretch.
+   */
+  layout?: "default" | "toolbar";
   className?: string;
 };
 
@@ -27,10 +31,16 @@ export function AutosaveStatusChip({
   lastError,
   onRetry,
   surface = "light",
+  layout = "default",
   className,
 }: Props) {
-  const baseChip =
-    "inline-flex min-h-8 max-w-full min-w-0 items-center justify-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold leading-tight ring-1 ring-inset sm:min-h-9 sm:px-2.5 sm:py-1 sm:text-xs sm:leading-normal";
+  const toolbar = layout === "toolbar";
+  const baseChip = cn(
+    "inline-flex max-w-full min-w-0 items-center justify-center gap-1.5 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold leading-tight ring-1 ring-inset",
+    toolbar
+      ? "h-8 min-h-8 sm:min-h-8 sm:px-2.5 sm:py-0 sm:text-[0.6875rem] sm:leading-tight"
+      : "min-h-8 sm:min-h-9 sm:px-2.5 sm:py-1 sm:text-xs sm:leading-normal",
+  );
 
   const idleSuffix = context === "guestDevice" ? "this device" : "project";
   const dark = surface === "dark";
@@ -40,7 +50,11 @@ export function AutosaveStatusChip({
       role="status"
       aria-live="polite"
       aria-atomic="true"
-      className={cn("flex w-full min-w-0 justify-center sm:justify-end", className)}
+      className={cn(
+        "flex min-w-0",
+        toolbar ? "w-auto shrink justify-start" : "w-full justify-center sm:justify-end",
+        className,
+      )}
     >
       {status === "saving" ? (
         <span
@@ -106,10 +120,19 @@ export function AutosaveStatusChip({
           }
         >
           <CloudCheck className="size-3.5 shrink-0" aria-hidden />
-          <span className="min-w-0">
-            <span className="sm:hidden">On </span>
-            <span className="hidden sm:inline">Autosave on </span>
-            <span className={dark ? "text-sky-200/90" : "text-brand/80"}>· {idleSuffix}</span>
+          <span className="min-w-0 whitespace-nowrap">
+            {toolbar ? (
+              <>
+                <span>Autosave on </span>
+                <span className={dark ? "text-sky-200/90" : "text-brand/80"}>· {idleSuffix}</span>
+              </>
+            ) : (
+              <>
+                <span className="sm:hidden">On </span>
+                <span className="hidden sm:inline">Autosave on </span>
+                <span className={dark ? "text-sky-200/90" : "text-brand/80"}>· {idleSuffix}</span>
+              </>
+            )}
           </span>
         </span>
       ) : null}

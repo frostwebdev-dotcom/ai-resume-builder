@@ -8,8 +8,8 @@ export function userMessageSummaryGenerate(input: {
   return `${JSON_ONLY}
 Schema: { "headline": string, "summary": string }
 
-Task: Write a professional headline (one line) and a 3–5 sentence summary for a resume.
-Use ONLY facts implied by the fields below. If a field is empty, write a neutral summary inviting the user to add experience details — do not invent employers or metrics.
+Task: Write a professional headline (one line) and a 3–5 sentence professional summary for a resume.
+Use ONLY facts implied by the fields below. Lead with the strongest themes the user already named (roles, domains, tools they mentioned). Prefer active voice and concrete nouns; avoid filler. If a field is empty, write a concise neutral headline and 2–3 sentences inviting them to add experience — do not invent employers, metrics, or degrees.
 
 Current headline (may be empty):
 ${input.headline || "(empty)"}
@@ -264,4 +264,28 @@ Position on resume: ${input.roleTitle} at ${input.employer}
 
 Bullets:
 ${lines}`;
+}
+
+export function userMessageEducationPolishDetails(input: {
+  school: string;
+  degree: string;
+  field: string;
+  details: string;
+}): string {
+  return `${JSON_ONLY}
+Schema: { "details": string }
+
+Task: Return ONLY an improved "details" paragraph for this education entry (honors, coursework, thesis, relevant projects, GPA only if the user already wrote it). Use school, degree, and field as context — do not change or invent institution names, degree titles, or dates. If details are empty but school and degree are present, write 1–3 short factual sentences grounded only in degree + field + school (e.g. area of study); do not invent GPA, awards, or clubs. If all fields are empty, return an empty string for details.
+
+School:
+${input.school || "(empty)"}
+
+Degree:
+${input.degree || "(empty)"}
+
+Field of study:
+${input.field || "(empty)"}
+
+Current details (may be empty):
+${input.details || "(empty)"}`;
 }

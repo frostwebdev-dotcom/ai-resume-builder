@@ -7,6 +7,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import type { AiResult } from "@/types/ai";
 
 import type {
+  EducationEntry,
   WorkExperienceEntry,
   WizardStateV1,
 } from "@/lib/resume-wizard/types";
@@ -16,6 +17,7 @@ import {
   aiGenerateSummaryAction,
   aiGrammarAdditionalAction,
   aiGrammarSummaryAction,
+  aiPolishEducationDetailsAction,
   aiRephraseSkillsAction,
   aiRewriteExperienceBulletsAction,
   aiShortenExperienceBulletsAction,
@@ -31,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AI_ASSIST_ADDITIONAL_LINE,
+  AI_ASSIST_EDUCATION_LINE,
   AI_ASSIST_EXPERIENCE_LINE,
   AI_ASSIST_FAIR_USE_LINE,
   AI_ASSIST_PROFILE_LINE,
@@ -247,6 +250,74 @@ export function SummaryAiPanel({
       <p className="mt-4 border-t border-border/60 pt-3 text-[0.65rem] leading-snug text-muted-foreground">
         {AI_ASSIST_FAIR_USE_LINE}
       </p>
+    </div>
+  );
+}
+
+export function EducationEntryAiPanel({
+  projectId,
+  entry,
+  onApplyDetails,
+  className,
+}: PanelProps & {
+  entry: EducationEntry;
+  onApplyDetails: (details: string) => void;
+}) {
+  const [pending, setPending] = useState(false);
+  const [, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const hasContext =
+    entry.school.trim().length > 1 ||
+    entry.degree.trim().length > 1 ||
+    entry.field.trim().length > 1 ||
+    entry.details.trim().length > 3;
+
+  return (
+    <div className={cn("mt-4 space-y-2 rounded-lg bg-muted/40 p-3", className)}>
+      <p className="text-xs font-medium text-muted-foreground">AI assist for this school</p>
+      <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">{AI_ASSIST_EDUCATION_LINE}</p>
+      {error ? (
+        <Alert variant="destructive" className="py-2">
+          <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <AiButton
+          pending={pending}
+          disabled={!hasContext}
+          onClick={() => {
+            setError(null);
+            setPending(true);
+            start(() => {
+              void (async () => {
+                try {
+                  const res = await aiPolishEducationDetailsAction({
+                    projectId,
+                    entryId: entry.id,
+                    school: entry.school,
+                    degree: entry.degree,
+                    field: entry.field,
+                    details: entry.details,
+                  });
+                  if (res.ok) {
+                    onApplyDetails(res.data.details);
+                  } else {
+                    setError(formatAiAssistClientMessage(res.error, res.code));
+                  }
+                } catch {
+                  setError(formatAiAssistClientMessage("Request failed. Try again."));
+                } finally {
+                  setPending(false);
+                }
+              })();
+            });
+          }}
+        >
+          Polish details
+        </AiButton>
+      </div>
+      <p className="mt-2 text-[0.65rem] leading-snug text-muted-foreground">{AI_ASSIST_FAIR_USE_LINE}</p>
     </div>
   );
 }

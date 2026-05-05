@@ -18,6 +18,10 @@ export const AI_ASSIST_EXPERIENCE_LINE =
 export const AI_ASSIST_SKILLS_LINE =
   "Rewrites your list from what you typed—does not add skills or tools you did not mention.";
 
+/** Education entry details. */
+export const AI_ASSIST_EDUCATION_LINE =
+  "Improves honors, coursework, or thesis text from what you entered—does not invent GPA, awards, or school facts you did not provide.";
+
 /** Additional / free-text box. */
 export const AI_ASSIST_ADDITIONAL_LINE =
   "Clarifies wording in this box only—does not pull facts from other sections.";

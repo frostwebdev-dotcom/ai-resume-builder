@@ -33,6 +33,14 @@ export const experienceBulletsInput = baseAiContext.extend({
   bullets: z.array(z.string().max(2000)).max(40),
 });
 
+export const educationPolishInput = baseAiContext.extend({
+  entryId: z.string().uuid(),
+  school: z.string().trim().max(4000),
+  degree: z.string().trim().max(4000),
+  field: z.string().trim().max(2000),
+  details: z.string().trim().max(8000),
+});
+
 export const skillsTextInput = baseAiContext.extend({
   lines: z.string().trim().max(8000),
 });

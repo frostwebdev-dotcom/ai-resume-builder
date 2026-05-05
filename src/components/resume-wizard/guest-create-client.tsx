@@ -15,9 +15,12 @@ import {
 } from "react";
 import {
   ChevronDown,
+  CloudUpload,
   Copy,
   Download,
   Globe,
+  LayoutDashboard,
+  Loader2,
   MoreVertical,
   Redo2,
   Tag,
@@ -36,11 +39,13 @@ import { AutosaveStatusChip } from "@/components/resume-wizard/autosave-status-c
 import { GuestDraftLocalSaveNote } from "@/components/resume-wizard/guest-draft-local-save-note";
 import { GuestStudioEditor } from "@/components/resume-wizard/guest-studio-editor";
 import {
+  clearGuestWizardDraftFromStorage,
   loadGuestWizardDraftFromStorage,
   useGuestWizardAutosave,
 } from "@/hooks/use-guest-wizard-autosave";
 import {
   DEFAULT_GUEST_PRESENTATION,
+  clearGuestPresentationFromStorage,
   loadGuestPresentationFromStorage,
   useCoalescedHistory,
   useGuestPresentationAutosave,
@@ -49,8 +54,8 @@ import {
 } from "@/hooks/use-guest-studio-store";
 import { createDemoWizardState } from "@/lib/resume-wizard/demo-wizard-state";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
-import { RESUME_PDF_EXPORT_PRICE_USD } from "@/lib/billing/monetization-copy";
 import { CREATE_RESUME_POST_AUTH_NEXT, ROUTES } from "@/lib/constants";
+import { importGuestDraftToProjectAction } from "@/services/projects/actions";
 import {
   createSupabaseBrowserClient,
   hasSupabaseBrowserConfig,
@@ -64,6 +69,8 @@ type Snapshot = {
   content: WizardStateV1;
   presentation: GuestStudioPresentation;
 };
+
+const GUEST_IMPORT_LOCK = "resume:guest-draft-import-lock";
 
 /**
  * Studio-style entry point for the public `/create` page.
@@ -155,13 +162,6 @@ export function GuestCreateClient() {
     setPresentation(next.presentation);
   }, [history, snapshotNow]);
 
-  useGuestPresentationAutosave(presentation);
-
-  const { saveStatus, lastError, retry } = useGuestWizardAutosave({
-    state: content,
-    enabled: true,
-  });
-
   // Global keyboard shortcuts — mimic every text editor.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -187,10 +187,84 @@ export function GuestCreateClient() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [postAuthBanner, setPostAuthBanner] = useState(false);
-  const postAuthHandled = useRef(false);
   const templateFromUrlApplied = useRef(false);
   const [browserHasSession, setBrowserHasSession] = useState(false);
+
+  const contentRef = useRef(content);
+  const presentationRef = useRef(presentation);
+  contentRef.current = content;
+  presentationRef.current = presentation;
+
+  const [accountSyncError, setAccountSyncError] = useState<string | null>(null);
+  const [isAccountImporting, setIsAccountImporting] = useState(false);
+
+  useGuestPresentationAutosave(presentation, !isAccountImporting);
+
+  const { saveStatus, lastError, retry, flushSave } = useGuestWizardAutosave({
+    state: content,
+    enabled: !isAccountImporting,
+  });
+
+  const performImportToAccount = useCallback(async () => {
+    if (!hasSupabaseBrowserConfig()) {
+      setAccountSyncError("App is not configured for sign-in.");
+      return;
+    }
+    if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(GUEST_IMPORT_LOCK)) {
+      return;
+    }
+    try {
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem(GUEST_IMPORT_LOCK, "1");
+      }
+
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setAccountSyncError("Sign in to save this draft to your account.");
+        if (typeof sessionStorage !== "undefined") {
+          sessionStorage.removeItem(GUEST_IMPORT_LOCK);
+        }
+        return;
+      }
+
+      setIsAccountImporting(true);
+      setAccountSyncError(null);
+
+      await flushSave();
+
+      const res = await importGuestDraftToProjectAction({
+        wizard: contentRef.current,
+        templateSlug: presentationRef.current.templateSlug,
+        resumeStyle: presentationRef.current.style,
+        title: presentationRef.current.title?.trim() || undefined,
+      });
+
+      if (!res.ok) {
+        setAccountSyncError(res.error);
+        setIsAccountImporting(false);
+        if (typeof sessionStorage !== "undefined") {
+          sessionStorage.removeItem(GUEST_IMPORT_LOCK);
+        }
+        return;
+      }
+
+      clearGuestWizardDraftFromStorage();
+      clearGuestPresentationFromStorage();
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.removeItem(GUEST_IMPORT_LOCK);
+      }
+      router.replace(ROUTES.app.projectBuild(res.projectId));
+    } catch {
+      setAccountSyncError("Could not save your resume to your account. Try again.");
+      setIsAccountImporting(false);
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.removeItem(GUEST_IMPORT_LOCK);
+      }
+    }
+  }, [router, flushSave]);
 
   useLayoutEffect(() => {
     const raw = searchParams.get("template");
@@ -215,19 +289,17 @@ export function GuestCreateClient() {
   }, []);
 
   useEffect(() => {
-    if (postAuthHandled.current) return;
-    if (searchParams.get("signedIn") !== "1") return;
-    postAuthHandled.current = true;
-    if (!hasSupabaseBrowserConfig()) {
+    if (!hasSupabaseBrowserConfig() || !browserHasSession) return;
+    const fromLogin = searchParams.get("signedIn") === "1";
+    const hadLocalGuestDraft = loadGuestWizardDraftFromStorage() !== null;
+    if (!fromLogin && !hadLocalGuestDraft) return;
+
+    if (searchParams.get("signedIn") === "1") {
       router.replace(ROUTES.create, { scroll: false });
-      return;
     }
-    const supabase = createSupabaseBrowserClient();
-    void supabase.auth.getUser().then(({ data: { user } }) => {
-      router.replace(ROUTES.create, { scroll: false });
-      if (user) setPostAuthBanner(true);
-    });
-  }, [router, searchParams]);
+
+    void performImportToAccount();
+  }, [browserHasSession, searchParams, router, performImportToAccount]);
 
   const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -272,6 +344,9 @@ export function GuestCreateClient() {
         onUndo={handleUndo}
         onRedo={handleRedo}
         loginHref={loginHref}
+        signedIn={browserHasSession}
+        saveToAccountPending={isAccountImporting}
+        onSaveDraftToAccount={() => void performImportToAccount()}
         autosave={
           <AutosaveStatusChip
             context="guestDevice"
@@ -279,43 +354,42 @@ export function GuestCreateClient() {
             lastError={lastError}
             onRetry={retry}
             surface="dark"
+            layout="toolbar"
           />
         }
       />
-      {postAuthBanner ? (
-        <Alert variant="success" className="shrink-0 rounded-none border-x-0 border-t-0 sm:rounded-none">
-          <AlertTitle>You&apos;re signed in</AlertTitle>
-          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="min-w-0 text-pretty">
-              Next: create a <strong className="font-medium text-foreground">resume project</strong> on your
-              dashboard—you&apos;ll open <strong className="font-medium text-foreground">Draft</strong> in the
-              same studio editor as here, with autosave to your account. PDF export is{" "}
-              <strong className="font-medium text-foreground">{RESUME_PDF_EXPORT_PRICE_USD} once</strong> per
-              project under <strong className="font-medium text-foreground">Preview &amp; export</strong> (see{" "}
-              <Link href={ROUTES.pricing} className="font-medium underline-offset-2 hover:underline">
-                Pricing
-              </Link>
-              ).
-            </span>
-            <span className="flex shrink-0 flex-col gap-2 self-start sm:flex-row sm:items-center sm:self-center">
-              <Link
-                href={ROUTES.app.root}
-                className={cn(
-                  buttonVariants({ size: "sm" }),
-                  "bg-brand text-brand-foreground hover:bg-brand/90",
-                )}
-                onClick={() => setPostAuthBanner(false)}
-              >
-                Go to dashboard
-              </Link>
-              <Button type="button" variant="outline" size="sm" onClick={() => setPostAuthBanner(false)}>
-                Dismiss
-              </Button>
-            </span>
+      {isAccountImporting ? (
+        <Alert className="shrink-0 rounded-none border-x-0 border-t-0 border-sky-200 bg-sky-50/95 text-sky-950 sm:rounded-none">
+          <AlertTitle className="flex items-center gap-2">
+            <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+            Saving to your account
+          </AlertTitle>
+          <AlertDescription className="text-sky-900/90">
+            Copying this draft to a new resume project. You&apos;ll land in Draft with autosave to your account.
           </AlertDescription>
         </Alert>
       ) : null}
-      {!postAuthBanner ? <GuestDraftLocalSaveNote signedIn={browserHasSession} /> : null}
+      {accountSyncError ? (
+        <Alert variant="destructive" className="shrink-0 rounded-none border-x-0 border-t-0 sm:rounded-none">
+          <AlertTitle>Couldn&apos;t sync yet</AlertTitle>
+          <AlertDescription className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className="min-w-0 text-pretty">{accountSyncError}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-destructive/40 bg-background"
+              disabled={isAccountImporting}
+              onClick={() => void performImportToAccount()}
+            >
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {!isAccountImporting && !accountSyncError ? (
+        <GuestDraftLocalSaveNote signedIn={browserHasSession} />
+      ) : null}
       <div className="flex min-h-0 flex-1 flex-col">
         <GuestStudioEditor
           content={content}
@@ -345,6 +419,9 @@ function TopBar({
   onUndo,
   onRedo,
   loginHref,
+  signedIn,
+  saveToAccountPending,
+  onSaveDraftToAccount,
   autosave,
 }: {
   title: string;
@@ -357,6 +434,9 @@ function TopBar({
   onUndo: () => void;
   onRedo: () => void;
   loginHref: string;
+  signedIn: boolean;
+  saveToAccountPending: boolean;
+  onSaveDraftToAccount: () => void;
   autosave: ReactNode;
 }) {
   // The title input is uncontrolled (defaultValue + remount on external change)
@@ -365,26 +445,25 @@ function TopBar({
     <header className="shrink-0 border-b border-black/30 bg-[#17191d] pt-[env(safe-area-inset-top,0px)] text-white">
       {/*
         Equal `1fr | auto | 1fr` columns so the title block stays in the true horizontal
-        center of the header (not the center of the remaining flex space).
-        Autosave lives on its own row so it never collides with undo/tools/export at any width.
+        center of the header. Autosave sits to the right of Home in the left column; both can wrap on very narrow widths.
       */}
-      <div className="flex flex-col">
-      <div className="grid h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:h-14 sm:gap-x-3 sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))]">
-        <div className="flex min-w-0 items-center justify-self-start">
+      <div className="grid min-h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 gap-y-2 py-1.5 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:min-h-14 sm:gap-y-0 sm:py-0 sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))]">
+        <div className="flex min-w-0 flex-wrap content-center items-center justify-self-start gap-x-1.5 gap-y-1 sm:gap-x-2">
           <Link
             href={ROUTES.app.root}
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
-              "h-8 gap-1.5 rounded-full px-3 text-xs text-slate-200 hover:bg-white/10 hover:text-white",
+              "h-8 shrink-0 gap-1.5 rounded-full px-3 text-xs text-slate-200 hover:bg-white/10 hover:text-white",
             )}
             aria-label="Go to home"
           >
             <span className="text-base leading-none">←</span>
             Home
           </Link>
+          {autosave}
         </div>
 
-        <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100dvw_-_7.5rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))] justify-self-center sm:max-w-[min(32rem,calc(100dvw_-_11rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))]">
+        <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100dvw_-_15rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))] justify-self-center sm:max-w-[min(32rem,calc(100dvw_-_20rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))]">
           {/* Minimal “underline” title + sync icon — matches compact doc-editor chrome */}
           <div className="flex w-full min-w-0 items-end gap-2.5 sm:gap-3">
             <input
@@ -476,22 +555,51 @@ function TopBar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Link
-          href={loginHref}
-          className={cn(
-            buttonVariants({ size: "sm" }),
-            "h-8 gap-1.5 rounded-full bg-[#2268d7] px-3 text-xs font-semibold hover:bg-[#1f5fca]",
-          )}
-          aria-label="Sign in to save a project and export a PDF"
-        >
-          <Download className="size-3.5" aria-hidden />
-          Sign in to export
-        </Link>
+        {signedIn ? (
+          <div className="flex w-full min-w-0 basis-full flex-wrap items-center justify-end gap-1.5 gap-y-1.5 sm:basis-auto sm:w-auto sm:max-w-[min(100%,22rem)] sm:flex-nowrap sm:gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={saveToAccountPending}
+              onClick={onSaveDraftToAccount}
+              className={cn(
+                "h-8 shrink-0 gap-1.5 rounded-full border-0 bg-emerald-600 px-2.5 text-xs font-semibold text-white hover:bg-emerald-700 sm:px-3",
+              )}
+              aria-label="Save this draft as a resume project in your account"
+            >
+              {saveToAccountPending ? (
+                <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+              ) : (
+                <CloudUpload className="size-3.5 shrink-0" aria-hidden />
+              )}
+              <span className="whitespace-nowrap">Save to account</span>
+            </Button>
+            <Link
+              href={ROUTES.app.resumes}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "h-8 shrink-0 gap-1.5 rounded-full border-white/35 bg-transparent px-2.5 text-xs font-semibold text-white hover:bg-white/10 sm:px-3",
+              )}
+              aria-label="Open resume projects dashboard"
+            >
+              <LayoutDashboard className="size-3.5 shrink-0" aria-hidden />
+              <span className="whitespace-nowrap">Dashboard</span>
+            </Link>
+          </div>
+        ) : (
+          <Link
+            href={loginHref}
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "h-8 gap-1.5 rounded-full bg-[#2268d7] px-3 text-xs font-semibold hover:bg-[#1f5fca]",
+            )}
+            aria-label="Sign in to save a project and export a PDF"
+          >
+            <Download className="size-3.5" aria-hidden />
+            Sign in to export
+          </Link>
+        )}
         </div>
-      </div>
-      <div className="flex w-full min-w-0 items-center justify-center border-t border-white/[0.08] pb-2 pt-1 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:justify-end sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pt-1.5">
-        {autosave}
-      </div>
       </div>
     </header>
   );

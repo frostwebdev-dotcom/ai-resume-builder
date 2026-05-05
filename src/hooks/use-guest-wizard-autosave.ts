@@ -110,3 +110,13 @@ export function loadGuestWizardDraftFromStorage(): WizardStateV1 | null {
   }
   return null;
 }
+
+/** After a successful import to a server project, drop the browser-only draft. */
+export function clearGuestWizardDraftFromStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}

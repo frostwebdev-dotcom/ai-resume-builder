@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { mergeProjectMetadata, parseProjectMetadata } from "@/lib/projects/metadata";
 import { slugifyTitle } from "@/lib/projects/slug";
 import { isTemplateSlug, TEMPLATE_IDS } from "@/lib/resume-preview/template-ids";
+import { wizardStateSchema } from "@/lib/resume-wizard/schema";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { ROUTES } from "@/lib/constants";
@@ -25,6 +26,7 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   createProjectSchema,
+  importGuestDraftPayloadSchema,
   projectIdSchema,
   renameProjectSchema,
   setProjectTemplateSchema,
@@ -129,6 +131,85 @@ export async function createProjectAction(
  */
 export async function createProjectFormAction(formData: FormData): Promise<void> {
   await createProjectAction({}, formData);
+}
+
+export type ImportGuestDraftResult =
+  | { ok: true; projectId: string }
+  | { ok: false; error: string };
+
+/**
+ * Creates a resume project from the guest `/create` draft (wizard JSON + template + style)
+ * so the user lands in Draft with server autosave. Client clears guest localStorage after success.
+ */
+export async function importGuestDraftToProjectAction(
+  raw: unknown,
+): Promise<ImportGuestDraftResult> {
+  const userId = await getSessionUserId();
+  if (!userId) return { ok: false, error: "You must be signed in." };
+
+  const parsed = importGuestDraftPayloadSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid draft data." };
+  }
+
+  const wizardParsed = wizardStateSchema.safeParse(parsed.data.wizard);
+  if (!wizardParsed.success) {
+    return {
+      ok: false,
+      error:
+        "Some fields could not be imported. Check links (use https://) or shorten long text, then try again.",
+    };
+  }
+
+  const templateSlug = parsed.data.templateSlug;
+  if (!isTemplateSlug(templateSlug)) {
+    return { ok: false, error: "Invalid template." };
+  }
+  const templateId = TEMPLATE_IDS[templateSlug];
+
+  const title = parsed.data.title?.trim() || "Untitled resume";
+  const slug = await ensureUniqueSlug(userId, title);
+
+  const baseMeta = mergeProjectMetadata({}, { resume_style: parsed.data.resumeStyle });
+  const metaObj =
+    baseMeta && typeof baseMeta === "object" && !Array.isArray(baseMeta)
+      ? (baseMeta as Record<string, unknown>)
+      : {};
+  const metadata = {
+    ...metaObj,
+    wizard: wizardParsed.data as unknown as Json,
+  } as Json;
+
+  const supabase = await createSupabaseServerClient();
+  const { data: created, error } = await supabase
+    .from("resume_projects")
+    .insert({
+      user_id: userId,
+      title,
+      slug,
+      status: "draft",
+      template_id: templateId,
+      metadata,
+    })
+    .select("id")
+    .single();
+
+  if (error || !created) {
+    return { ok: false, error: error?.message ?? "Could not save your resume to your account." };
+  }
+
+  trackServerEvent(ANALYTICS_EVENTS.PROJECT_CREATED, {
+    project_id_prefix: created.id.slice(0, 8),
+    source: "guest_create_import",
+  });
+
+  revalidatePath(ROUTES.app.root);
+  revalidatePath(ROUTES.app.resumes);
+  revalidatePath(ROUTES.app.templates);
+  revalidatePath(ROUTES.app.project(created.id));
+  revalidatePath(ROUTES.app.projectBuild(created.id));
+
+  return { ok: true, projectId: created.id };
 }
 
 export async function renameProjectAction(

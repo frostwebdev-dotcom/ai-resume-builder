@@ -11,6 +11,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { GLOBAL_PROMPT_VERSION } from "@/services/ai/constants";
 import {
   PROMPT_REGISTRY,
+  AI_OPERATION_IDS,
   buildSystemPrompt,
   type AiOperationId,
 } from "@/services/ai/prompts/registry";
@@ -44,6 +45,34 @@ function isRetryableOpenAIError(err: unknown): boolean {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Lower temperature for tighten/grammar; slightly higher for creative rewrites and tailoring. */
+function temperatureForOperation(operationId: AiOperationId): number {
+  switch (operationId) {
+    case AI_OPERATION_IDS.SUMMARY_GRAMMAR:
+    case AI_OPERATION_IDS.CONTENT_GRAMMAR:
+      return 0.2;
+    case AI_OPERATION_IDS.SUMMARY_SHORTEN:
+    case AI_OPERATION_IDS.EXPERIENCE_SHORTEN:
+    case AI_OPERATION_IDS.SKILLS_SHORTEN:
+      return 0.24;
+    case AI_OPERATION_IDS.SUMMARY_GENERATE:
+    case AI_OPERATION_IDS.SUMMARY_TAILOR:
+    case AI_OPERATION_IDS.SUMMARY_EXPAND:
+    case AI_OPERATION_IDS.EXPERIENCE_REWRITE_BULLETS:
+    case AI_OPERATION_IDS.EXPERIENCE_STRENGTHEN:
+    case AI_OPERATION_IDS.EXPERIENCE_EXPAND:
+    case AI_OPERATION_IDS.SKILLS_REPHRASE:
+    case AI_OPERATION_IDS.SUMMARY_TAILOR_JOB:
+    case AI_OPERATION_IDS.SKILLS_TAILOR_JOB:
+    case AI_OPERATION_IDS.EXPERIENCE_TAILOR_JOB:
+      return 0.38;
+    case AI_OPERATION_IDS.EDUCATION_POLISH_DETAILS:
+      return 0.32;
+    default:
+      return 0.32;
+  }
 }
 
 export type GenerationSuccess<T> = {
@@ -96,7 +125,7 @@ export async function runStructuredGeneration<T>(opts: {
           { role: "system", content: system },
           { role: "user", content: opts.userMessage },
         ],
-        temperature: 0.35,
+        temperature: temperatureForOperation(opts.operationId),
       });
 
       const latency = Date.now() - started;

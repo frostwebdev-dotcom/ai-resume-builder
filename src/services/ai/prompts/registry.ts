@@ -17,6 +17,7 @@ export const AI_OPERATION_IDS = {
   SUMMARY_TAILOR_JOB: "summary.tailor_job",
   SKILLS_TAILOR_JOB: "skills.tailor_job",
   EXPERIENCE_TAILOR_JOB: "experience.tailor_job",
+  EDUCATION_POLISH_DETAILS: "education.polish_details",
 } as const;
 
 export type AiOperationId = (typeof AI_OPERATION_IDS)[keyof typeof AI_OPERATION_IDS];
@@ -86,6 +87,10 @@ export const PROMPT_REGISTRY: Record<AiOperationId, RegistryEntry> = {
   [AI_OPERATION_IDS.EXPERIENCE_TAILOR_JOB]: {
     version: "1.0.0",
     description: "Tune bullets toward job requirements without inventing facts",
+  },
+  [AI_OPERATION_IDS.EDUCATION_POLISH_DETAILS]: {
+    version: "1.0.0",
+    description: "Polish education details using school/degree/field context only",
   },
 };
 

@@ -15,7 +15,7 @@ type Props = {
 };
 
 /**
- * Non-modal note for /create when signed in: local autosave until a dashboard project exists.
+ * Non-modal note for `/create` when signed in: explains local vs account save while import may be pending.
  */
 export function GuestDraftLocalSaveNote({ className, signedIn = false }: Props) {
   if (!signedIn) return null;
@@ -36,9 +36,9 @@ export function GuestDraftLocalSaveNote({ className, signedIn = false }: Props) 
         />
         <div className="min-w-0 flex-1">
           <p className="text-left text-[0.8125rem] leading-snug text-balance text-slate-600">
-            You&apos;re signed in, but this page still saves in your browser only until you create a resume project
-            from your dashboard and open Draft—the same studio experience, synced to your account. We start you with
-            sample résumé content you can edit or replace. PDF export is{" "}
+            You&apos;re signed in. If you had a browser draft or just returned from sign-in, we copy it into a new
+            resume project and open <strong className="font-medium text-slate-800">Draft</strong> with autosave to
+            your account (same studio editor). PDF export is{" "}
             <span className="font-medium text-slate-800">
               {RESUME_PDF_EXPORT_PRICE_USD} once per project
             </span>{" "}
@@ -49,7 +49,7 @@ export function GuestDraftLocalSaveNote({ className, signedIn = false }: Props) 
             >
               Pricing
             </Link>
-            ); clearing this site&apos;s data here removes only this local draft.{" "}
+            ). Until that finishes, this tab may still show device-only save.{" "}
             <Link
               href={ROUTES.faq}
               className="font-medium text-[#2268d7] underline-offset-2 hover:underline"

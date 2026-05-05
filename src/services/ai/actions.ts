@@ -8,6 +8,7 @@ import * as ResumeAi from "@/services/ai/resume-ai";
 import type { AiResult } from "@/types/ai";
 import {
   additionalTextInput,
+  educationPolishInput,
   experienceBulletsInput,
   skillsTextInput,
   summaryGenerateInput,
@@ -199,6 +200,20 @@ export async function aiGrammarAdditionalAction(
     return { ok: false, error: "Invalid text.", code: "VALIDATION" };
   }
   const out = await ResumeAi.aiGrammarText(userId, parsed.data);
+  if (out.ok) revalidateProject(parsed.data.projectId);
+  return out;
+}
+
+export async function aiPolishEducationDetailsAction(
+  raw: unknown,
+): Promise<AiResult<{ details: string }>> {
+  const userId = await getSessionUserId();
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
+  const parsed = educationPolishInput.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Check your education fields and try again.", code: "VALIDATION" };
+  }
+  const out = await ResumeAi.aiPolishEducationDetails(userId, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
