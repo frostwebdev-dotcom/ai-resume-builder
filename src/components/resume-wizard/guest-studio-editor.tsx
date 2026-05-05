@@ -2526,10 +2526,15 @@ function SummaryBody({
 }) {
   return (
     <div className="space-y-4">
-      <Field id="headline" label="Headline" className="gap-1.5">
+      <Field
+        id="headline"
+        label="Headline"
+        description="Your job title or role in one line—examples: Software engineer, Physician, Marketing manager, or High school teacher. Add a few keywords after if you like (e.g. Software engineer · TypeScript & cloud)."
+        className="gap-1.5"
+      >
         <Input
           className={softInput}
-          placeholder="Product designer · Design systems · B2B SaaS"
+          placeholder="e.g. Software engineer · Backend & APIs"
           value={state.summary.headline}
           onChange={(e) =>
             setState((s) => ({ ...s, summary: { ...s.summary, headline: e.target.value } }))
