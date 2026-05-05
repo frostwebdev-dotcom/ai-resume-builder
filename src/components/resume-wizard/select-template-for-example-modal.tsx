@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BookOpenCheck, Eye, MoreHorizontal, Search } from "lucide-react";
+import { BookOpenCheck, Eye, MoreHorizontal, Search, Star } from "lucide-react";
 
+import { TemplateCardHoverChrome } from "@/components/templates/template-card-hover-chrome";
 import { TemplateCatalogLivePreview } from "@/components/templates/template-catalog-live-preview";
-import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
+import { isPopularTemplate } from "@/lib/resume-preview/template-catalog-filters";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -138,69 +140,77 @@ export function SelectTemplateForExampleModal({
                   No templates match your search.
                 </p>
               ) : (
-                <ul className="grid list-none grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <ul className="mx-auto grid max-w-[90rem] list-none grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
                   {filtered.map((slug) => {
                     const theme = getTemplateTheme(slug);
                     const isCurrent = slug === currentSlug;
+                    const popular = isPopularTemplate(theme);
                     return (
                       <li key={slug} className="min-w-0">
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          aria-label={`Start from example using ${theme.name} template`}
-                          onClick={() => startFrom(slug)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              startFrom(slug);
-                            }
-                          }}
-                          className={cn(
-                            "group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border bg-card text-left shadow-sm outline-none transition-[border-color,box-shadow,transform]",
-                            "border-border/80 hover:border-[#2268d7]/45 hover:shadow-md",
-                            "focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                            "motion-safe:active:scale-[0.99] motion-reduce:active:scale-100",
-                            isCurrent && "ring-1 ring-[#2268d7]/35",
-                          )}
-                        >
-                          {isCurrent ? (
-                            <span className="absolute left-2 top-2 z-[1] rounded-full bg-[#2268d7]/10 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-[#2268d7]">
-                              Current
-                            </span>
-                          ) : null}
-                          <div className="border-b border-border/50 bg-muted/20 p-3">
-                            <TemplateThumbnail
-                              slug={slug}
-                              className="aspect-[210/297] w-full max-h-[11.5rem] shadow-sm"
-                            />
-                          </div>
-                          <div className="flex min-w-0 flex-1 flex-col gap-1 px-3 pb-10 pt-2.5">
-                            <span className="truncate text-sm font-semibold text-foreground">
-                              {theme.name}
-                            </span>
-                            <span className="line-clamp-2 text-xs text-muted-foreground">
-                              Example résumé tailored to this layout.
-                            </span>
-                          </div>
+                        <div className="group relative block rounded-none outline-none focus-within:ring-2 focus-within:ring-[#2268d7]/45 focus-within:ring-offset-2 focus-within:ring-offset-background">
+                          <div className="relative">
+                            <TemplateCardHoverChrome>
+                              <div className="relative">
+                                <Card className="gap-0 overflow-hidden border-0 bg-white py-0 text-left shadow-none transition-shadow duration-200 group-hover:shadow-none">
+                                  <CardContent className="p-0">
+                                    <div
+                                      className={cn(
+                                        "relative overflow-hidden bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05),0_4px_14px_rgba(15,23,42,0.06),inset_0_1px_0_rgba(255,255,255,0.85)] ring-1 ring-slate-200/50 transition-[box-shadow,ring-color] duration-200 ease-out group-hover:shadow-[0_2px_6px_rgba(15,23,42,0.07),0_10px_28px_rgba(15,23,42,0.09),inset_0_1px_0_rgba(255,255,255,0.9)] group-hover:ring-slate-300/70",
+                                        "rounded-none p-2.5 sm:p-3",
+                                      )}
+                                    >
+                                      <div className="relative z-[1]">
+                                        <TemplateCatalogLivePreview
+                                          slug={slug}
+                                          className="rounded-none shadow-none ring-0"
+                                        />
+                                      </div>
+                                      {popular ? (
+                                        <div className="pointer-events-none absolute bottom-2 left-2 z-10">
+                                          <span className="inline-flex items-center gap-1 rounded-md border border-amber-400/75 bg-[#ffe082] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-950 shadow-sm">
+                                            <Star
+                                              className="size-3 shrink-0 fill-amber-900 text-amber-900"
+                                              strokeWidth={1.5}
+                                              aria-hidden
+                                            />
+                                            POPULAR
+                                          </span>
+                                        </div>
+                                      ) : null}
+                                      {isCurrent ? (
+                                        <div className="pointer-events-none absolute left-2 top-2 z-10">
+                                          <span className="inline-flex rounded-md border border-[#2268d7]/35 bg-white/95 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#2268d7] shadow-sm">
+                                            Current
+                                          </span>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </div>
+                            </TemplateCardHoverChrome>
 
-                          <div
-                            className="absolute bottom-2 right-2 z-[1]"
-                            onClick={(e) => e.stopPropagation()}
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onKeyDown={(e) => e.stopPropagation()}
-                          >
-                            <DropdownMenu>
-                              <DropdownMenuTrigger
-                                type="button"
-                                aria-label={`More actions for ${theme.name}`}
-                                className={cn(
-                                  "inline-flex size-9 items-center justify-center rounded-full border border-border/90 bg-background/95 text-muted-foreground shadow-sm outline-none",
-                                  "hover:bg-muted hover:text-foreground",
-                                  "focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 focus-visible:ring-offset-2",
-                                )}
-                              >
-                                <MoreHorizontal className="size-4" aria-hidden />
-                              </DropdownMenuTrigger>
+                            <div
+                              className="absolute bottom-2 right-2 z-40"
+                              onClick={(e) => e.stopPropagation()}
+                              onPointerDown={(e) => e.stopPropagation()}
+                            >
+                              <DropdownMenu>
+                                <DropdownMenuTrigger
+                                  type="button"
+                                  aria-label={`More actions for ${theme.name}`}
+                                  className={cn(
+                                    "flex size-10 items-center justify-center rounded-full",
+                                    "bg-white/95 text-slate-700 ring-2 ring-white/90",
+                                    "shadow-[0_2px_10px_rgba(15,23,42,0.14)]",
+                                    "transition-[transform,box-shadow,background-color,color] duration-200 ease-out",
+                                    "hover:bg-slate-50 hover:text-slate-900 hover:shadow-[0_3px_12px_rgba(15,23,42,0.16)]",
+                                    "active:scale-[0.96]",
+                                    "outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                                  )}
+                                >
+                                  <MoreHorizontal className="size-5" strokeWidth={2} aria-hidden />
+                                </DropdownMenuTrigger>
                               <DropdownMenuContent
                                 align="end"
                                 sideOffset={6}
@@ -228,7 +238,18 @@ export function SelectTemplateForExampleModal({
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
+                            </div>
                           </div>
+
+                          <button
+                            type="button"
+                            className={cn(
+                              "absolute inset-0 z-[30] rounded-none border-0 bg-transparent p-0 opacity-0 outline-none",
+                              "focus-visible:outline-none",
+                            )}
+                            aria-label={`Start from example using ${theme.name} template`}
+                            onClick={() => startFrom(slug)}
+                          />
                         </div>
                       </li>
                     );
