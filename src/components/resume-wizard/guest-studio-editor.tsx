@@ -2321,7 +2321,24 @@ function PersonalBody({
 }) {
   const p = state.personal;
   const [openPills, setOpenPills] = useState<Set<PersonalPillKey>>(() => new Set());
+  const [customFieldRenaming, setCustomFieldRenaming] = useState(false);
   const linkedInShortcutFocusRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!openPills.has("custom")) setCustomFieldRenaming(false);
+  }, [openPills]);
+
+  useLayoutEffect(() => {
+    if (!customFieldRenaming) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById("customFieldName");
+      if (el instanceof HTMLInputElement) {
+        el.focus();
+        el.select();
+      }
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [customFieldRenaming]);
 
   useEffect(() => {
     if (!pillOpenRequest?.keys.length) return;
@@ -2391,6 +2408,7 @@ function PersonalBody({
                     : key === "linkedInPill"
                       ? { linkedIn: "" }
                       : { customFieldLabel: "", customFieldValue: "" };
+    if (key === "custom") setCustomFieldRenaming(false);
     updatePersonal(clears);
   };
 
@@ -2470,13 +2488,7 @@ function PersonalBody({
               <div className="px-1.5">
                 <DropdownMenuItem
                   className="cursor-pointer rounded-md px-2.5 py-2 text-sm focus:bg-neutral-100/90"
-                  onClick={() => {
-                    requestAnimationFrame(() => {
-                      const el = document.getElementById("customFieldValue");
-                      el?.focus();
-                      if (el instanceof HTMLInputElement) el.select();
-                    });
-                  }}
+                  onClick={() => setCustomFieldRenaming(true)}
                 >
                   Rename field
                 </DropdownMenuItem>
@@ -2604,23 +2616,43 @@ function PersonalBody({
           </Field>
         );
       case "custom": {
-        const lab = p.customFieldLabel.trim();
-        const val = p.customFieldValue.trim();
-        const display = lab && val ? `${lab}: ${val}` : val || lab;
+        const displayName = p.customFieldLabel.trim() || "Field name";
         return (
-          <Field id="customFieldValue" label="Field name" className="gap-1.5">
+          <div className="flex flex-col gap-1.5">
+            {customFieldRenaming ? (
+              <>
+                <span id="custom-field-name-caption" className="sr-only">
+                  Field name
+                </span>
+                <Input
+                  id="customFieldName"
+                  className={softInput}
+                  placeholder="Field name"
+                  value={p.customFieldLabel}
+                  aria-describedby="custom-field-name-caption"
+                  onChange={(e) => updatePersonal({ customFieldLabel: e.target.value })}
+                  onBlur={() => setCustomFieldRenaming(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === "Escape") {
+                      e.preventDefault();
+                      setCustomFieldRenaming(false);
+                    }
+                  }}
+                />
+              </>
+            ) : (
+              <Label htmlFor="customFieldValue" className="text-label peer gap-0">
+                {displayName}
+              </Label>
+            )}
             <Input
+              id="customFieldValue"
               className={softInput}
-              placeholder="e.g. Security clearance — EU Secret"
-              value={display}
-              onChange={(e) =>
-                updatePersonal({
-                  customFieldValue: e.target.value,
-                  customFieldLabel: "",
-                })
-              }
+              placeholder="e.g. EU Secret / Authorized to work in the US"
+              value={p.customFieldValue}
+              onChange={(e) => updatePersonal({ customFieldValue: e.target.value })}
             />
-          </Field>
+          </div>
         );
       }
       default:

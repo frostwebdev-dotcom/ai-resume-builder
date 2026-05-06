@@ -163,14 +163,12 @@ export function mapWizardToPreviewDocument(
     });
   }
   {
-    const lab = p.customFieldLabel.trim();
+    const name = p.customFieldLabel.trim() || "Field name";
     const val = p.customFieldValue.trim();
-    if (lab || val) {
-      const value =
-        lab && val ? `${lab}: ${val}` : val || lab;
+    if (val) {
       personalOptionalLines.push({
-        label: "Field name",
-        value,
+        label: name,
+        value: val,
       });
     }
   }
