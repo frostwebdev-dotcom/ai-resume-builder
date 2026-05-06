@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 import { mergeProjectMetadata, parseProjectMetadata } from "@/lib/projects/metadata";
 import { slugifyTitle } from "@/lib/projects/slug";
 import { isTemplateSlug, TEMPLATE_IDS } from "@/lib/resume-preview/template-ids";
-import { wizardStateSchema } from "@/lib/resume-wizard/schema";
+import { hydrateWizardState } from "@/lib/resume-wizard/parse";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { ROUTES } from "@/lib/constants";
@@ -152,14 +152,7 @@ export async function importGuestDraftToProjectAction(
     return { ok: false, error: "Invalid draft data." };
   }
 
-  const wizardParsed = wizardStateSchema.safeParse(parsed.data.wizard);
-  if (!wizardParsed.success) {
-    return {
-      ok: false,
-      error:
-        "Some fields could not be imported. Check links (use https://) or shorten long text, then try again.",
-    };
-  }
+  const wizardState = hydrateWizardState(parsed.data.wizard);
 
   const templateSlug = parsed.data.templateSlug;
   if (!isTemplateSlug(templateSlug)) {
@@ -177,7 +170,7 @@ export async function importGuestDraftToProjectAction(
       : {};
   const metadata = {
     ...metaObj,
-    wizard: wizardParsed.data as unknown as Json,
+    wizard: wizardState as unknown as Json,
   } as Json;
 
   const supabase = await createSupabaseServerClient();

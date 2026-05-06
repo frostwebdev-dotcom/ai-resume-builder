@@ -594,8 +594,16 @@ export function buildDemoWizardStateForTemplateSlug(slug: TemplateSlug): WizardS
       gender: rot(GENDER, i),
       nationality: rot(NATIONALITY, i),
       civilStatus: rot(CIVIL, i),
-      customFieldLabel: i % 4 === 0 ? "Work authorization" : "",
-      customFieldValue: i % 4 === 0 ? "Authorized to work in listed regions" : "",
+      customFields:
+        i % 4 === 0
+          ? [
+              {
+                id: entryUuid(slug, 99),
+                label: "Work authorization",
+                value: "Authorized to work in listed regions",
+              },
+            ]
+          : [],
       showNameIn: "title",
     },
     summary: {

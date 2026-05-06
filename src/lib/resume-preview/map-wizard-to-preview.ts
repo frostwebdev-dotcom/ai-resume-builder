@@ -162,9 +162,9 @@ export function mapWizardToPreviewDocument(
       value: p.civilStatus.trim(),
     });
   }
-  {
-    const name = p.customFieldLabel.trim() || "Field name";
-    const val = p.customFieldValue.trim();
+  for (const row of p.customFields) {
+    const name = row.label.trim() || "Field name";
+    const val = row.value.trim();
     if (val) {
       personalOptionalLines.push({
         label: name,

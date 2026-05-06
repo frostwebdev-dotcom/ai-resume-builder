@@ -40,8 +40,7 @@ export function mergeWizardFromImport(base: WizardStateV1, patch: ResumeImportAi
       gender: "",
       nationality: "",
       civilStatus: "",
-      customFieldLabel: "",
-      customFieldValue: "",
+      customFields: [],
     },
     summary: {
       headline: patch.summary.headline.trim(),

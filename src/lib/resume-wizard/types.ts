@@ -1,6 +1,13 @@
 /** Client-side id for stable React keys (not persisted separately). */
 export type EntryId = string;
 
+/** One optional custom contact line under Personal details (user-defined label + value). */
+export type PersonalCustomLine = {
+  id: string;
+  label: string;
+  value: string;
+};
+
 export type PersonalDetails = {
   /**
    * Derived or legacy full name for preview/PDF — kept in sync when
@@ -33,8 +40,8 @@ export type PersonalDetails = {
   gender: string;
   nationality: string;
   civilStatus: string;
-  customFieldLabel: string;
-  customFieldValue: string;
+  /** Arbitrary labeled contact-style lines (e.g. clearance, relocation). Each has its own ⋯ actions. */
+  customFields: PersonalCustomLine[];
   /**
    * Where the candidate name appears on the resume preview / PDF.
    * `title` — main header only; `personal` — contact / personal block only;

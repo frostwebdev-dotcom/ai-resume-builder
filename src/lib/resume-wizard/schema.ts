@@ -101,6 +101,12 @@ export const projectEntrySchema = z.object({
   technologies: z.string().trim().max(500),
 });
 
+export const personalCustomLineSchema = z.object({
+  id: z.string(),
+  label: z.string().trim().max(80),
+  value: z.string().trim().max(240),
+});
+
 export const personalDetailsSchema = z
   .object({
     fullName: z.string().trim().max(120),
@@ -128,8 +134,7 @@ export const personalDetailsSchema = z
     gender: z.string().trim().max(40),
     nationality: z.string().trim().max(80),
     civilStatus: z.string().trim().max(80),
-    customFieldLabel: z.string().trim().max(80),
-    customFieldValue: z.string().trim().max(240),
+    customFields: z.array(personalCustomLineSchema).max(20),
     showNameIn: z.enum(["title", "personal", "both"]),
   })
   .refine(
@@ -177,8 +182,7 @@ export const wizardStateSchema = z.object({
     gender: z.string().trim().max(40),
     nationality: z.string().trim().max(80),
     civilStatus: z.string().trim().max(80),
-    customFieldLabel: z.string().trim().max(80),
-    customFieldValue: z.string().trim().max(240),
+    customFields: z.array(personalCustomLineSchema).max(20),
     showNameIn: z.enum(["title", "personal", "both"]),
   }),
   summary: professionalSummarySchema,

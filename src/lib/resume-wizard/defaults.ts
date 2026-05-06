@@ -33,8 +33,7 @@ export function createEmptyWizardState(): WizardStateV1 {
       gender: "",
       nationality: "",
       civilStatus: "",
-      customFieldLabel: "",
-      customFieldValue: "",
+      customFields: [],
       showNameIn: "title",
     },
     summary: {

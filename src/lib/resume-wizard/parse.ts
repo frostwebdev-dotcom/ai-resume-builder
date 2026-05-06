@@ -5,10 +5,58 @@ import { wizardStateSchema } from "@/lib/resume-wizard/schema";
 import type {
   CertificationEntry,
   EducationEntry,
+  PersonalDetails,
   ProjectEntry,
+  PersonalCustomLine,
   WorkExperienceEntry,
   WizardStateV1,
 } from "@/lib/resume-wizard/types";
+
+/** Merge legacy `customFieldLabel`/`customFieldValue` and normalize array shape before Zod parse. */
+function migratePersonalShapes(defaults: PersonalDetails, slice: Record<string, unknown>): PersonalDetails {
+  const mergedRaw: Record<string, unknown> = {
+    ...(defaults as unknown as Record<string, unknown>),
+    ...slice,
+  };
+
+  let customFields: PersonalCustomLine[] = [];
+  const cfRaw = mergedRaw.customFields;
+  if (Array.isArray(cfRaw)) {
+    customFields = cfRaw.slice(0, 32).map((item) => {
+      const x = item as Record<string, unknown>;
+      return {
+        id: ensureEntryId(typeof x.id === "string" ? x.id : undefined),
+        label: typeof x.label === "string" ? x.label : "",
+        value: typeof x.value === "string" ? x.value : "",
+      };
+    });
+  }
+
+  const labRaw = mergedRaw.customFieldLabel;
+  const valRaw = mergedRaw.customFieldValue;
+  const lab =
+    typeof labRaw === "string"
+      ? labRaw.trim()
+      : typeof labRaw === "number"
+        ? String(labRaw).trim()
+        : "";
+  const val = typeof valRaw === "string" ? valRaw.trim() : "";
+
+  if (customFields.length === 0 && (lab || val)) {
+    customFields = [
+      {
+        id: ensureEntryId(undefined),
+        label: lab,
+        value: val,
+      },
+    ];
+  }
+
+  delete mergedRaw.customFieldLabel;
+  delete mergedRaw.customFieldValue;
+  mergedRaw.customFields = customFields;
+  return mergedRaw as PersonalDetails;
+}
 
 /**
  * Merge stored JSON with defaults and validate. Falls back to a fresh wizard on error.
@@ -22,12 +70,12 @@ export function hydrateWizardState(raw: unknown): WizardStateV1 {
 
   const merged: WizardStateV1 = {
     v: 1,
-    personal: {
-      ...defaults.personal,
-      ...(typeof o.personal === "object" && o.personal !== null
-        ? (o.personal as WizardStateV1["personal"])
-        : {}),
-    },
+    personal: migratePersonalShapes(
+      defaults.personal,
+      typeof o.personal === "object" && o.personal !== null
+        ? (o.personal as Record<string, unknown>)
+        : {},
+    ),
     summary: {
       ...defaults.summary,
       ...(typeof o.summary === "object" && o.summary !== null

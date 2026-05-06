@@ -24,8 +24,7 @@ const base = {
   gender: "",
   nationality: "",
   civilStatus: "",
-  customFieldLabel: "",
-  customFieldValue: "",
+  customFields: [],
   showNameIn: "title" as const,
 };
 

@@ -69,7 +69,11 @@ import { isProfileDescriptionEmpty } from "@/lib/profile-description-html";
 import { createDemoWizardStateForTemplate } from "@/lib/resume-wizard/demo-wizard-state";
 import { ensureEntryId } from "@/lib/resume-wizard/ids";
 import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-order";
-import type { WizardEditorSectionId, WizardStateV1 } from "@/lib/resume-wizard/types";
+import type {
+  PersonalCustomLine,
+  WizardEditorSectionId,
+  WizardStateV1,
+} from "@/lib/resume-wizard/types";
 import {
   AdditionalAiPanel,
   EducationEntryAiPanel,
@@ -99,8 +103,7 @@ type PersonalPillKey =
   | "nationality"
   | "civilStatus"
   | "websitePill"
-  | "linkedInPill"
-  | "custom";
+  | "linkedInPill";
 
 /** Display order for optional personal fields once added (above the “add more” chips). */
 const OPTIONAL_PILL_ORDER: PersonalPillKey[] = [
@@ -112,7 +115,6 @@ const OPTIONAL_PILL_ORDER: PersonalPillKey[] = [
   "civilStatus",
   "websitePill",
   "linkedInPill",
-  "custom",
 ];
 
 const OPTIONAL_PILL_LABELS: Record<PersonalPillKey, string> = {
@@ -124,8 +126,12 @@ const OPTIONAL_PILL_LABELS: Record<PersonalPillKey, string> = {
   civilStatus: "Civil status",
   websitePill: "Website",
   linkedInPill: "LinkedIn",
-  custom: "Custom field",
 };
+
+const CUSTOM_FIELD_CHIP_LABEL = "Custom field";
+
+const OPTIONAL_PILL_CLASS =
+  "inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-left text-xs font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 sm:text-[0.8125rem]";
 
 /** Value for `<input type="date">` — ISO `YYYY-MM-DD` or empty (ignores unparseable legacy text). */
 function toHtmlDateInputValue(raw: string): string {
@@ -2321,24 +2327,29 @@ function PersonalBody({
 }) {
   const p = state.personal;
   const [openPills, setOpenPills] = useState<Set<PersonalPillKey>>(() => new Set());
-  const [customFieldRenaming, setCustomFieldRenaming] = useState(false);
+  const [renamingCustomFieldId, setRenamingCustomFieldId] = useState<string | null>(null);
   const linkedInShortcutFocusRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!openPills.has("custom")) setCustomFieldRenaming(false);
-  }, [openPills]);
+    if (
+      renamingCustomFieldId &&
+      !p.customFields.some((c) => c.id === renamingCustomFieldId)
+    ) {
+      setRenamingCustomFieldId(null);
+    }
+  }, [p.customFields, renamingCustomFieldId]);
 
   useLayoutEffect(() => {
-    if (!customFieldRenaming) return;
+    if (!renamingCustomFieldId) return;
     const t = window.setTimeout(() => {
-      const el = document.getElementById("customFieldName");
+      const el = document.getElementById(`customFieldName-${renamingCustomFieldId}`);
       if (el instanceof HTMLInputElement) {
         el.focus();
         el.select();
       }
     }, 0);
     return () => window.clearTimeout(t);
-  }, [customFieldRenaming]);
+  }, [renamingCustomFieldId]);
 
   useEffect(() => {
     if (!pillOpenRequest?.keys.length) return;
@@ -2405,11 +2416,47 @@ function PersonalBody({
                   ? { civilStatus: "" }
                   : key === "websitePill"
                     ? { website: "" }
-                    : key === "linkedInPill"
-                      ? { linkedIn: "" }
-                      : { customFieldLabel: "", customFieldValue: "" };
-    if (key === "custom") setCustomFieldRenaming(false);
+                    : { linkedIn: "" };
     updatePersonal(clears);
+  };
+
+  const addBlankCustomLine = () => {
+    setState((s) => ({
+      ...s,
+      personal: {
+        ...s.personal,
+        customFields: [
+          ...s.personal.customFields,
+          { id: ensureEntryId(undefined), label: "", value: "" },
+        ],
+      },
+    }));
+  };
+
+  const patchCustomLine = (
+    id: string,
+    patch: Partial<Pick<PersonalCustomLine, "label" | "value">>,
+  ) => {
+    setState((s) => ({
+      ...s,
+      personal: {
+        ...s.personal,
+        customFields: s.personal.customFields.map((row) =>
+          row.id === id ? { ...row, ...patch } : row,
+        ),
+      },
+    }));
+  };
+
+  const removeCustomLine = (id: string) => {
+    setRenamingCustomFieldId((cur) => (cur === id ? null : cur));
+    setState((s) => ({
+      ...s,
+      personal: {
+        ...s.personal,
+        customFields: s.personal.customFields.filter((row) => row.id !== id),
+      },
+    }));
   };
 
   const setJobPosition = (desiredJobPosition: string) => {
@@ -2458,7 +2505,7 @@ function PersonalBody({
       <button
         type="button"
         onClick={() => addOptionalPill(pillKey)}
-        className="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-left text-xs font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 sm:text-[0.8125rem]"
+        className={OPTIONAL_PILL_CLASS}
       >
         <Plus className="size-3.5 shrink-0 text-neutral-500" aria-hidden />
         <span className="truncate">{label}</span>
@@ -2483,24 +2530,49 @@ function PersonalBody({
           sideOffset={6}
           className="min-w-[11rem] rounded-xl border border-neutral-200 bg-white p-0 py-1 shadow-lg ring-1 ring-black/[0.06]"
         >
-          {pillKey === "custom" ? (
-            <>
-              <div className="px-1.5">
-                <DropdownMenuItem
-                  className="cursor-pointer rounded-md px-2.5 py-2 text-sm focus:bg-neutral-100/90"
-                  onClick={() => setCustomFieldRenaming(true)}
-                >
-                  Rename field
-                </DropdownMenuItem>
-              </div>
-              <DropdownMenuSeparator className="bg-neutral-200/90" />
-            </>
-          ) : null}
           <div className="px-1.5">
             <DropdownMenuItem
               variant="destructive"
               className="cursor-pointer rounded-md px-2.5 py-2 text-sm"
               onClick={() => removeOptionalPill(pillKey)}
+            >
+              Remove field
+            </DropdownMenuItem>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  function CustomLineFieldMenu({ lineId }: { lineId: string }) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          type="button"
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-neutral-500 outline-none hover:bg-neutral-200/80 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 sm:size-7"
+          aria-label="Field options"
+        >
+          <MoreHorizontal className="size-4" aria-hidden />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          sideOffset={6}
+          className="min-w-[11rem] rounded-xl border border-neutral-200 bg-white p-0 py-1 shadow-lg ring-1 ring-black/[0.06]"
+        >
+          <div className="px-1.5">
+            <DropdownMenuItem
+              className="cursor-pointer rounded-md px-2.5 py-2 text-sm focus:bg-neutral-100/90"
+              onClick={() => setRenamingCustomFieldId(lineId)}
+            >
+              Rename field
+            </DropdownMenuItem>
+          </div>
+          <DropdownMenuSeparator className="bg-neutral-200/90" />
+          <div className="px-1.5">
+            <DropdownMenuItem
+              variant="destructive"
+              className="cursor-pointer rounded-md px-2.5 py-2 text-sm"
+              onClick={() => removeCustomLine(lineId)}
             >
               Remove field
             </DropdownMenuItem>
@@ -2615,46 +2687,6 @@ function PersonalBody({
             />
           </Field>
         );
-      case "custom": {
-        const displayName = p.customFieldLabel.trim() || "Field name";
-        return (
-          <div className="flex flex-col gap-1.5">
-            {customFieldRenaming ? (
-              <>
-                <span id="custom-field-name-caption" className="sr-only">
-                  Field name
-                </span>
-                <Input
-                  id="customFieldName"
-                  className={softInput}
-                  placeholder="Field name"
-                  value={p.customFieldLabel}
-                  aria-describedby="custom-field-name-caption"
-                  onChange={(e) => updatePersonal({ customFieldLabel: e.target.value })}
-                  onBlur={() => setCustomFieldRenaming(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === "Escape") {
-                      e.preventDefault();
-                      setCustomFieldRenaming(false);
-                    }
-                  }}
-                />
-              </>
-            ) : (
-              <Label htmlFor="customFieldValue" className="text-label peer gap-0">
-                {displayName}
-              </Label>
-            )}
-            <Input
-              id="customFieldValue"
-              className={softInput}
-              placeholder="e.g. EU Secret / Authorized to work in the US"
-              value={p.customFieldValue}
-              onChange={(e) => updatePersonal({ customFieldValue: e.target.value })}
-            />
-          </div>
-        );
-      }
       default:
         return null;
     }
@@ -2824,9 +2856,11 @@ function PersonalBody({
         </p>
       </Field>
 
-      {openPills.size > 0 || optionalPillsRemaining.length > 0 ? (
+      {openPills.size > 0 ||
+      optionalPillsRemaining.length > 0 ||
+      p.customFields.length > 0 ? (
         <div className="space-y-5 border-t border-neutral-100 pt-5">
-          {openPills.size > 0 ? (
+          {openPills.size > 0 || p.customFields.length > 0 ? (
             <div className="space-y-4">
               {OPTIONAL_PILL_ORDER.filter((k) => openPills.has(k)).map((k) => (
                 <div key={k} className="flex items-start gap-2">
@@ -2834,25 +2868,74 @@ function PersonalBody({
                   <OptionalFieldMenu pillKey={k} />
                 </div>
               ))}
+              {p.customFields.map((line) => {
+                const displayName = line.label.trim() || "Field name";
+                const nameInputId = `customFieldName-${line.id}`;
+                const valueInputId = `customFieldValue-${line.id}`;
+                return (
+                  <div key={line.id} className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-col gap-1.5">
+                        {renamingCustomFieldId === line.id ? (
+                          <>
+                            <span className="sr-only" id={`${nameInputId}-caption`}>
+                              Field name
+                            </span>
+                            <Input
+                              id={nameInputId}
+                              className={softInput}
+                              placeholder="Field name"
+                              value={line.label}
+                              aria-describedby={`${nameInputId}-caption`}
+                              onChange={(e) => patchCustomLine(line.id, { label: e.target.value })}
+                              onBlur={() => setRenamingCustomFieldId(null)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === "Escape") {
+                                  e.preventDefault();
+                                  setRenamingCustomFieldId(null);
+                                }
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <Label htmlFor={valueInputId} className="text-label peer gap-0">
+                            {displayName}
+                          </Label>
+                        )}
+                        <Input
+                          id={valueInputId}
+                          className={softInput}
+                          placeholder="e.g. EU Secret / Authorized to work in the US"
+                          value={line.value}
+                          onChange={(e) => patchCustomLine(line.id, { value: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <CustomLineFieldMenu lineId={line.id} />
+                  </div>
+                );
+              })}
             </div>
           ) : null}
 
-          {optionalPillsRemaining.length > 0 ? (
-            <div className="space-y-3">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-neutral-500">
-                Optional fields
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {optionalPillsRemaining.map((pillKey) => (
-                  <Pill
-                    key={pillKey}
-                    pillKey={pillKey}
-                    label={OPTIONAL_PILL_LABELS[pillKey]}
-                  />
-                ))}
-              </div>
+          <div className="space-y-3">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-neutral-500">
+              Optional fields
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {optionalPillsRemaining.map((pillKey) => (
+                <Pill
+                  key={pillKey}
+                  pillKey={pillKey}
+                  label={OPTIONAL_PILL_LABELS[pillKey]}
+                />
+              ))}
+              <button type="button" onClick={addBlankCustomLine} className={OPTIONAL_PILL_CLASS}>
+                <Plus className="size-3.5 shrink-0 text-neutral-500" aria-hidden />
+                <span className="truncate">{CUSTOM_FIELD_CHIP_LABEL}</span>
+              </button>
             </div>
-          ) : null}
+          </div>
         </div>
       ) : null}
     </div>
