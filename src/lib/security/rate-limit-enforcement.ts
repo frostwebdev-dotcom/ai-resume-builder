@@ -18,7 +18,7 @@ import { logSuspicious } from "./abuse-log";
 const MSG_AI =
   "You're using AI faster than our limit allows. Please wait a short moment and try again.";
 const MSG_AI_REDIS_REQUIRED =
-  "AI is temporarily unavailable. Please try again in a few minutes.";
+  "AI is disabled on this server: Upstash Redis is not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN, then restart.";
 const MSG_AUTH_IP =
   "Too many attempts from this network. Please wait before trying again.";
 const MSG_CHECKOUT =

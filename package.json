@@ -22,6 +22,7 @@
     "geist": "^1.7.0",
     "lucide-react": "^1.8.0",
     "mammoth": "^1.12.0",
+    "@napi-rs/canvas": "0.1.80",
     "next": "16.2.3",
     "next-themes": "^0.4.6",
     "openai": "^6.34.0",

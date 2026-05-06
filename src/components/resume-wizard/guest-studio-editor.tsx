@@ -17,6 +17,7 @@ import {
 } from "react";
 import {
   BookOpenCheck,
+  Calendar,
   Camera,
   Check,
   ChevronDown,
@@ -28,6 +29,7 @@ import {
   LayoutGrid,
   Maximize2,
   Minimize2,
+  MoreHorizontal,
   MoreVertical,
   Plus,
   SquareSplitHorizontal,
@@ -38,6 +40,7 @@ import {
 
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,6 +101,48 @@ type PersonalPillKey =
   | "websitePill"
   | "linkedInPill"
   | "custom";
+
+/** Display order for optional personal fields once added (above the “add more” chips). */
+const OPTIONAL_PILL_ORDER: PersonalPillKey[] = [
+  "dateOfBirth",
+  "placeOfBirth",
+  "driversLicense",
+  "gender",
+  "nationality",
+  "civilStatus",
+  "websitePill",
+  "linkedInPill",
+  "custom",
+];
+
+const OPTIONAL_PILL_LABELS: Record<PersonalPillKey, string> = {
+  dateOfBirth: "Date of birth",
+  placeOfBirth: "Place of birth",
+  driversLicense: "Driver's license",
+  gender: "Gender",
+  nationality: "Nationality",
+  civilStatus: "Civil status",
+  websitePill: "Website",
+  linkedInPill: "LinkedIn",
+  custom: "Custom field",
+};
+
+/** Value for `<input type="date">` — ISO `YYYY-MM-DD` or empty (ignores unparseable legacy text). */
+function toHtmlDateInputValue(raw: string): string {
+  const t = raw.trim();
+  if (!t) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  const us = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (us) {
+    const month = Number(us[1]);
+    const day = Number(us[2]);
+    const year = Number(us[3]);
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year >= 1000 && year <= 9999) {
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+  }
+  return "";
+}
 
 type SectionDef = {
   id: SectionId;
@@ -2298,11 +2343,11 @@ function PersonalBody({
     document.getElementById("li-pill")?.querySelector<HTMLInputElement>("input")?.focus();
   }, [openPills, pillOpenRequest]);
 
-  const togglePill = (key: PersonalPillKey) => {
+  const addOptionalPill = (key: PersonalPillKey) => {
     setOpenPills((prev) => {
+      if (prev.has(key)) return prev;
       const n = new Set(prev);
-      if (n.has(key)) n.delete(key);
-      else n.add(key);
+      n.add(key);
       return n;
     });
   };
@@ -2320,6 +2365,33 @@ function PersonalBody({
       }
       return { ...s, personal: next, summary };
     });
+  };
+
+  const removeOptionalPill = (key: PersonalPillKey) => {
+    setOpenPills((prev) => {
+      const n = new Set(prev);
+      n.delete(key);
+      return n;
+    });
+    const clears: Partial<WizardStateV1["personal"]> =
+      key === "dateOfBirth"
+        ? { dateOfBirth: "" }
+        : key === "placeOfBirth"
+          ? { placeOfBirth: "" }
+          : key === "driversLicense"
+            ? { driversLicense: "" }
+            : key === "gender"
+              ? { gender: "" }
+              : key === "nationality"
+                ? { nationality: "" }
+                : key === "civilStatus"
+                  ? { civilStatus: "" }
+                  : key === "websitePill"
+                    ? { website: "" }
+                    : key === "linkedInPill"
+                      ? { linkedIn: "" }
+                      : { customFieldLabel: "", customFieldValue: "" };
+    updatePersonal(clears);
   };
 
   const setJobPosition = (desiredJobPosition: string) => {
@@ -2364,24 +2436,197 @@ function PersonalBody({
     pillKey: PersonalPillKey;
     label: string;
   }) {
-    const open = openPills.has(pillKey);
     return (
       <button
         type="button"
-        onClick={() => togglePill(pillKey)}
+        onClick={() => addOptionalPill(pillKey)}
         className="inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-left text-xs font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 sm:text-[0.8125rem]"
       >
-        {open ? (
-          <ChevronUp className="size-3.5 shrink-0 text-[#2268d7]" aria-hidden />
-        ) : (
-          <Plus className="size-3.5 shrink-0 text-neutral-500" aria-hidden />
-        )}
+        <Plus className="size-3.5 shrink-0 text-neutral-500" aria-hidden />
         <span className="truncate">{label}</span>
       </button>
     );
   }
 
-  const hasOpenOptional = openPills.size > 0;
+  const optionalPillsRemaining = OPTIONAL_PILL_ORDER.filter((k) => !openPills.has(k));
+
+  function OptionalFieldMenu({ pillKey }: { pillKey: PersonalPillKey }) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          type="button"
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-neutral-500 outline-none hover:bg-neutral-200/80 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 sm:size-7"
+          aria-label="Field options"
+        >
+          <MoreHorizontal className="size-4" aria-hidden />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          sideOffset={6}
+          className="min-w-[11rem] rounded-xl border border-neutral-200 bg-white p-0 py-1 shadow-lg ring-1 ring-black/[0.06]"
+        >
+          {pillKey === "custom" ? (
+            <>
+              <div className="px-1.5">
+                <DropdownMenuItem
+                  className="cursor-pointer rounded-md px-2.5 py-2 text-sm focus:bg-neutral-100/90"
+                  onClick={() => {
+                    requestAnimationFrame(() => {
+                      const el = document.getElementById("customFieldValue");
+                      el?.focus();
+                      if (el instanceof HTMLInputElement) el.select();
+                    });
+                  }}
+                >
+                  Rename field
+                </DropdownMenuItem>
+              </div>
+              <DropdownMenuSeparator className="bg-neutral-200/90" />
+            </>
+          ) : null}
+          <div className="px-1.5">
+            <DropdownMenuItem
+              variant="destructive"
+              className="cursor-pointer rounded-md px-2.5 py-2 text-sm"
+              onClick={() => removeOptionalPill(pillKey)}
+            >
+              Remove field
+            </DropdownMenuItem>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  function openedOptionalInput(k: PersonalPillKey): ReactNode {
+    switch (k) {
+      case "dateOfBirth":
+        return (
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="dob" className="text-label peer gap-0">
+              Date of birth
+            </Label>
+            <div className="relative w-full">
+              <Input
+                id="dob"
+                type="date"
+                className={cn(
+                  softInput,
+                  "relative w-full min-w-0 pr-10 [color-scheme:light]",
+                  "[&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-y-0 [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:z-10 [&::-webkit-calendar-picker-indicator]:flex [&::-webkit-calendar-picker-indicator]:w-10 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:items-center [&::-webkit-calendar-picker-indicator]:justify-center [&::-webkit-calendar-picker-indicator]:opacity-0",
+                  "[&::-moz-calendar-picker-indicator]:absolute [&::-moz-calendar-picker-indicator]:inset-y-0 [&::-moz-calendar-picker-indicator]:right-0 [&::-moz-calendar-picker-indicator]:z-10 [&::-moz-calendar-picker-indicator]:flex [&::-moz-calendar-picker-indicator]:w-10 [&::-moz-calendar-picker-indicator]:cursor-pointer [&::-moz-calendar-picker-indicator]:items-center [&::-moz-calendar-picker-indicator]:justify-center [&::-moz-calendar-picker-indicator]:opacity-0",
+                )}
+                value={toHtmlDateInputValue(p.dateOfBirth)}
+                onChange={(e) => updatePersonal({ dateOfBirth: e.target.value })}
+              />
+              <Calendar
+                className="pointer-events-none absolute top-1/2 right-2.5 z-0 size-4 -translate-y-1/2 text-neutral-500"
+                aria-hidden
+              />
+            </div>
+          </div>
+        );
+      case "placeOfBirth":
+        return (
+          <Field id="pob" label="Place of birth" className="gap-1.5">
+            <Input
+              className={softInput}
+              placeholder="City, country"
+              value={p.placeOfBirth}
+              onChange={(e) => updatePersonal({ placeOfBirth: e.target.value })}
+            />
+          </Field>
+        );
+      case "driversLicense":
+        return (
+          <Field id="license" label="Driver's license" className="gap-1.5">
+            <Input
+              className={softInput}
+              placeholder="Class B — valid through 2028"
+              value={p.driversLicense}
+              onChange={(e) => updatePersonal({ driversLicense: e.target.value })}
+            />
+          </Field>
+        );
+      case "gender":
+        return (
+          <Field id="gender" label="Gender" className="gap-1.5">
+            <Input
+              className={softInput}
+              value={p.gender}
+              onChange={(e) => updatePersonal({ gender: e.target.value })}
+            />
+          </Field>
+        );
+      case "nationality":
+        return (
+          <Field id="nationality" label="Nationality" className="gap-1.5">
+            <Input
+              className={softInput}
+              value={p.nationality}
+              onChange={(e) => updatePersonal({ nationality: e.target.value })}
+            />
+          </Field>
+        );
+      case "civilStatus":
+        return (
+          <Field id="civil" label="Civil status" className="gap-1.5">
+            <Input
+              className={softInput}
+              placeholder="Single / Married / …"
+              value={p.civilStatus}
+              onChange={(e) => updatePersonal({ civilStatus: e.target.value })}
+            />
+          </Field>
+        );
+      case "websitePill":
+        return (
+          <Field id="web-pill" label="Website" className="gap-1.5">
+            <Input
+              className={softInput}
+              inputMode="url"
+              placeholder="example.com"
+              value={p.website}
+              onChange={(e) => updatePersonal({ website: e.target.value })}
+            />
+          </Field>
+        );
+      case "linkedInPill":
+        return (
+          <Field id="li-pill" label="LinkedIn" className="gap-1.5">
+            <Input
+              className={softInput}
+              inputMode="url"
+              placeholder="linkedin.com/in/your-name"
+              value={p.linkedIn}
+              onChange={(e) => updatePersonal({ linkedIn: e.target.value })}
+            />
+          </Field>
+        );
+      case "custom": {
+        const lab = p.customFieldLabel.trim();
+        const val = p.customFieldValue.trim();
+        const display = lab && val ? `${lab}: ${val}` : val || lab;
+        return (
+          <Field id="customFieldValue" label="Field name" className="gap-1.5">
+            <Input
+              className={softInput}
+              placeholder="e.g. Security clearance — EU Secret"
+              value={display}
+              onChange={(e) =>
+                updatePersonal({
+                  customFieldValue: e.target.value,
+                  customFieldLabel: "",
+                })
+              }
+            />
+          </Field>
+        );
+      }
+      default:
+        return null;
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -2547,130 +2792,37 @@ function PersonalBody({
         </p>
       </Field>
 
-      <div className="space-y-3 border-t border-neutral-100 pt-5">
-        <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-neutral-500">
-          Optional fields
-        </p>
-        <div
-          className={cn(
-            "space-y-4",
-            hasOpenOptional && "border-b border-neutral-100 pb-4",
-          )}
-        >
-          {openPills.has("dateOfBirth") ? (
-            <Field id="dob" label="Date of birth" className="gap-1.5">
-              <Input
-                className={softInput}
-                placeholder="1992-04-18"
-                value={p.dateOfBirth}
-                onChange={(e) => updatePersonal({ dateOfBirth: e.target.value })}
-              />
-            </Field>
+      {openPills.size > 0 || optionalPillsRemaining.length > 0 ? (
+        <div className="space-y-5 border-t border-neutral-100 pt-5">
+          {openPills.size > 0 ? (
+            <div className="space-y-4">
+              {OPTIONAL_PILL_ORDER.filter((k) => openPills.has(k)).map((k) => (
+                <div key={k} className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">{openedOptionalInput(k)}</div>
+                  <OptionalFieldMenu pillKey={k} />
+                </div>
+              ))}
+            </div>
           ) : null}
-          {openPills.has("placeOfBirth") ? (
-            <Field id="pob" label="Place of birth" className="gap-1.5">
-              <Input
-                className={softInput}
-                placeholder="City, country"
-                value={p.placeOfBirth}
-                onChange={(e) => updatePersonal({ placeOfBirth: e.target.value })}
-              />
-            </Field>
-          ) : null}
-          {openPills.has("driversLicense") ? (
-            <Field id="license" label="Driver's license" className="gap-1.5">
-              <Input
-                className={softInput}
-                placeholder="Class B — valid through 2028"
-                value={p.driversLicense}
-                onChange={(e) => updatePersonal({ driversLicense: e.target.value })}
-              />
-            </Field>
-          ) : null}
-          {openPills.has("gender") ? (
-            <Field id="gender" label="Gender" className="gap-1.5">
-              <Input
-                className={softInput}
-                value={p.gender}
-                onChange={(e) => updatePersonal({ gender: e.target.value })}
-              />
-            </Field>
-          ) : null}
-          {openPills.has("nationality") ? (
-            <Field id="nationality" label="Nationality" className="gap-1.5">
-              <Input
-                className={softInput}
-                value={p.nationality}
-                onChange={(e) => updatePersonal({ nationality: e.target.value })}
-              />
-            </Field>
-          ) : null}
-          {openPills.has("civilStatus") ? (
-            <Field id="civil" label="Civil status" className="gap-1.5">
-              <Input
-                className={softInput}
-                placeholder="Single / Married / …"
-                value={p.civilStatus}
-                onChange={(e) => updatePersonal({ civilStatus: e.target.value })}
-              />
-            </Field>
-          ) : null}
-          {openPills.has("websitePill") ? (
-            <Field id="web-pill" label="Website" className="gap-1.5">
-              <Input
-                className={softInput}
-                inputMode="url"
-                placeholder="example.com"
-                value={p.website}
-                onChange={(e) => updatePersonal({ website: e.target.value })}
-              />
-            </Field>
-          ) : null}
-          {openPills.has("linkedInPill") ? (
-            <Field id="li-pill" label="LinkedIn" className="gap-1.5">
-              <Input
-                className={softInput}
-                inputMode="url"
-                placeholder="linkedin.com/in/your-name"
-                value={p.linkedIn}
-                onChange={(e) => updatePersonal({ linkedIn: e.target.value })}
-              />
-            </Field>
-          ) : null}
-          {openPills.has("custom") ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field id="customLabel" label="Field label" className="gap-1.5">
-                <Input
-                  className={softInput}
-                  placeholder="Security clearance"
-                  value={p.customFieldLabel}
-                  onChange={(e) => updatePersonal({ customFieldLabel: e.target.value })}
-                />
-              </Field>
-              <Field id="customValue" label="Value" className="gap-1.5">
-                <Input
-                  className={softInput}
-                  placeholder="EU Secret"
-                  value={p.customFieldValue}
-                  onChange={(e) => updatePersonal({ customFieldValue: e.target.value })}
-                />
-              </Field>
+
+          {optionalPillsRemaining.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-neutral-500">
+                Optional fields
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {optionalPillsRemaining.map((pillKey) => (
+                  <Pill
+                    key={pillKey}
+                    pillKey={pillKey}
+                    label={OPTIONAL_PILL_LABELS[pillKey]}
+                  />
+                ))}
+              </div>
             </div>
           ) : null}
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <Pill pillKey="dateOfBirth" label="Date of birth" />
-          <Pill pillKey="placeOfBirth" label="Place of birth" />
-          <Pill pillKey="driversLicense" label="Driver's license" />
-          <Pill pillKey="gender" label="Gender" />
-          <Pill pillKey="nationality" label="Nationality" />
-          <Pill pillKey="civilStatus" label="Civil status" />
-          <Pill pillKey="websitePill" label="Website" />
-          <Pill pillKey="linkedInPill" label="LinkedIn" />
-          <Pill pillKey="custom" label="Custom field" />
-        </div>
-      </div>
+      ) : null}
     </div>
   );
 }

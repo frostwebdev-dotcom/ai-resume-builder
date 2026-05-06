@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /**
+   * pdf-parse v2 loads `pdfjs-dist` + `@napi-rs/canvas` via Node `require`. Bundling them
+   * breaks native resolution and PDF.js canvas polyfills (DOMMatrix, etc.).
+   */
+  serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@napi-rs/canvas"],
+  /**
    * Dev-only: allow HMR / `/_next/*` when the app is opened on `localhost` but assets
    * connect from `127.0.0.1` (or the reverse). See:
    * https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins

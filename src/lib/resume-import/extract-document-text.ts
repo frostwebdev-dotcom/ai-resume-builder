@@ -2,12 +2,6 @@ import "server-only";
 
 import mammoth from "mammoth";
 
-/* CJS module — default typing varies by bundler. */
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require("pdf-parse") as (
-  data: Buffer,
-) => Promise<{ text?: string; numpages?: number }>;
-
 const MAX_BYTES = 9 * 1024 * 1024;
 
 export type SupportedResumeMime =
@@ -23,9 +17,21 @@ export async function extractResumePlainText(
   }
 
   if (mimeType === "application/pdf") {
-    const res = await pdfParse(buffer);
-    const text = normalizeWhitespace(res.text ?? "");
-    return { text, pageCount: typeof res.numpages === "number" ? res.numpages : undefined };
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: buffer });
+    try {
+      const res = await parser.getText();
+      const text = normalizeWhitespace(res.text ?? "");
+      const pageCount =
+        typeof res.total === "number" && res.total > 0
+          ? res.total
+          : Array.isArray(res.pages)
+            ? res.pages.length
+            : undefined;
+      return { text, pageCount };
+    } finally {
+      await parser.destroy();
+    }
   }
 
   const docx = await mammoth.extractRawText({ buffer });

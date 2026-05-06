@@ -162,11 +162,17 @@ export function mapWizardToPreviewDocument(
       value: p.civilStatus.trim(),
     });
   }
-  if (p.customFieldLabel.trim() && p.customFieldValue.trim()) {
-    personalOptionalLines.push({
-      label: p.customFieldLabel.trim(),
-      value: p.customFieldValue.trim(),
-    });
+  {
+    const lab = p.customFieldLabel.trim();
+    const val = p.customFieldValue.trim();
+    if (lab || val) {
+      const value =
+        lab && val ? `${lab}: ${val}` : val || lab;
+      personalOptionalLines.push({
+        label: "Field name",
+        value,
+      });
+    }
   }
 
   const filledSections: string[] = [];
