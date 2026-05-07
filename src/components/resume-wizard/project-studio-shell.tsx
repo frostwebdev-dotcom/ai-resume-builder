@@ -11,11 +11,28 @@ import {
   useTransition,
   type SetStateAction,
 } from "react";
-import { Download, Loader2, Redo2, Undo2 } from "lucide-react";
+import {
+  ChevronDown,
+  Copy,
+  Download,
+  Globe,
+  Loader2,
+  MoreVertical,
+  Redo2,
+  Tag,
+  Undo2,
+  UserPlus,
+} from "lucide-react";
 
 import { AutosaveStatusChip } from "@/components/resume-wizard/autosave-status-chip";
 import { GuestStudioEditor } from "@/components/resume-wizard/guest-studio-editor";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { FeedbackBanner } from "@/components/ui/feedback-banner";
 import { useCoalescedHistory } from "@/hooks/use-guest-studio-store";
 import { useUnsavedWarning } from "@/hooks/use-unsaved-warning";
@@ -27,7 +44,15 @@ import type { JobTargetClientView } from "@/lib/job-target/client-types";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import { TEMPLATE_IDS, type TemplateSlug } from "@/lib/resume-preview/template-ids";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
-import { setProjectTemplateAction, updateResumeStyleAction } from "@/services/projects/actions";
+import {
+  duplicateProjectAction,
+  renameProjectAction,
+  setProjectTemplateAction,
+  updateResumeStyleAction,
+} from "@/services/projects/actions";
+
+const projectMenuItemClass =
+  "cursor-pointer gap-3 rounded-sm px-2 py-2.5 text-slate-700 focus-visible:bg-[#2268d7] focus-visible:text-white data-[highlighted]:bg-[#2268d7] data-[highlighted]:text-white [&_svg]:opacity-80 [&_svg]:data-[highlighted]:opacity-100 [&_svg]:data-[highlighted]:text-white";
 
 export type ProjectStudioShellProps = {
   projectId: string;
@@ -58,6 +83,11 @@ export function ProjectStudioShell({
   const contentHistory = useCoalescedHistory<WizardStateV1>({ delayMs: 600, max: 50 });
   const [templateSlug, setTemplateSlug] = useState<TemplateSlug>(serverTemplateSlug);
   const [resumeStyle, setResumeStyle] = useState<ResumeStyleV1>(initialResumeStyle);
+  const [titleDraft, setTitleDraft] = useState<string>(projectTitle);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [titlePending, startTitleTransition] = useTransition();
+  const [duplicatePending, startDuplicateTransition] = useTransition();
 
   const [tailoringCompare, setTailoringCompare] = useState<TailoringCompareV1 | null>(
     initialJobTarget?.tailoringCompare ?? null,
@@ -78,6 +108,60 @@ export function ProjectStudioShell({
   useEffect(() => {
     setResumeStyle(initialResumeStyle);
   }, [initialResumeStyle]);
+
+  useEffect(() => {
+    setTitleDraft(projectTitle);
+  }, [projectTitle]);
+
+  const commitTitle = useCallback(
+    (next: string) => {
+      const trimmed = next.trim() || "Untitled resume";
+      if (trimmed === projectTitle) {
+        setTitleDraft(trimmed);
+        return;
+      }
+      setTitleDraft(trimmed);
+      setTitleError(null);
+      startTitleTransition(async () => {
+        const fd = new FormData();
+        fd.set("projectId", projectId);
+        fd.set("title", trimmed);
+        const result = await renameProjectAction({}, fd);
+        if (result.error) {
+          setTitleError(result.error);
+          setTitleDraft(projectTitle);
+          return;
+        }
+        router.refresh();
+      });
+    },
+    [projectId, projectTitle, router],
+  );
+
+  const handleShareResume = useCallback(async () => {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: projectTitle || "My resume",
+          text: "Resume draft",
+          url,
+        });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      }
+    } catch {
+      // User cancelled the share, or the API is unavailable. No need to surface this.
+    }
+  }, [projectTitle]);
+
+  const handleDuplicateResume = useCallback(() => {
+    const fd = new FormData();
+    fd.set("projectId", projectId);
+    startDuplicateTransition(() => {
+      void duplicateProjectAction({}, fd);
+    });
+  }, [projectId]);
 
   const { saveStatus, lastError, retry, isDirty } = useWizardAutosave({
     projectId,
@@ -192,37 +276,56 @@ export function ProjectStudioShell({
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
       <header className="shrink-0 border-b border-black/30 bg-[#17191d] pt-[env(safe-area-inset-top,0px)] text-white">
-        <div className="grid h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 px-2 sm:h-14 sm:gap-x-3 sm:px-4">
-          <div className="flex min-w-0 items-center justify-self-start">
+        {/*
+          Mirrors the guest `/create` top bar: 1fr | auto | 1fr columns so the title block stays
+          centered, autosave sits beside the back link, and right-side actions stay aligned.
+        */}
+        <div className="grid min-h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 gap-y-2 py-1.5 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:min-h-14 sm:gap-y-0 sm:py-0 sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))]">
+          <div className="flex min-w-0 flex-wrap content-center items-center justify-self-start gap-x-1.5 gap-y-1 sm:gap-x-2">
             <Link
               href={ROUTES.app.project(projectId)}
               className={cn(
                 buttonVariants({ variant: "ghost", size: "sm" }),
-                "h-8 gap-1.5 rounded-full px-3 text-xs text-slate-200 hover:bg-white/10 hover:text-white",
+                "h-8 shrink-0 gap-1.5 rounded-full px-3 text-xs text-slate-200 hover:bg-white/10 hover:text-white",
               )}
               aria-label="Back to project"
             >
               <span className="text-base leading-none">←</span>
               Project
             </Link>
+            <AutosaveStatusChip
+              context="project"
+              status={saveStatus}
+              lastError={lastError}
+              onRetry={retry}
+              surface="dark"
+              layout="toolbar"
+            />
           </div>
 
-          <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100vw-7.5rem))] justify-self-center sm:max-w-[min(32rem,calc(100vw-11rem))]">
-            <div className="flex w-full min-w-0 items-center justify-center gap-2 sm:gap-2.5">
-              <p
-                className="min-w-0 max-w-full truncate border-b-2 border-[#3b82f6] px-0.5 pb-0.5 text-center text-xs font-normal text-slate-100 sm:text-sm"
-                title={projectTitle}
+          <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100dvw_-_15rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))] justify-self-center sm:max-w-[min(32rem,calc(100dvw_-_20rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))]">
+            <div className="flex w-full min-w-0 items-end gap-2.5 sm:gap-3">
+              <input
+                ref={titleInputRef}
+                key={`title-${projectTitle}`}
+                defaultValue={titleDraft}
+                onBlur={(e) => {
+                  commitTitle(e.currentTarget.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  else if (e.key === "Escape") {
+                    e.currentTarget.value = projectTitle;
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }}
+                disabled={titlePending}
+                aria-label="Resume project title"
+                aria-describedby={titleError ? "project-title-error" : undefined}
+                maxLength={120}
+                placeholder="Untitled resume"
                 id="project-draft-title"
-              >
-                {projectTitle}
-              </p>
-              <AutosaveStatusChip
-                context="project"
-                status={saveStatus}
-                lastError={lastError}
-                onRetry={retry}
-                surface="dark"
-                iconOnly
+                className="min-w-0 flex-1 rounded-none border-0 border-b-2 border-[#3b82f6] bg-transparent px-0.5 pb-0.5 text-center text-xs font-normal text-slate-100 caret-white placeholder:text-slate-500 outline-none transition-colors selection:bg-sky-500/35 focus-visible:border-sky-300 disabled:opacity-70 sm:text-sm"
               />
             </div>
           </div>
@@ -248,6 +351,61 @@ export function ProjectStudioShell({
             >
               <Redo2 className="size-4" aria-hidden />
             </button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="hidden h-8 gap-1 rounded-full px-2 text-xs text-slate-200 hover:bg-white/10 hover:text-white sm:inline-flex"
+              aria-label="Language"
+            >
+              <Globe className="size-3.5" aria-hidden />
+              EN
+              <ChevronDown className="size-3.5" aria-hidden />
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                type="button"
+                className={cn(
+                  "inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-white/30 bg-transparent text-white outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/35",
+                )}
+                aria-label="Resume actions"
+              >
+                <MoreVertical className="size-4" aria-hidden />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                sideOffset={8}
+                className="min-w-[12.5rem] border-0 bg-white p-1.5 text-slate-800 shadow-xl ring-1 ring-black/10"
+              >
+                <DropdownMenuItem
+                  className={projectMenuItemClass}
+                  onClick={() => {
+                    const el = titleInputRef.current;
+                    if (!el) return;
+                    el.focus();
+                    el.select();
+                  }}
+                >
+                  <Tag className="size-4 shrink-0" aria-hidden />
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem className={projectMenuItemClass} onClick={() => void handleShareResume()}>
+                  <UserPlus className="size-4 shrink-0" aria-hidden />
+                  Share
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className={projectMenuItemClass}
+                  disabled={duplicatePending}
+                  onClick={handleDuplicateResume}
+                >
+                  <Copy className="size-4 shrink-0" aria-hidden />
+                  {duplicatePending ? "Duplicating…" : "Duplicate"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Link
               href={previewHref}
               className={cn(
@@ -262,6 +420,12 @@ export function ProjectStudioShell({
           </div>
         </div>
       </header>
+
+      {titleError ? (
+        <div className="shrink-0 border-b border-border/60 px-4 py-3" id="project-title-error">
+          <FeedbackBanner tone="error" title="Could not rename" description={titleError} />
+        </div>
+      ) : null}
 
       {templatePending ? (
         <p
