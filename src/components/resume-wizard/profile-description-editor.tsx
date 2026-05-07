@@ -37,6 +37,11 @@ type Props = {
   onChange: (html: string) => void;
   loginHref: string;
   className?: string;
+  /**
+   * When `true`, hides the guest-only "Sign in for AI assist" CTA and the sign-in nudge
+   * footnote — signed-in drafts already render `SummaryAiPanel` below this editor.
+   */
+  signedIn?: boolean;
 };
 
 type ToolbarState = {
@@ -126,6 +131,7 @@ export function ProfileDescriptionEditor({
   onChange,
   loginHref,
   className,
+  signedIn = false,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const pendingFromEditor = useRef<string | null>(null);
@@ -311,19 +317,23 @@ export function ProfileDescriptionEditor({
           icon={<AlignRight className="size-4" aria-hidden />}
         />
 
-        <Link
-          href={loginHref}
-          title={`After sign-in, open Draft on a saved project. ${AI_ASSIST_FAIR_USE_LINE}`}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[#2268d7]/35 bg-white px-3 py-1.5 text-xs font-semibold text-[#2268d7] shadow-sm transition-colors hover:bg-[#2268d7]/5"
-        >
-          <Sparkles className="size-3.5 shrink-0 opacity-80" aria-hidden />
-          Sign in for AI assist
-        </Link>
+        {signedIn ? null : (
+          <Link
+            href={loginHref}
+            title={`After sign-in, open Draft on a saved project. ${AI_ASSIST_FAIR_USE_LINE}`}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[#2268d7]/35 bg-white px-3 py-1.5 text-xs font-semibold text-[#2268d7] shadow-sm transition-colors hover:bg-[#2268d7]/5"
+          >
+            <Sparkles className="size-3.5 shrink-0 opacity-80" aria-hidden />
+            Sign in for AI assist
+          </Link>
+        )}
       </div>
-      <p className="border-t border-neutral-200/90 bg-neutral-50 px-2.5 py-1.5 text-[0.65rem] leading-snug text-neutral-600">
-        AI runs in Draft after sign-in only; updates your profile from your text—does not invent employers or jobs you
-        did not describe. Fair-use limits keep responses fast for everyone—always verify before you apply.
-      </p>
+      {signedIn ? null : (
+        <p className="border-t border-neutral-200/90 bg-neutral-50 px-2.5 py-1.5 text-[0.65rem] leading-snug text-neutral-600">
+          AI runs in Draft after sign-in only; updates your profile from your text—does not invent employers or jobs you
+          did not describe. Fair-use limits keep responses fast for everyone—always verify before you apply.
+        </p>
+      )}
     </div>
   );
 }

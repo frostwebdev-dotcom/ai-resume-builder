@@ -2984,6 +2984,7 @@ function SummaryBody({
             setState((s) => ({ ...s, summary: { ...s.summary, summary } }))
           }
           loginHref={loginHref}
+          signedIn={Boolean(jobAssist)}
         />
         <p className="text-[0.7rem] text-neutral-500">
           3–5 sentences: strengths, scope, and what you are looking for next.
