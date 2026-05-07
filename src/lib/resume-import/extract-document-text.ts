@@ -8,6 +8,19 @@ export type SupportedResumeMime =
   | "application/pdf"
   | "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+/**
+ * Extracts plain text from a PDF or DOCX upload.
+ *
+ * Why `unpdf` for PDFs:
+ * - Pure-JS PDF.js build with zero native deps. Works locally on Windows/macOS/Linux *and*
+ *   on Vercel/AWS Lambda/Cloudflare. The previous `pdf-parse` v2 stack pulls in `pdfjs-dist`
+ *   + `@napi-rs/canvas`, which fails to load native bindings in serverless runtimes
+ *   ("Cannot polyfill DOMMatrix") and surfaces in the UI as
+ *   "We could not read text from this file."
+ *
+ * Why `mammoth` for DOCX:
+ * - Best-in-class plain-text extractor; no native deps.
+ */
 export async function extractResumePlainText(
   buffer: Buffer,
   mimeType: SupportedResumeMime,
@@ -17,26 +30,15 @@ export async function extractResumePlainText(
   }
 
   if (mimeType === "application/pdf") {
-    const { PDFParse } = await import("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
-    try {
-      const res = await parser.getText();
-      const text = normalizeWhitespace(res.text ?? "");
-      const pageCount =
-        typeof res.total === "number" && res.total > 0
-          ? res.total
-          : Array.isArray(res.pages)
-            ? res.pages.length
-            : undefined;
-      return { text, pageCount };
-    } finally {
-      await parser.destroy();
-    }
+    const { extractText } = await import("unpdf");
+    const data = new Uint8Array(buffer);
+    const { text, totalPages } = await extractText(data, { mergePages: true });
+    const merged = Array.isArray(text) ? text.join("\n\n") : text;
+    return { text: normalizeWhitespace(merged ?? ""), pageCount: totalPages };
   }
 
   const docx = await mammoth.extractRawText({ buffer });
-  const text = normalizeWhitespace(docx.value ?? "");
-  return { text };
+  return { text: normalizeWhitespace(docx.value ?? "") };
 }
 
 function normalizeWhitespace(raw: string): string {
