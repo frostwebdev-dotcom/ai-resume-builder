@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState, useTransition, type ChangeEvent } from "react";
+import { useCallback, useState, useTransition, type ChangeEvent } from "react";
 import { FileUp, Loader2 } from "lucide-react";
 
 import { importResumeFromFileAction } from "@/services/resume-import/actions";
@@ -48,14 +48,8 @@ type Props = {
 };
 
 export function GuestResumeUploadIntake({ templateSlug, onImported, cardClassName }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-
-  const openPicker = useCallback(() => {
-    setError(null);
-    inputRef.current?.click();
-  }, []);
 
   const onChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -100,21 +94,28 @@ export function GuestResumeUploadIntake({ templateSlug, onImported, cardClassNam
 
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <input ref={inputRef} type="file" accept={ACCEPT} className="sr-only" onChange={onChange} />
-      <button
-        type="button"
-        disabled={pending}
-        onClick={openPicker}
+      <label
         className={cn(
+          "relative cursor-pointer overflow-hidden",
           cardClassName,
           "group border-slate-200/90 bg-white shadow-sm",
           "hover:border-sky-300/80 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2",
           "motion-safe:active:scale-[0.99] motion-reduce:active:scale-100",
-          pending && "pointer-events-none opacity-80",
+          pending && "pointer-events-none cursor-wait opacity-80",
         )}
         aria-busy={pending}
+        aria-disabled={pending}
         aria-describedby={error ? "guest-resume-upload-err" : undefined}
       >
+        <input
+          type="file"
+          accept={ACCEPT}
+          disabled={pending}
+          className="absolute inset-0 z-10 cursor-pointer opacity-0 disabled:cursor-wait"
+          onClick={() => setError(null)}
+          onChange={onChange}
+          aria-label="Upload existing resume"
+        />
         <span
           className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 ring-1 ring-sky-900/[0.05] transition-colors sm:size-[3.25rem] group-hover:bg-sky-100/90"
           aria-hidden
@@ -131,7 +132,7 @@ export function GuestResumeUploadIntake({ templateSlug, onImported, cardClassNam
             PDF or Word (.docx) — we extract text and structure it with AI
           </span>
         </span>
-      </button>
+      </label>
       {error ? (
         <p id="guest-resume-upload-err" className="text-pretty text-xs font-medium text-red-600" role="alert">
           {error}
