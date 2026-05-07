@@ -638,28 +638,24 @@ export function GuestStudioEditor({
             />
           ) : null}
 
-          {persistMode === "guest" ? (
-            <IntakeShortcuts
-              onOpenSelectExampleTemplate={() => setSelectExampleTemplateOpen(true)}
-              resumeUpload={
-                <GuestResumeUploadIntake
-                  templateSlug={templateSlug}
-                  onImported={handleResumeImported}
-                  cardClassName="flex min-h-[7.75rem] w-full flex-col items-center justify-center gap-3 rounded-xl border px-4 py-4 text-center outline-none transition-[border-color,box-shadow,transform] duration-200 sm:min-h-[8.25rem] sm:gap-3.5 sm:py-5"
-                />
-              }
-              onLinkedInImport={handleLinkedInIntakeShortcut}
-            />
-          ) : null}
+          <IntakeShortcuts
+            onOpenSelectExampleTemplate={() => setSelectExampleTemplateOpen(true)}
+            resumeUpload={
+              <GuestResumeUploadIntake
+                templateSlug={templateSlug}
+                onImported={handleResumeImported}
+                cardClassName="flex min-h-[7.75rem] w-full flex-col items-center justify-center gap-3 rounded-xl border px-4 py-4 text-center outline-none transition-[border-color,box-shadow,transform] duration-200 sm:min-h-[8.25rem] sm:gap-3.5 sm:py-5"
+              />
+            }
+            onLinkedInImport={handleLinkedInIntakeShortcut}
+          />
 
-          {persistMode === "guest" ? (
-            <SelectTemplateForExampleModal
-              open={selectExampleTemplateOpen}
-              onOpenChange={setSelectExampleTemplateOpen}
-              currentSlug={templateSlug}
-              onSelectTemplate={applyExampleForTemplate}
-            />
-          ) : null}
+          <SelectTemplateForExampleModal
+            open={selectExampleTemplateOpen}
+            onOpenChange={setSelectExampleTemplateOpen}
+            currentSlug={templateSlug}
+            onSelectTemplate={applyExampleForTemplate}
+          />
 
           <nav
             className={cn(
