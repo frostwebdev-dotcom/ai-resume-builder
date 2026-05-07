@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 type Props = {
   slug: TemplateSlug;
   className?: string;
+  /** When true, mount the live preview immediately (no intersection observer). Use for above-the-fold cards. */
+  eager?: boolean;
 };
 
 /**
@@ -23,10 +25,10 @@ type Props = {
  */
 type Fit = { scale: number; iw: number; ih: number };
 
-export function TemplateCatalogLivePreview({ slug, className }: Props) {
+export function TemplateCatalogLivePreview({ slug, className, eager = false }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
-  const [mountLive, setMountLive] = useState(false);
+  const [mountLive, setMountLive] = useState(eager);
   /** Cover scale + unscaled inner dimensions so the preview fills the A4 frame without a dead band below. */
   const [fit, setFit] = useState<Fit | null>(null);
 
@@ -39,6 +41,7 @@ export function TemplateCatalogLivePreview({ slug, className }: Props) {
   );
 
   useEffect(() => {
+    if (eager) return;
     const el = hostRef.current;
     if (!el) return;
     const io = new IntersectionObserver(
@@ -52,7 +55,7 @@ export function TemplateCatalogLivePreview({ slug, className }: Props) {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [eager]);
 
   useLayoutEffect(() => {
     if (!mountLive) return;

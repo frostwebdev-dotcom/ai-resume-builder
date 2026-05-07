@@ -192,7 +192,6 @@ export function ProjectStudioShell({
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
       <header className="shrink-0 border-b border-black/30 bg-[#17191d] pt-[env(safe-area-inset-top,0px)] text-white">
-        <div className="flex flex-col">
         <div className="grid h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 px-2 sm:h-14 sm:gap-x-3 sm:px-4">
           <div className="flex min-w-0 items-center justify-self-start">
             <Link
@@ -209,7 +208,7 @@ export function ProjectStudioShell({
           </div>
 
           <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100vw-7.5rem))] justify-self-center sm:max-w-[min(32rem,calc(100vw-11rem))]">
-            <div className="flex w-full min-w-0 items-end justify-center gap-2.5 sm:gap-3">
+            <div className="flex w-full min-w-0 items-center justify-center gap-2 sm:gap-2.5">
               <p
                 className="min-w-0 max-w-full truncate border-b-2 border-[#3b82f6] px-0.5 pb-0.5 text-center text-xs font-normal text-slate-100 sm:text-sm"
                 title={projectTitle}
@@ -217,6 +216,14 @@ export function ProjectStudioShell({
               >
                 {projectTitle}
               </p>
+              <AutosaveStatusChip
+                context="project"
+                status={saveStatus}
+                lastError={lastError}
+                onRetry={retry}
+                surface="dark"
+                iconOnly
+              />
             </div>
           </div>
 
@@ -253,16 +260,6 @@ export function ProjectStudioShell({
               Preview &amp; export
             </Link>
           </div>
-        </div>
-        <div className="flex w-full min-w-0 items-center justify-center border-t border-white/[0.08] pb-2 pt-1 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:justify-end sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))] sm:pt-1.5">
-          <AutosaveStatusChip
-            context="project"
-            status={saveStatus}
-            lastError={lastError}
-            onRetry={retry}
-            surface="dark"
-          />
-        </div>
         </div>
       </header>
 

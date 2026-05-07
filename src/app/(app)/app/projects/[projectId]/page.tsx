@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
 import { ProjectDetailActions } from "@/components/projects/project-detail-actions";
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge";
-import { TemplateThumbnail } from "@/components/resume-preview/template-thumbnail";
+import { TemplateCatalogLivePreview } from "@/components/templates/template-catalog-live-preview";
 import { buttonVariants } from "@/components/ui/button";
 import { ROUTES } from "@/lib/constants";
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
@@ -102,7 +102,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                       "group-hover/draft:ring-slate-300/70",
                     )}
                   >
-                    <TemplateThumbnail slug={templateSlug} className="shadow-none ring-0" />
+                    <TemplateCatalogLivePreview
+                      slug={templateSlug}
+                      eager
+                      className="shadow-none ring-0"
+                    />
                   </div>
                   <p className="mt-2.5 text-center text-xs font-medium leading-snug text-slate-500 sm:text-left">
                     {templateTheme.name}
