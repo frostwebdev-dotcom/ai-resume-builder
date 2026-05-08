@@ -8,6 +8,7 @@ import {
   ClipboardList,
   FileText,
   ListTodo,
+  Loader2,
   MapPin,
   Plus,
   Sparkles,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import type { ComponentType, CSSProperties, SVGProps } from "react";
 
 import { useAppLoginPanel } from "@/components/layout/app-login-panel";
@@ -27,6 +29,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { DEMO_APPLICATIONS, type ApplicationStatus } from "@/lib/applications/demo-applications";
 import { APP_NAME, ROUTES } from "@/lib/constants";
 import { DEMO_JOB_LISTINGS } from "@/lib/jobs/demo-listings";
+import { createProjectFormAction } from "@/services/projects/actions";
 import type { DashboardProject } from "@/services/projects/queries";
 import { cn } from "@/lib/utils";
 
@@ -112,6 +115,93 @@ function CreateTile({ label, href }: { label: string; href: string }) {
   );
 }
 
+/**
+ * Submit button used inside <CreateProjectTile>.
+ *
+ * Lives in its own component so we can call `useFormStatus()` (which only reads pending state
+ * when rendered as a descendant of a <form action={...}>). Mirrors the visual layout of
+ * <CreateTile> but adds a busy state while the server action is creating the project.
+ */
+function CreateProjectTileSubmit({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending}
+      aria-label={
+        pending ? "Creating new resume" : "Create a new saved resume and open the studio"
+      }
+      className={cn(
+        dashboardCreateResumeClass,
+        "w-full bg-transparent",
+        pending && "cursor-wait opacity-80",
+      )}
+    >
+      <span className="text-center text-sm font-normal leading-snug">
+        {pending ? "Creating…" : label}
+      </span>
+      {pending ? (
+        <Loader2
+          className="size-10 animate-spin stroke-[1.35] text-slate-400"
+          aria-hidden
+        />
+      ) : (
+        <Plus className="size-10 stroke-[1.35] text-slate-400" aria-hidden />
+      )}
+    </button>
+  );
+}
+
+/**
+ * Signed-in dashboard tile that creates a fresh `resume_projects` row via
+ * `createProjectFormAction` and redirects to its build page — same flow as the sidebar
+ * “New” button. No `templateSlug` field is posted, so the server seeds the draft empty.
+ */
+function CreateProjectTile({ label }: { label: string }) {
+  return (
+    <form action={createProjectFormAction} className="contents">
+      <input type="hidden" name="title" value="Untitled resume" />
+      <CreateProjectTileSubmit label={label} />
+    </form>
+  );
+}
+
+/**
+ * Signed-in hero CTA pill — same visual as the previous `<Link>` but submits the same server
+ * action as the sidebar "New" button (blank draft).
+ */
+function CreateNewResumeHeroButton({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button
+      type="submit"
+      disabled={pending}
+      aria-busy={pending}
+      className={cn(
+        "h-10 rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]",
+        pending && "cursor-wait opacity-90",
+      )}
+    >
+      {pending ? (
+        <Loader2 className="size-4 animate-spin" aria-hidden />
+      ) : (
+        <Plus className="size-4" aria-hidden />
+      )}
+      {pending ? "Creating…" : label}
+    </Button>
+  );
+}
+
+function CreateNewResumeHeroSubmit({ label }: { label: string }) {
+  return (
+    <form action={createProjectFormAction} className="contents">
+      <input type="hidden" name="title" value="Untitled resume" />
+      <CreateNewResumeHeroButton label={label} />
+    </form>
+  );
+}
+
 function RecentResumesRow({
   recentResumes,
   isGuest,
@@ -181,7 +271,7 @@ function RecentResumesRow({
 
       {overflowing ? (
         <div className="flex gap-3 sm:gap-4">
-          <CreateTile label="Create new resume" href={ROUTES.create} />
+          <CreateProjectTile label="Create new resume" />
           <div
             className="dashboard-marquee-viewport relative min-h-0 min-w-0 flex-1"
             role="list"
@@ -205,7 +295,7 @@ function RecentResumesRow({
         </div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-1 [scrollbar-width:thin] sm:gap-4">
-          <CreateTile label="Create new resume" href={ROUTES.create} />
+          <CreateProjectTile label="Create new resume" />
           {recentResumes.map((p) => (
             <ProjectResumePreviewCard key={p.id} project={p} strip />
           ))}
@@ -270,16 +360,22 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
                 : "Pick up where you left off, review interviews coming up, and keep your application pipeline moving."}
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
-              <Link
-                href={ROUTES.create}
-                className={cn(
-                  buttonVariants({ size: "default" }),
-                  "h-10 rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]",
-                )}
-              >
-                <Plus className="size-4" aria-hidden />
-                {projects.length === 0 ? "Create your first resume" : "Create new resume"}
-              </Link>
+              {isGuest ? (
+                <Link
+                  href={ROUTES.create}
+                  className={cn(
+                    buttonVariants({ size: "default" }),
+                    "h-10 rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]",
+                  )}
+                >
+                  <Plus className="size-4" aria-hidden />
+                  {projects.length === 0 ? "Create your first resume" : "Create new resume"}
+                </Link>
+              ) : (
+                <CreateNewResumeHeroSubmit
+                  label={projects.length === 0 ? "Create your first resume" : "Create new resume"}
+                />
+              )}
               <Link
                 href={ROUTES.app.jobs}
                 className={cn(
