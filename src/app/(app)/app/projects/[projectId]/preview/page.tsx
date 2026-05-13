@@ -28,11 +28,12 @@ type PageProps = {
 
 function parseCheckoutNotice(
   raw: string | string[] | undefined,
-): "success" | "failed" | "cancelled" | null {
+): "success" | "failed" | "cancelled" | "pending" | null {
   const v = Array.isArray(raw) ? raw[0] : raw;
   if (v === "success") return "success";
   if (v === "failed") return "failed";
   if (v === "cancelled") return "cancelled";
+  if (v === "pending") return "pending";
   return null;
 }
 

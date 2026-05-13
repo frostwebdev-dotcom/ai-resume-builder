@@ -19,6 +19,10 @@ type JobTargetPanelProps = {
   initialTitle: string | null;
   initialCompany: string | null;
   initialJobDescription: string | null;
+  /** Optional copy overrides (e.g. job tailoring hub). */
+  panelTitle?: string;
+  panelLead?: string;
+  saveButtonLabel?: string;
   /** Called after a successful save so the builder knows a job target is available for tailoring. */
   onSaved?: (payload: {
     title: string | null;
@@ -34,6 +38,9 @@ export function JobTargetPanel({
   initialTitle,
   initialCompany,
   initialJobDescription,
+  panelTitle = "Job posting (optional)",
+  panelLead = "Paste the posting once for Improve: AI assist and optional alignment to that role. You stay in control of what you keep.",
+  saveButtonLabel = "Save posting",
   onSaved,
   className,
 }: JobTargetPanelProps) {
@@ -91,10 +98,8 @@ export function JobTargetPanel({
       <div className="flex items-start gap-3">
         <Briefcase className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
         <div className="min-w-0 flex-1 space-y-1">
-          <h2 className="text-base font-semibold text-foreground">Job posting (optional)</h2>
-          <p className="text-sm text-muted-foreground">
-            Paste the posting once for Improve: AI assist and optional alignment to that role. You stay in control of what you keep.
-          </p>
+          <h2 className="text-base font-semibold text-foreground">{panelTitle}</h2>
+          <p className="text-sm text-muted-foreground">{panelLead}</p>
         </div>
       </div>
 
@@ -159,7 +164,7 @@ export function JobTargetPanel({
           {pending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
           ) : null}
-          Save posting
+          {saveButtonLabel}
         </Button>
         {!hasText ? (
           <span className="text-caption text-muted-foreground">Add text to enable saving.</span>

@@ -39,7 +39,7 @@ import { useUnsavedWarning } from "@/hooks/use-unsaved-warning";
 import { useWizardAutosave } from "@/hooks/use-wizard-autosave";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import type { TailoringCompareV1 } from "@/lib/job-target/types";
+import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
 import type { JobTargetClientView } from "@/lib/job-target/client-types";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import { TEMPLATE_IDS, type TemplateSlug } from "@/lib/resume-preview/template-ids";
@@ -92,6 +92,16 @@ export function ProjectStudioShell({
   const [tailoringCompare, setTailoringCompare] = useState<TailoringCompareV1 | null>(
     initialJobTarget?.tailoringCompare ?? null,
   );
+  const [jobTailorReview, setJobTailorReview] = useState<JobTailorReviewV1 | null>(
+    initialJobTarget?.jobTailorReview ?? null,
+  );
+  const [jobTargetTitle, setJobTargetTitle] = useState<string | null>(initialJobTarget?.title ?? null);
+  const [jobTargetCompany, setJobTargetCompany] = useState<string | null>(
+    initialJobTarget?.company ?? null,
+  );
+  const [jobTargetJobDescription, setJobTargetJobDescription] = useState<string | null>(
+    initialJobTarget?.jobDescription ?? null,
+  );
 
   useLayoutEffect(() => {
     contentRef.current = content;
@@ -99,7 +109,18 @@ export function ProjectStudioShell({
 
   useEffect(() => {
     setTailoringCompare(initialJobTarget?.tailoringCompare ?? null);
-  }, [projectId, initialJobTarget?.tailoringCompare]);
+    setJobTailorReview(initialJobTarget?.jobTailorReview ?? null);
+    setJobTargetTitle(initialJobTarget?.title ?? null);
+    setJobTargetCompany(initialJobTarget?.company ?? null);
+    setJobTargetJobDescription(initialJobTarget?.jobDescription ?? null);
+  }, [
+    projectId,
+    initialJobTarget?.tailoringCompare,
+    initialJobTarget?.jobTailorReview,
+    initialJobTarget?.title,
+    initialJobTarget?.company,
+    initialJobTarget?.jobDescription,
+  ]);
 
   useEffect(() => {
     setTemplateSlug(serverTemplateSlug);
@@ -171,7 +192,7 @@ export function ProjectStudioShell({
 
   useUnsavedWarning(isDirty);
 
-  const hasSavedJobTarget = (initialJobTarget?.jobDescription?.trim().length ?? 0) > 0;
+  const hasSavedJobTarget = (jobTargetJobDescription?.trim().length ?? 0) > 0;
 
   const updateContentWithHistory = useCallback(
     (updater: SetStateAction<WizardStateV1>) => {
@@ -466,8 +487,24 @@ export function ProjectStudioShell({
           jobAssist={{
             projectId,
             hasSavedJobTarget,
+            jobTailorReview,
             tailoringCompare,
             setTailoringCompare,
+            setJobTailorReview,
+            jobTargetTitle,
+            jobTargetCompany,
+            jobTargetJobDescription,
+            onJobTargetSaved: (payload) => {
+              setJobTargetTitle(payload.title);
+              setJobTargetCompany(payload.company);
+              setJobTargetJobDescription(payload.jobDescription);
+              setTailoringCompare(null);
+              setJobTailorReview(null);
+            },
+            onTailoringPipelineComplete: (data) => {
+              setTailoringCompare(data.tailoringCompare);
+              setJobTailorReview(data.jobTailorReview);
+            },
           }}
         />
       </div>

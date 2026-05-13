@@ -1,13 +1,14 @@
 import "server-only";
 
 import type { JobTargetClientView } from "@/lib/job-target/client-types";
-import { parseTailoringCompare } from "@/lib/job-target/parse";
-import type { TailoringCompareV1 } from "@/lib/job-target/types";
+import { parseJobTailorReview, parseTailoringCompare } from "@/lib/job-target/parse";
+import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { JobTarget } from "@/types/database";
 
 export type JobTargetWithCompare = JobTarget & {
   tailoringCompare: TailoringCompareV1 | null;
+  jobTailorReview: JobTailorReviewV1 | null;
 };
 
 export async function fetchJobTargetForProject(
@@ -37,10 +38,12 @@ export async function fetchJobTargetForProject(
 
   const meta = row.metadata as Record<string, unknown> | null;
   const tailoringCompare = parseTailoringCompare(meta?.tailoring_compare);
+  const jobTailorReview = parseJobTailorReview(meta?.job_tailor_review);
 
   return {
     ...row,
     tailoringCompare,
+    jobTailorReview,
   };
 }
 
@@ -51,5 +54,6 @@ export function toJobTargetClientView(row: JobTargetWithCompare | null): JobTarg
     company: row.company,
     jobDescription: row.job_description,
     tailoringCompare: row.tailoringCompare,
+    jobTailorReview: row.jobTailorReview,
   };
 }

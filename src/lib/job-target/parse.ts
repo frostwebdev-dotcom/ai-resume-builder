@@ -1,12 +1,19 @@
 import type { Json } from "@/types/database";
 
-import type { TailoringCompareV1 } from "@/lib/job-target/types";
+import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
 
 export function parseTailoringCompare(raw: unknown): TailoringCompareV1 | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const o = raw as Record<string, unknown>;
   if (o.v !== 1) return null;
   return raw as TailoringCompareV1;
+}
+
+export function parseJobTailorReview(raw: unknown): JobTailorReviewV1 | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const o = raw as Record<string, unknown>;
+  if (o.v !== 1) return null;
+  return raw as JobTailorReviewV1;
 }
 
 export function mergeTailoringCompare(

@@ -1,4 +1,4 @@
-import type { TailoringCompareV1 } from "@/lib/job-target/types";
+import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
 
 /** Serializable job target + tailoring preview for the resume builder (RSC → client). */
 export type JobTargetClientView = {
@@ -6,4 +6,5 @@ export type JobTargetClientView = {
   company: string | null;
   jobDescription: string | null;
   tailoringCompare: TailoringCompareV1 | null;
+  jobTailorReview: JobTailorReviewV1 | null;
 };

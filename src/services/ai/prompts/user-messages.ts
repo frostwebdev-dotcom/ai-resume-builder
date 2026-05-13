@@ -373,20 +373,66 @@ ${input.details || "(empty)"}`;
 export function userMessageResumeScore(input: { resumeText: string }): string {
   return `${JSON_ONLY}
 Schema: {
-  "overallScore": number,
-  "summary": { "score": number, "feedback": string },
-  "experience": { "score": number, "feedback": string },
-  "skills": { "score": number, "feedback": string },
-  "ats": { "score": number, "feedback": string },
-  "topActions": string[]
+  "score": number,
+  "strengths": string[],
+  "improvements": string[],
+  "priorityFixes": string[],
+  "sectionFeedback": { "<sectionKey>": string },
+  "atsFormattingNotes": string[],
+  "missingInformationWarnings": string[]
 }
 
-Task: Score this resume snapshot on four dimensions (each 0–100) plus an overall score (0–100). Base scores only on what appears in the text — do not reward invented employers, metrics, or degrees. Feedback must be concise (2–4 short sentences per dimension), actionable, and use professional language. Prefer action verbs and concrete suggestions; where metrics are missing, mention placeholders like [X%] or [number] as optional improvements, not as facts.
+Task: Review this resume snapshot and return structured JSON only.
 
-topActions: up to 8 short imperative tips (e.g. "Quantify impact in second bullet under DataCorp").
+Rules:
+- "score" is one overall number 0–100 reflecting clarity, impact, completeness, and presentation — judged only from the text below. Penalize obvious gaps; never invent employers, degrees, dates, or metrics the user did not provide.
+- If the resume is sparse or unfinished, keep the score low, lean on missingInformationWarnings, and still give honest strengths where they exist.
+- strengths: up to 12 short bullets (what already works).
+- improvements: up to 12 concise suggestions (what would help next).
+- priorityFixes: up to 10 highest-impact items first (imperative, specific when possible).
+- sectionFeedback: object whose keys are lowercase section names among: summary, experience, skills, education, projects, certifications, personal, additional (only include keys you have useful feedback for). Values: 1–3 short sentences each.
+- atsFormattingNotes: up to 10 bullets about resume structure and ATS-friendly formatting review (headings, bullets, dates, file/PDF hygiene as far as inferable from text). NEVER claim the resume is guaranteed to pass ATS or any automated system. Use neutral wording like "ATS-friendly formatting review" or "typical parser-friendly structure" — this is guidance only.
+- missingInformationWarnings: up to 12 bullets for important missing fields (e.g. no dates, empty summary, no measurable outcomes) without shaming.
+- Avoid buzzword stuffing. Prefer strong verbs and concrete edits. If suggesting metrics the user did not supply, use placeholders like [X%] or [number], not fake numbers.
 
 Resume snapshot:
 ---
 ${input.resumeText}
+---`;
+}
+
+export function userMessageJobTailorReview(input: {
+  resumePlainText: string;
+  jobTitle: string | null;
+  jobCompany: string | null;
+  jobDescription: string;
+}): string {
+  return `${JSON_ONLY}
+Schema: {
+  "alignmentHighlights": string[],
+  "improvementIdeas": string[]
+}
+
+Task: Compare the candidate resume snapshot to the job posting. Return JSON only.
+
+Rules:
+- alignmentHighlights: up to 5 short bullets where the resume already matches themes, tools, or scope in the posting (truthful only — quote themes, not invented employers).
+- improvementIdeas: up to 6 concise bullets: gaps, missing keywords the user could cover if true, or rephrasing opportunities. Do NOT invent jobs, degrees, metrics, or skills the resume does not support. If you suggest a skill or tool, phrase it as optional ("If you have experience with X, surface it…") only when the posting asks for it — never state the candidate has it unless clearly in the resume text.
+- Do not overclaim fit. Avoid "perfect match" language.
+
+Job title (may be empty):
+${input.jobTitle ?? "(not provided)"}
+
+Company (may be empty):
+${input.jobCompany ?? "(not provided)"}
+
+Job posting:
+---
+${input.jobDescription}
+---
+
+Resume snapshot:
+---
+${input.resumePlainText}
 ---`;
 }

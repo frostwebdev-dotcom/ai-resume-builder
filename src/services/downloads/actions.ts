@@ -15,7 +15,13 @@ export type RequestDownloadResult =
   | {
       ok: false;
       error: string;
-      code: "AUTH" | "NOT_FOUND" | "PAYMENT_REQUIRED" | "GENERATION_FAILED" | "RATE_LIMIT";
+      code:
+        | "AUTH"
+        | "NOT_FOUND"
+        | "PAYMENT_REQUIRED"
+        | "GENERATION_FAILED"
+        | "INSUFFICIENT_CONTENT"
+        | "RATE_LIMIT";
     };
 
 async function getSessionUserId(): Promise<string | null> {

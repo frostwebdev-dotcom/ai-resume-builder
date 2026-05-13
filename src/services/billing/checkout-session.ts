@@ -61,42 +61,46 @@ export async function createStripeCheckoutSession(params: {
   const orderId = inserted.id;
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      client_reference_id: orderId,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: product.currency,
-            unit_amount: product.amountCents,
-            product_data: {
-              name: product.label,
-              description: product.description,
-              metadata: {
-                sku: product.sku,
-                category: product.category,
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        client_reference_id: orderId,
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: product.currency,
+              unit_amount: product.amountCents,
+              product_data: {
+                name: product.label,
+                description: product.description,
+                metadata: {
+                  sku: product.sku,
+                  category: product.category,
+                },
               },
             },
           },
-        },
-      ],
-      success_url: `${APP_URL}${ROUTES.app.projectCheckoutReturn(params.projectId)}?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${APP_URL}${ROUTES.app.projectPreview(params.projectId)}?checkout=cancelled`,
-      metadata: {
-        order_id: orderId,
-        user_id: params.userId,
-        project_id: params.projectId,
-        product_sku: product.sku,
-      },
-      payment_intent_data: {
+        ],
+        success_url: `${APP_URL}${ROUTES.app.projectCheckoutReturn(params.projectId)}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${APP_URL}${ROUTES.app.projectPreview(params.projectId)}?checkout=cancelled`,
         metadata: {
           order_id: orderId,
           user_id: params.userId,
           project_id: params.projectId,
+          product_sku: product.sku,
+        },
+        payment_intent_data: {
+          metadata: {
+            order_id: orderId,
+            user_id: params.userId,
+            project_id: params.projectId,
+            product_sku: product.sku,
+          },
         },
       },
-    });
+      { idempotencyKey: `checkout-session-${orderId}` },
+    );
 
     if (!session.url) {
       throw new Error("Checkout session missing redirect URL.");

@@ -7,6 +7,10 @@ import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-p
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
 import { renderResumePdfBuffer } from "@/lib/resume-pdf/pdfkit/render-resume-pdf";
 import {
+  describeResumeExportReadiness,
+  isPlausiblePdfBuffer,
+} from "@/lib/resume-pdf/validate-export-document";
+import {
   downloadAvatarBuffer,
   isAvatarPathOwnedBy,
 } from "@/lib/supabase/avatar-storage";
@@ -14,11 +18,25 @@ import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { fetchWizardStateForProject } from "@/services/resume-wizard/actions";
 import { getCompletedOrderForProject } from "@/services/downloads/entitlement";
 import { trySendDownloadReadyEmail } from "@/services/email/download-ready";
+import { RESUME_PDF_SIGNED_URL_TTL_SEC } from "@/lib/downloads/resume-pdf-constants";
 
 const BUCKET = "resume-pdfs";
-const SIGNED_URL_TTL_SEC = 60;
+/** Long enough for slow mobile networks; still short-lived (not a permanent public URL). */
+const SIGNED_URL_TTL_SEC = RESUME_PDF_SIGNED_URL_TTL_SEC;
 /** Stored file row retention hint for future storage GC / cron (not the signed URL TTL). */
 const DOWNLOAD_RECORD_RETENTION_DAYS = 30;
+
+function isDownloadsTableUnavailable(err: { code?: string; message?: string } | null): boolean {
+  if (!err) return false;
+  const code = err.code ?? "";
+  const msg = (err.message ?? "").toLowerCase();
+  return (
+    code === "PGRST205" ||
+    code === "42P01" ||
+    (msg.includes("schema cache") && msg.includes("could not find")) ||
+    (msg.includes("relation") && msg.includes("does not exist"))
+  );
+}
 
 function safePdfFileName(projectTitle: string): string {
   const base = projectTitle
@@ -36,7 +54,11 @@ export type PdfPipelineResult =
       expiresIn: number;
       storagePath: string;
     }
-  | { ok: false; code: "NOT_FOUND" | "PAYMENT_REQUIRED" | "GENERATION_FAILED"; message: string };
+  | {
+      ok: false;
+      code: "NOT_FOUND" | "PAYMENT_REQUIRED" | "INSUFFICIENT_CONTENT" | "GENERATION_FAILED";
+      message: string;
+    };
 
 /**
  * Full server-side pipeline: entitlement → render PDF → private storage → signed URL → audit row.
@@ -82,6 +104,11 @@ export async function generateResumePdfAndSignedUrl(params: {
   }
 
   const doc = mapWizardToPreviewDocument(wizard);
+  const readiness = describeResumeExportReadiness(doc);
+  if (!readiness.ok) {
+    return { ok: false, code: "INSUFFICIENT_CONTENT", message: readiness.message };
+  }
+
   const slug = templateIdToSlug(params.templateId);
 
   let buffer: Buffer;
@@ -92,12 +119,24 @@ export async function generateResumePdfAndSignedUrl(params: {
     return {
       ok: false,
       code: "GENERATION_FAILED",
-      message: "Could not generate PDF. Try again shortly.",
+      message:
+        "We could not build your PDF this time. Your resume content is saved—try again in a moment, or edit in Draft if something looks unusual.",
     };
   }
 
+  if (!isPlausiblePdfBuffer(buffer)) {
+    console.error("[resume-pdf] invalid pdf buffer", { bytes: buffer?.length });
+    return {
+      ok: false,
+      code: "GENERATION_FAILED",
+      message:
+        "The generated file did not pass validation. Nothing was saved. Please try downloading again.",
+    };
+  }
+
+  /** Opaque object key — do not encode user/project in the path (mapping lives in `downloads`). */
   const objectId = randomUUID();
-  const storagePath = `${params.userId}/${params.projectId}/${objectId}.pdf`;
+  const storagePath = `v1/${objectId}.pdf`;
   const fileName = safePdfFileName(params.projectTitle);
 
   const { error: upErr } = await service.storage.from(BUCKET).upload(storagePath, buffer, {
@@ -110,7 +149,8 @@ export async function generateResumePdfAndSignedUrl(params: {
     return {
       ok: false,
       code: "GENERATION_FAILED",
-      message: "Could not store PDF. Try again shortly.",
+      message:
+        "Could not store your PDF securely. Please try again in a moment. If this keeps happening, contact support.",
     };
   }
 
@@ -118,24 +158,34 @@ export async function generateResumePdfAndSignedUrl(params: {
     Date.now() + DOWNLOAD_RECORD_RETENTION_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
 
-  const { error: dlErr } = await service.from("downloads").insert({
-    user_id: params.userId,
-    project_id: params.projectId,
-    order_id: order.id,
-    storage_path: storagePath,
-    file_name: fileName,
-    mime_type: "application/pdf",
-    bytes: buffer.length,
-    expires_at: expiresAt,
-  });
+  const { data: downloadRow, error: dlErr } = await service
+    .from("downloads")
+    .insert({
+      user_id: params.userId,
+      project_id: params.projectId,
+      order_id: order.id,
+      storage_path: storagePath,
+      file_name: fileName,
+      mime_type: "application/pdf",
+      bytes: buffer.length,
+      expires_at: expiresAt,
+    })
+    .select("id")
+    .maybeSingle();
 
   if (dlErr) {
-    console.error("[resume-pdf] downloads insert", dlErr);
-    return {
-      ok: false,
-      code: "GENERATION_FAILED",
-      message: "Could not finalize download. Try again.",
-    };
+    if (isDownloadsTableUnavailable(dlErr)) {
+      console.warn("[resume-pdf] downloads table unavailable; continuing without row", dlErr.code);
+    } else {
+      console.error("[resume-pdf] downloads insert", dlErr);
+      const { error: rmUpErr } = await service.storage.from(BUCKET).remove([storagePath]);
+      if (rmUpErr) console.warn("[resume-pdf] rollback upload after insert failure", rmUpErr);
+      return {
+        ok: false,
+        code: "GENERATION_FAILED",
+        message: "Could not record your download. Nothing was charged again—please try once more.",
+      };
+    }
   }
 
   void trySendDownloadReadyEmail({
@@ -151,10 +201,17 @@ export async function generateResumePdfAndSignedUrl(params: {
 
   if (signErr || !signed?.signedUrl) {
     console.error("[resume-pdf] sign", signErr);
+    if (downloadRow?.id) {
+      const { error: delDlErr } = await service.from("downloads").delete().eq("id", downloadRow.id);
+      if (delDlErr) console.warn("[resume-pdf] rollback download row", delDlErr);
+    }
+    const { error: rmErr } = await service.storage.from(BUCKET).remove([storagePath]);
+    if (rmErr) console.warn("[resume-pdf] rollback storage", rmErr);
     return {
       ok: false,
       code: "GENERATION_FAILED",
-      message: "Could not prepare download link. Try again.",
+      message:
+        "Could not create a secure download link. Please try again. If the link expired after you opened it, start a fresh download from this page.",
     };
   }
 

@@ -17,3 +17,11 @@ export type SectionCompare<T> = {
   after: T;
   generatedAt: string;
 };
+
+/** Stored under `job_targets.metadata.job_tailor_review` after a full pipeline run. */
+export type JobTailorReviewV1 = {
+  v: 1;
+  generatedAt: string;
+  alignmentHighlights: string[];
+  improvementIdeas: string[];
+};

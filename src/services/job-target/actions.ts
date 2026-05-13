@@ -5,9 +5,12 @@ import { z } from "zod";
 
 import { ROUTES } from "@/lib/constants";
 import { clearTailoringSection, mergeTailoringCompare, parseTailoringCompare } from "@/lib/job-target/parse";
-import type { TailoringCompareV1 } from "@/lib/job-target/types";
+import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
+import { assertJobTailoringPipelineAllowed } from "@/lib/monetization/job-tailor-gate";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import * as ResumeAi from "@/services/ai/resume-ai";
+import { tryLogAiSuggestion } from "@/lib/ai/usage-logger";
+import { fetchWizardStateForProject } from "@/services/resume-wizard/actions";
 import { updateProjectWizardState } from "@/services/resume-wizard/persist-wizard";
 import type { JobTarget, Json } from "@/types/database";
 import {
@@ -66,8 +69,9 @@ function stripTailoringCompare(meta: Json): Json {
     meta && typeof meta === "object" && !Array.isArray(meta)
       ? (meta as Record<string, unknown>)
       : {};
-  const { tailoring_compare: _, ...rest } = base;
+  const { tailoring_compare: _, job_tailor_review: __, ...rest } = base;
   void _;
+  void __;
   return rest as Json;
 }
 
@@ -625,3 +629,220 @@ export async function rejectTailoredExperienceAction(
   return { ok: true, data: { ok: true } };
 }
 
+const pipelineInputSchema = z.object({
+  projectId: z.string().uuid(),
+});
+
+export async function runJobTailoringPipelineAction(
+  raw: unknown,
+): Promise<
+  ActionResult<{
+    tailoringCompare: TailoringCompareV1 | null;
+    jobTailorReview: JobTailorReviewV1 | null;
+    pipelineWarnings: string[];
+    remainingFreeRuns: number | null;
+  }>
+> {
+  const userId = await getSessionUserId();
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
+
+  const gate = await assertJobTailoringPipelineAllowed(userId);
+  if (!gate.ok) {
+    return { ok: false, error: gate.error, code: gate.code };
+  }
+
+  const parsed = pipelineInputSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid project.", code: "VALIDATION" };
+  }
+
+  const { projectId } = parsed.data;
+  const wizard = await fetchWizardStateForProject(userId, projectId);
+  if (!wizard) {
+    return {
+      ok: false,
+      error: "Resume draft not found. Save the editor and try again.",
+      code: "NOT_FOUND",
+    };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const row = await fetchLatestJobTargetRow(
+    supabase,
+    projectId,
+    userId,
+    "id, metadata, job_description, title, company",
+  );
+
+  if (!row?.id) {
+    return { ok: false, error: "Save a job description first.", code: "NO_JOB" };
+  }
+
+  const jd = (row.job_description as string | null)?.trim();
+  if (!jd) {
+    return { ok: false, error: "Save a job description first.", code: "NO_JOB" };
+  }
+
+  const jobTitle = (row.title as string | null) ?? null;
+  const jobCompany = (row.company as string | null) ?? null;
+
+  const generatedAt = new Date().toISOString();
+  const resumePlainText = ResumeAi.formatWizardResumePlainText(wizard);
+  const pipelineWarnings: string[] = [];
+
+  const nextCompare: TailoringCompareV1 = { v: 1 };
+  let jobTailorReview: JobTailorReviewV1 | null = null;
+
+  const reviewRes = await ResumeAi.aiJobTailorResumeReview(userId, {
+    projectId,
+    resumePlainText,
+    jobTitle,
+    jobCompany,
+    jobDescription: jd,
+  });
+  if (reviewRes.ok) {
+    jobTailorReview = {
+      v: 1,
+      generatedAt,
+      alignmentHighlights: reviewRes.data.alignmentHighlights,
+      improvementIdeas: reviewRes.data.improvementIdeas,
+    };
+  } else {
+    pipelineWarnings.push(`Job fit review: ${reviewRes.error}`);
+  }
+
+  const sumRes = await ResumeAi.aiTailorSummaryToJob(userId, {
+    projectId,
+    headline: wizard.summary.headline,
+    summary: wizard.summary.summary,
+    jobTitle,
+    jobCompany,
+    jobDescription: jd,
+  });
+  if (sumRes.ok) {
+    nextCompare.summary = {
+      before: { headline: wizard.summary.headline, summary: wizard.summary.summary },
+      after: { headline: sumRes.data.headline, summary: sumRes.data.summary },
+      generatedAt,
+    };
+  } else {
+    pipelineWarnings.push(`Summary: ${sumRes.error}`);
+  }
+
+  const skRes = await ResumeAi.aiTailorSkillsToJob(userId, {
+    projectId,
+    lines: wizard.skills.lines,
+    jobTitle,
+    jobCompany,
+    jobDescription: jd,
+  });
+  if (skRes.ok) {
+    nextCompare.skills = {
+      before: { lines: wizard.skills.lines },
+      after: { lines: skRes.data.lines },
+      generatedAt,
+    };
+  } else {
+    pipelineWarnings.push(`Skills: ${skRes.error}`);
+  }
+
+  const experiencePatches: NonNullable<TailoringCompareV1["experience"]> = {};
+  for (const entry of wizard.experience.entries) {
+    const bullets = entry.highlights.filter((b) => b.trim().length > 0);
+    if (bullets.length === 0) continue;
+    const exRes = await ResumeAi.aiTailorExperienceToJob(userId, {
+      projectId,
+      entryId: entry.id,
+      company: entry.company || "Company",
+      title: entry.title || "Role",
+      bullets,
+      jobTitle,
+      jobCompany,
+      jobDescription: jd,
+    });
+    if (exRes.ok) {
+      experiencePatches[entry.id] = {
+        before: { bullets },
+        after: { bullets: exRes.data.bullets },
+        generatedAt,
+      };
+    } else {
+      pipelineWarnings.push(`Experience (${entry.title || "role"}): ${exRes.error}`);
+    }
+  }
+  if (Object.keys(experiencePatches).length > 0) {
+    nextCompare.experience = experiencePatches;
+  }
+
+  const hasSections = Boolean(
+    nextCompare.summary ||
+      nextCompare.skills ||
+      (nextCompare.experience && Object.keys(nextCompare.experience).length > 0),
+  );
+  const hasReview =
+    jobTailorReview &&
+    (jobTailorReview.alignmentHighlights.length > 0 || jobTailorReview.improvementIdeas.length > 0);
+
+  if (!hasSections && !hasReview) {
+    return {
+      ok: false,
+      error:
+        "Could not generate tailoring suggestions. Try again or shorten the job description.",
+      code: "AI_PARTIAL",
+    };
+  }
+
+  const baseMeta =
+    row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+      ? ({ ...(row.metadata as Record<string, unknown>) } as Record<string, unknown>)
+      : {};
+
+  if (hasSections) {
+    baseMeta.tailoring_compare = nextCompare;
+  } else {
+    delete baseMeta.tailoring_compare;
+  }
+
+  if (hasReview && jobTailorReview) {
+    baseMeta.job_tailor_review = jobTailorReview;
+  } else {
+    delete baseMeta.job_tailor_review;
+  }
+
+  const { error } = await supabase
+    .from("job_targets")
+    .update({ metadata: baseMeta as Json })
+    .eq("id", row.id)
+    .eq("project_id", projectId);
+
+  if (error) return { ok: false, error: error.message };
+
+  await tryLogAiSuggestion({
+    userId,
+    projectId,
+    kind: "job.tailor.pipeline",
+    metadata: {
+      summary: Boolean(nextCompare.summary),
+      skills: Boolean(nextCompare.skills),
+      experienceRoles: Object.keys(nextCompare.experience ?? {}).length,
+      review: Boolean(hasReview),
+    },
+  });
+
+  revalidateProject(projectId);
+
+  const tailoringCompare = hasSections ? nextCompare : null;
+  const remainingFreeRuns = gate.unlimited
+    ? null
+    : Math.max(0, gate.cap - gate.used - 1);
+
+  return {
+    ok: true,
+    data: {
+      tailoringCompare,
+      jobTailorReview: hasReview ? jobTailorReview : null,
+      pipelineWarnings,
+      remainingFreeRuns,
+    },
+  };
+}

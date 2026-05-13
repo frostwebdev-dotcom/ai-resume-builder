@@ -74,6 +74,7 @@ function temperatureForOperation(operationId: AiOperationId): number {
     case AI_OPERATION_IDS.RESUME_IMPORT_PARSE:
       return 0.22;
     case AI_OPERATION_IDS.RESUME_SCORE:
+    case AI_OPERATION_IDS.JOB_TAILOR_REVIEW:
       return 0.25;
     default:
       return 0.32;

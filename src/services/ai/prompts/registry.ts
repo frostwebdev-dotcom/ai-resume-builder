@@ -24,6 +24,7 @@ export const AI_OPERATION_IDS = {
   EDUCATION_POLISH_DETAILS: "education.polish_details",
   RESUME_IMPORT_PARSE: "resume.import_parse",
   RESUME_SCORE: "resume.score",
+  JOB_TAILOR_REVIEW: "job.tailor_review",
 } as const;
 
 export type AiOperationId = (typeof AI_OPERATION_IDS)[keyof typeof AI_OPERATION_IDS];
@@ -115,8 +116,14 @@ export const PROMPT_REGISTRY: Record<AiOperationId, RegistryEntry> = {
     description: "Map extracted resume file text into structured wizard JSON",
   },
   [AI_OPERATION_IDS.RESUME_SCORE]: {
+    version: "1.1.0",
+    description:
+      "Holistic resume review: score, strengths, improvements, section feedback, ATS-friendly formatting notes (non-guarantee), missing-info warnings",
+  },
+  [AI_OPERATION_IDS.JOB_TAILOR_REVIEW]: {
     version: "1.0.0",
-    description: "Score resume sections for clarity, impact, skills, ATS hygiene",
+    description:
+      "Compare resume snapshot to a job posting: alignment highlights and honest improvement ideas without inventing facts",
   },
 };
 

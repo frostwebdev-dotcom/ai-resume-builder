@@ -30,3 +30,12 @@ export const experienceBulletSuggestionSchema = z.object({
 });
 
 export type ExperienceBulletSuggestion = z.infer<typeof experienceBulletSuggestionSchema>;
+
+/** Short structured review: resume vs job posting (no full rewrites). */
+export const jobTailorReviewOutputSchema = z.object({
+  alignmentHighlights: z.array(z.string().max(400)).max(5).default([]),
+  /** Honest gaps + optional “consider adding only if true” ideas — never fabricate experience. */
+  improvementIdeas: z.array(z.string().max(400)).max(6).default([]),
+});
+
+export type JobTailorReviewOutput = z.infer<typeof jobTailorReviewOutputSchema>;

@@ -38,6 +38,8 @@ export function CheckoutReturnClient({
       if (attempts.current > 40) {
         window.clearInterval(id);
         setPolling(false);
+        router.replace(`${ROUTES.app.projectPreview(projectId)}?checkout=pending#resume-export-panel`);
+        router.refresh();
         return;
       }
       const r = await pollCheckoutOrderStatusAction({
@@ -169,6 +171,7 @@ export function CheckoutReturnClient({
 
   /* Polling timed out — still pending */
   if (initial.kind === "pending" && !polling) {
+    const pendingPreview = `${ROUTES.app.projectPreview(projectId)}?checkout=pending#resume-export-panel`;
     return (
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 ring-1 ring-amber-500/10">
         <h1 className="text-lg font-semibold text-foreground">Still processing</h1>
@@ -177,11 +180,15 @@ export function CheckoutReturnClient({
           your card, your download will unlock automatically.
         </p>
         <Link
-          href={ROUTES.app.projectPreview(projectId)}
+          href={pendingPreview}
           className={cn(buttonVariants({ size: "touch" }), "mt-6 inline-flex w-full justify-center")}
         >
           Back to preview
         </Link>
+        <p className="mt-3 text-caption text-muted-foreground">
+          On the preview page you can use <span className="font-medium text-foreground">Try payment again</span>{" "}
+          if you still need to complete checkout.
+        </p>
       </div>
     );
   }

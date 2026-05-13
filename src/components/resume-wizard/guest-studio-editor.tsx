@@ -53,6 +53,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ResumeAiScoreCard } from "@/components/resume-preview/resume-ai-score-card";
 import { PreviewViewport } from "@/components/resume-preview/preview-viewport";
 import { ResumePreviewRenderer } from "@/components/resume-preview/resume-preview-renderer";
 import { TemplateCatalogLivePreview } from "@/components/templates/template-catalog-live-preview";
@@ -90,7 +91,8 @@ import { ProfileDescriptionEditor } from "@/components/resume-wizard/profile-des
 import { ResumeStudioSplitLayout } from "@/components/resume-wizard/resume-studio-split-layout";
 import { GuestResumeUploadIntake } from "@/components/resume-wizard/guest-resume-upload-intake";
 import { SelectTemplateForExampleModal } from "@/components/resume-wizard/select-template-for-example-modal";
-import type { TailoringCompareV1 } from "@/lib/job-target/types";
+import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
+import { JobTailoringHub } from "@/components/resume-wizard/job-tailoring-hub";
 import { cn } from "@/lib/utils";
 
 type SectionId = WizardEditorSectionId;
@@ -238,8 +240,24 @@ const softInput =
 export type StudioJobAssistProps = {
   projectId: string;
   hasSavedJobTarget: boolean;
+  jobTailorReview: JobTailorReviewV1 | null;
   tailoringCompare: TailoringCompareV1 | null;
   setTailoringCompare: Dispatch<SetStateAction<TailoringCompareV1 | null>>;
+  setJobTailorReview: Dispatch<SetStateAction<JobTailorReviewV1 | null>>;
+  jobTargetTitle: string | null;
+  jobTargetCompany: string | null;
+  jobTargetJobDescription: string | null;
+  onJobTargetSaved?: (payload: {
+    title: string | null;
+    company: string | null;
+    jobDescription: string;
+  }) => void;
+  onTailoringPipelineComplete?: (data: {
+    tailoringCompare: TailoringCompareV1 | null;
+    jobTailorReview: JobTailorReviewV1 | null;
+    pipelineWarnings: string[];
+    remainingFreeRuns: number | null;
+  }) => void;
 };
 
 type StudioEditorProps = {
@@ -723,6 +741,20 @@ export function GuestStudioEditor({
             </div>
           </div>
 
+          {persistMode === "project" && jobAssist ? (
+            <JobTailoringHub
+              projectId={jobAssist.projectId}
+              projectPreviewHref={projectPreviewHref ?? "#"}
+              hasSavedJobTarget={jobAssist.hasSavedJobTarget}
+              jobTargetTitle={jobAssist.jobTargetTitle}
+              jobTargetCompany={jobAssist.jobTargetCompany}
+              jobTargetJobDescription={jobAssist.jobTargetJobDescription}
+              jobTailorReview={jobAssist.jobTailorReview}
+              onJobTargetSaved={jobAssist.onJobTargetSaved}
+              onTailoringPipelineComplete={jobAssist.onTailoringPipelineComplete}
+            />
+          ) : null}
+
           <nav
             className={cn(
               "flex flex-col gap-2 rounded-xl border border-slate-200/90 bg-slate-100/80 p-2 sm:gap-2.5 sm:p-2.5 motion-safe:transition-[background-color,box-shadow] motion-safe:duration-200",
@@ -924,6 +956,12 @@ export function GuestStudioEditor({
             );
             })}
           </nav>
+
+          {persistMode === "project" && jobAssist?.projectId ? (
+            <div className="mt-6" id="studio-final-ai-review">
+              <ResumeAiScoreCard projectId={jobAssist.projectId} variant="studio" />
+            </div>
+          ) : null}
 
           <footer className="mt-6 border-t border-neutral-200/90 pt-6">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">

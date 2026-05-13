@@ -15,6 +15,7 @@ import {
 
 import { PreviewViewedTracker } from "@/components/analytics/preview-viewed-tracker";
 import { AvatarUploadPanel } from "@/components/resume-preview/avatar-upload-panel";
+import { ResumeAiScoreCard } from "@/components/resume-preview/resume-ai-score-card";
 import { IncompletePreviewNote } from "@/components/resume-preview/incomplete-preview-note";
 import { PreviewViewport } from "@/components/resume-preview/preview-viewport";
 import { ResumeAppearancePanel } from "@/components/resume-preview/resume-appearance-panel";
@@ -51,7 +52,7 @@ type Props = {
   /** Short-lived signed URL for an already-uploaded avatar, or null. */
   initialAvatarSignedUrl: string | null;
   /** Non-authoritative UI hint from URL; entitlement still comes from the server. */
-  checkoutNotice?: "success" | "failed" | "cancelled" | null;
+  checkoutNotice?: "success" | "failed" | "cancelled" | "pending" | null;
 };
 
 export function ProjectPreviewClient({
@@ -122,13 +123,45 @@ export function ProjectPreviewClient({
   return (
     <div className="min-w-0 space-y-8">
       <PreviewViewedTracker projectId={projectId} />
-      {showCheckoutBanner && checkoutNotice === "success" ? (
+      {showCheckoutBanner && checkoutNotice === "success" && downloadAccess.canDownload ? (
         <Alert variant="success">
           <CheckCircle2 aria-hidden />
-          <AlertTitle>Back from checkout</AlertTitle>
+          <AlertTitle>Payment confirmed</AlertTitle>
           <AlertDescription>
-            If your PDF unlock is still loading, wait a few seconds—the server confirms payment in the
-            background. This message is informational only.
+            Your PDF export is unlocked below. This reflects server-verified payment status—not the URL
+            alone.
+          </AlertDescription>
+          <div className="mt-2 flex justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={dismissCheckoutBanner}>
+              Dismiss
+            </Button>
+          </div>
+        </Alert>
+      ) : null}
+      {showCheckoutBanner && checkoutNotice === "success" && !downloadAccess.canDownload ? (
+        <Alert variant="info">
+          <AlertCircle aria-hidden />
+          <AlertTitle>Confirming your payment</AlertTitle>
+          <AlertDescription>
+            Stripe redirected you back, but the unlock appears only after our server processes a
+            verified webhook. Wait a few seconds and refresh, or use{" "}
+            <strong className="font-medium text-foreground">Try payment again</strong> below if this
+            persists.
+          </AlertDescription>
+          <div className="mt-2 flex justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={dismissCheckoutBanner}>
+              Dismiss
+            </Button>
+          </div>
+        </Alert>
+      ) : null}
+      {showCheckoutBanner && checkoutNotice === "pending" ? (
+        <Alert variant="warning">
+          <AlertCircle aria-hidden />
+          <AlertTitle>Still confirming</AlertTitle>
+          <AlertDescription>
+            We could not confirm unlock from the return page in time. If you were charged, refresh this
+            page in a minute—the download unlocks from our database, not from a query parameter.
           </AlertDescription>
           <div className="mt-2 flex justify-end">
             <Button type="button" variant="outline" size="sm" onClick={dismissCheckoutBanner}>
@@ -197,6 +230,8 @@ export function ProjectPreviewClient({
         filledCount={filledCount}
       />
 
+      <ResumeAiScoreCard projectId={projectId} variant="preview" />
+
       {/*
         Workshop layout: on xl+ the controls flow naturally in the left column
         while the preview stays pinned to the top of the viewport so users can
@@ -214,6 +249,7 @@ export function ProjectPreviewClient({
             canDownload={downloadAccess.canDownload}
             hasDownloadHistory={downloadAccess.hasDownloadHistory}
             checkoutEnabled={checkoutEnabled}
+            checkoutNotice={checkoutNotice}
           />
 
           <section

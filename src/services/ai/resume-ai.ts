@@ -14,6 +14,7 @@ import {
   bulletsOutputSchema,
   educationDetailsOutputSchema,
   experienceBulletSuggestionSchema,
+  jobTailorReviewOutputSchema,
   linesOutputSchema,
   summaryPairOutputSchema,
   textOutputSchema,
@@ -516,7 +517,7 @@ async function loadOwnedProjectWizard(
   return { ok: true, wizard: validated.data as WizardStateV1 };
 }
 
-function formatWizardResumePlainText(w: WizardStateV1): string {
+export function formatWizardResumePlainText(w: WizardStateV1): string {
   const parts: string[] = [];
   const name =
     w.personal.fullName.trim() ||
@@ -594,10 +595,39 @@ export async function aiScoreResume(
       userId,
       projectId: input.projectId,
       kind: "resume.score",
-      metadata: { overallScore: out.data.overallScore },
+      metadata: { score: out.data.score },
     });
   }
   return out;
+}
+
+export async function aiJobTailorResumeReview(
+  userId: string,
+  input: {
+    projectId: string;
+    resumePlainText: string;
+    jobTitle: string | null;
+    jobCompany: string | null;
+    jobDescription: string;
+  },
+): GenAsync<z.infer<typeof jobTailorReviewOutputSchema>> {
+  const g = await guardProject(userId, input.projectId);
+  if (g !== true) return g;
+  const p = tryPayload([input.resumePlainText, input.jobDescription], "Job tailor review");
+  if (p !== true) return p;
+  const userMessage = UserMessages.userMessageJobTailorReview({
+    resumePlainText: input.resumePlainText,
+    jobTitle: input.jobTitle,
+    jobCompany: input.jobCompany,
+    jobDescription: input.jobDescription,
+  });
+  return runStructuredGeneration({
+    operationId: AI_OPERATION_IDS.JOB_TAILOR_REVIEW,
+    userId,
+    projectId: input.projectId,
+    userMessage,
+    outputSchema: jobTailorReviewOutputSchema,
+  });
 }
 
 export async function aiRewriteSingleBullet(

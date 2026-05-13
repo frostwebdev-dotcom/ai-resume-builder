@@ -21,6 +21,7 @@ import { useFormStatus } from "react-dom";
 import type { ComponentType, CSSProperties, SVGProps } from "react";
 
 import { useAppLoginPanel } from "@/components/layout/app-login-panel";
+import { ResumeAiScoreCard } from "@/components/resume-preview/resume-ai-score-card";
 import {
   dashboardResumeStripFrameClass,
   ProjectResumePreviewCard,
@@ -443,6 +444,14 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
           iconClass="bg-violet-100 text-violet-700"
         />
       </section>
+
+      {!isGuest && recentResumes[0] ? (
+        <ResumeAiScoreCard
+          variant="dashboard"
+          projectId={recentResumes[0].id}
+          resumeTitle={recentResumes[0].title}
+        />
+      ) : null}
 
       {/* Recent resumes */}
       <section

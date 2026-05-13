@@ -64,24 +64,16 @@ export type ApiTailorResumeBody = z.infer<typeof apiTailorResumeBodySchema>;
 
 /** Model output for resume scoring (structured JSON). */
 export const resumeScoreOutputSchema = z.object({
-  overallScore: z.number().min(0).max(100),
-  summary: z.object({
-    score: z.number().min(0).max(100),
-    feedback: z.string().max(2000),
-  }),
-  experience: z.object({
-    score: z.number().min(0).max(100),
-    feedback: z.string().max(2000),
-  }),
-  skills: z.object({
-    score: z.number().min(0).max(100),
-    feedback: z.string().max(2000),
-  }),
-  ats: z.object({
-    score: z.number().min(0).max(100),
-    feedback: z.string().max(2000),
-  }),
-  topActions: z.array(z.string().max(400)).max(8),
+  /** Overall quality / completeness signal (0–100), based only on provided content. */
+  score: z.number().min(0).max(100),
+  strengths: z.array(z.string().max(400)).max(12).default([]),
+  improvements: z.array(z.string().max(400)).max(12).default([]),
+  priorityFixes: z.array(z.string().max(400)).max(10).default([]),
+  /** Short feedback per resume area; keys are lowercase section ids (e.g. summary, experience). */
+  sectionFeedback: z.record(z.string().max(64), z.string().max(2000)).default({}),
+  /** ATS-friendly formatting / structure review — not a pass/fail guarantee. */
+  atsFormattingNotes: z.array(z.string().max(500)).max(10).default([]),
+  missingInformationWarnings: z.array(z.string().max(400)).max(12).default([]),
 });
 
 export type ResumeScoreOutput = z.infer<typeof resumeScoreOutputSchema>;
