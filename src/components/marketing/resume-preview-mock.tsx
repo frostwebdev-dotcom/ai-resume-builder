@@ -4,12 +4,25 @@ type ResumePreviewMockProps = {
   className?: string;
   /** Slight variation for “template” cards */
   variant?: "classic" | "modern";
+  /**
+   * When set, the mock is exposed as a single labeled graphic for assistive tech.
+   * Omit for purely decorative use (e.g. hidden from AT with `aria-hidden`).
+   */
+  ariaLabel?: string;
 };
 
 /**
  * Lightweight CSS-only preview — no images for fast LCP on mobile.
  */
-export function ResumePreviewMock({ className, variant = "classic" }: ResumePreviewMockProps) {
+export function ResumePreviewMock({
+  className,
+  variant = "classic",
+  ariaLabel,
+}: ResumePreviewMockProps) {
+  const a11y = ariaLabel
+    ? ({ role: "img" as const, "aria-label": ariaLabel } as const)
+    : ({ "aria-hidden": true as const } as const);
+
   return (
     <div
       className={cn(
@@ -17,7 +30,7 @@ export function ResumePreviewMock({ className, variant = "classic" }: ResumePrev
         variant === "modern" && "border-primary/15 bg-gradient-to-b from-card to-muted/40",
         className,
       )}
-      aria-hidden
+      {...a11y}
     >
       <div className="mb-4 flex items-center gap-3 border-b border-border/80 pb-3">
         <div className="size-10 rounded-full bg-muted" />

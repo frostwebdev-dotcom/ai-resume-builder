@@ -31,7 +31,7 @@ export function ResumeStudioSplitLayout({
   mobileFab,
 }: ResumeStudioSplitLayoutProps) {
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)]">
+    <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:grid-rows-[minmax(0,1fr)]">
       {/* Left: editor */}
       <div
         className={cn(

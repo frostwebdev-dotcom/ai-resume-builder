@@ -92,7 +92,7 @@ export function Field({
           <p
             id={errorId}
             role="alert"
-            className="text-sm font-medium text-destructive"
+            className="text-sm font-medium text-pretty text-destructive"
           >
             {error}
           </p>

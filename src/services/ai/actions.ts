@@ -1,17 +1,22 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 
+import { tryLogAiSuggestion } from "@/lib/ai/usage-logger";
 import { ROUTES } from "@/lib/constants";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { assertResumeProjectOwned } from "@/services/ai/assert-project";
 import * as ResumeAi from "@/services/ai/resume-ai";
 import type { AiResult } from "@/types/ai";
+import type { Json } from "@/types/database";
 import {
   additionalTextInput,
   educationPolishInput,
   experienceBulletsInput,
   skillsTextInput,
   summaryGenerateInput,
+  summaryImproveInput,
   summaryTailorInput,
   summaryTextOpInput,
 } from "@/validation/ai";
@@ -104,6 +109,64 @@ export async function aiGrammarSummaryAction(
   const out = await ResumeAi.aiGrammarSummary(userId, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
+}
+
+export async function aiImproveSummaryAction(
+  raw: unknown,
+): Promise<AiResult<{ headline: string; summary: string }>> {
+  const userId = await getSessionUserId();
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
+  const parsed = summaryImproveInput.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
+  }
+  const out = await ResumeAi.aiImproveSummary(userId, parsed.data);
+  if (out.ok) revalidateProject(parsed.data.projectId);
+  return out;
+}
+
+export async function aiProfessionalSummaryAction(
+  raw: unknown,
+): Promise<AiResult<{ headline: string; summary: string }>> {
+  const userId = await getSessionUserId();
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
+  const parsed = summaryImproveInput.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
+  }
+  const out = await ResumeAi.aiProfessionalSummary(userId, parsed.data);
+  if (out.ok) revalidateProject(parsed.data.projectId);
+  return out;
+}
+
+const logAiSuggestionInputSchema = z.object({
+  projectId: z.string().uuid(),
+  kind: z.string().min(1).max(120),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+/**
+ * Best-effort analytics row in `ai_suggestions` (accepted / dismissed, etc.).
+ */
+export async function logAiSuggestionAction(
+  raw: unknown,
+): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
+  const userId = await getSessionUserId();
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
+  const parsed = logAiSuggestionInputSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { ok: false, error: "Invalid payload.", code: "VALIDATION" };
+  }
+  const owned = await assertResumeProjectOwned(userId, parsed.data.projectId);
+  if (!owned) return { ok: false, error: "Project not found.", code: "NOT_FOUND" };
+  const metadata = { ...(parsed.data.metadata ?? {}), source: "resume_builder" } as Json;
+  await tryLogAiSuggestion({
+    userId,
+    projectId: parsed.data.projectId,
+    kind: parsed.data.kind,
+    metadata,
+  });
+  return { ok: true };
 }
 
 export async function aiRewriteExperienceBulletsAction(

@@ -1,14 +1,29 @@
-import { TemplatesCatalog } from "@/components/templates/templates-catalog";
+import { Suspense } from "react";
+
+import { TemplatesLaunchGrid } from "@/components/templates/templates-launch-grid";
 
 type Props = {
-  /** Extra classes on the catalog root (layout, max-width, spacing). */
+  /** Extra classes on the grid root (layout, max-width, spacing). */
   className?: string;
 };
 
+function GridFallback() {
+  return (
+    <div className="grid grid-cols-1 gap-5 animate-pulse lg:grid-cols-3">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="h-[400px] rounded-2xl bg-slate-200/60" />
+      ))}
+    </div>
+  );
+}
+
 /**
- * @deprecated Prefer importing {@link TemplatesCatalog} with `surface="marketing"`.
- * Marketing `/templates` — browse templates with search, filters, and preview.
+ * Marketing embed — three launch templates with preview and CTAs.
  */
 export function TemplatesThemeGrid({ className }: Props) {
-  return <TemplatesCatalog surface="marketing" className={className} />;
+  return (
+    <Suspense fallback={<GridFallback />}>
+      <TemplatesLaunchGrid guest signedIn={false} className={className} />
+    </Suspense>
+  );
 }

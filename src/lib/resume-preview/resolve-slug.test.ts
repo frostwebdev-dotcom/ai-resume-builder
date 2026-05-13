@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { templateIdToSlug } from "./resolve-slug";
-import { TEMPLATE_IDS, DEFAULT_TEMPLATE_ID, isTemplateSlug, TEMPLATE_SLUG_ORDER } from "./template-ids";
+import {
+  DEFAULT_TEMPLATE_ID,
+  DEFAULT_TEMPLATE_SLUG,
+  isTemplateSlug,
+  TEMPLATE_IDS,
+  TEMPLATE_SLUG_ORDER,
+} from "./template-ids";
 import { ALL_TEMPLATE_THEMES, getTemplateTheme } from "./template-theme";
 
 describe("templateIdToSlug", () => {
@@ -11,15 +17,11 @@ describe("templateIdToSlug", () => {
     }
   });
 
-  it("maps the last template (forge) to forge", () => {
-    expect(templateIdToSlug(TEMPLATE_IDS.forge)).toBe("forge");
-  });
-
-  it("falls back to athena for unknown or missing ids", () => {
-    expect(templateIdToSlug(null)).toBe("athena");
-    expect(templateIdToSlug(undefined)).toBe("athena");
-    expect(templateIdToSlug("not-a-real-id")).toBe("athena");
-    expect(templateIdToSlug(DEFAULT_TEMPLATE_ID)).toBe("athena");
+  it("falls back to the default launch slug for unknown or missing ids", () => {
+    expect(templateIdToSlug(null)).toBe(DEFAULT_TEMPLATE_SLUG);
+    expect(templateIdToSlug(undefined)).toBe(DEFAULT_TEMPLATE_SLUG);
+    expect(templateIdToSlug("not-a-real-id")).toBe(DEFAULT_TEMPLATE_SLUG);
+    expect(templateIdToSlug(DEFAULT_TEMPLATE_ID)).toBe(DEFAULT_TEMPLATE_SLUG);
   });
 });
 
@@ -39,7 +41,7 @@ describe("isTemplateSlug", () => {
 describe("template themes", () => {
   it("exposes a well-formed theme for every slug", () => {
     expect(ALL_TEMPLATE_THEMES).toHaveLength(TEMPLATE_SLUG_ORDER.length);
-    expect(TEMPLATE_SLUG_ORDER.length).toBe(40);
+    expect(TEMPLATE_SLUG_ORDER.length).toBe(3);
     for (const theme of ALL_TEMPLATE_THEMES) {
       expect(theme.accent).toMatch(/^#[0-9a-f]{6}$/i);
       expect(theme.accentStrong).toMatch(/^#[0-9a-f]{6}$/i);
@@ -49,6 +51,7 @@ describe("template themes", () => {
       expect(theme.bestFor.length).toBeGreaterThan(0);
       expect(["sans", "serif"]).toContain(theme.fontFamily);
       expect(["centered", "split", "compact", "banner"]).toContain(theme.headerStyle);
+      expect(theme.layoutFamily).toBe("classic");
     }
   });
 

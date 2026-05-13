@@ -7,8 +7,9 @@ import { redirect } from "next/navigation";
 
 import { mergeProjectMetadata, parseProjectMetadata } from "@/lib/projects/metadata";
 import { slugifyTitle } from "@/lib/projects/slug";
-import { isTemplateSlug, TEMPLATE_IDS } from "@/lib/resume-preview/template-ids";
+import { DEFAULT_TEMPLATE_SLUG, isTemplateSlug, TEMPLATE_IDS } from "@/lib/resume-preview/template-ids";
 import { hydrateWizardState } from "@/lib/resume-wizard/parse";
+import { wizardStateSchema } from "@/lib/resume-wizard/schema";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { ROUTES } from "@/lib/constants";
@@ -90,7 +91,7 @@ export async function createProjectAction(
 
   const ts = parsed.data.templateSlug;
   const templateSlug: keyof typeof TEMPLATE_IDS =
-    ts !== undefined && isTemplateSlug(ts) ? ts : "athena";
+    ts !== undefined && isTemplateSlug(ts) ? ts : DEFAULT_TEMPLATE_SLUG;
   const templateId = TEMPLATE_IDS[templateSlug];
 
   const demoWizardJson = JSON.parse(JSON.stringify(createDemoWizardStateForTemplate(templateSlug))) as Json;
@@ -153,6 +154,14 @@ export async function importGuestDraftToProjectAction(
   }
 
   const wizardState = hydrateWizardState(parsed.data.wizard);
+  const validated = wizardStateSchema.safeParse(wizardState);
+  if (!validated.success) {
+    return {
+      ok: false,
+      error:
+        "Some fields could not be imported. Check links (use https://) or shorten long text, then try again.",
+    };
+  }
 
   const templateSlug = parsed.data.templateSlug;
   if (!isTemplateSlug(templateSlug)) {
@@ -170,7 +179,7 @@ export async function importGuestDraftToProjectAction(
       : {};
   const metadata = {
     ...metaObj,
-    wizard: wizardState as unknown as Json,
+    wizard: validated.data as unknown as Json,
   } as Json;
 
   const supabase = await createSupabaseServerClient();

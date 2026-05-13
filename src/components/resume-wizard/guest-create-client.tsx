@@ -17,7 +17,6 @@ import {
   ChevronDown,
   CloudUpload,
   Copy,
-  Download,
   Globe,
   LayoutDashboard,
   Loader2,
@@ -43,6 +42,7 @@ import {
   loadGuestWizardDraftFromStorage,
   useGuestWizardAutosave,
 } from "@/hooks/use-guest-wizard-autosave";
+import { useUnsavedWarning } from "@/hooks/use-unsaved-warning";
 import {
   DEFAULT_GUEST_PRESENTATION,
   clearGuestPresentationFromStorage,
@@ -200,10 +200,12 @@ export function GuestCreateClient() {
 
   useGuestPresentationAutosave(presentation, !isAccountImporting);
 
-  const { saveStatus, lastError, retry, flushSave } = useGuestWizardAutosave({
+  const { saveStatus, lastError, retry, flushSave, isDirty } = useGuestWizardAutosave({
     state: content,
     enabled: !isAccountImporting,
   });
+
+  useUnsavedWarning(isDirty && !isAccountImporting, "You have unsaved resume changes. Leave this page?");
 
   const performImportToAccount = useCallback(async () => {
     if (!hasSupabaseBrowserConfig()) {
@@ -233,7 +235,17 @@ export function GuestCreateClient() {
       setIsAccountImporting(true);
       setAccountSyncError(null);
 
-      await flushSave();
+      const flushed = await flushSave();
+      if (!flushed) {
+        setAccountSyncError(
+          "Could not save your draft to this browser. Free some storage, turn off private mode, or retry — then save to your account again.",
+        );
+        setIsAccountImporting(false);
+        if (typeof sessionStorage !== "undefined") {
+          sessionStorage.removeItem(GUEST_IMPORT_LOCK);
+        }
+        return;
+      }
 
       const res = await importGuestDraftToProjectAction({
         wizard: contentRef.current,
@@ -353,6 +365,7 @@ export function GuestCreateClient() {
             status={saveStatus}
             lastError={lastError}
             onRetry={retry}
+            isDirty={isDirty}
             surface="dark"
             layout="toolbar"
           />
@@ -388,7 +401,7 @@ export function GuestCreateClient() {
         </Alert>
       ) : null}
       {!isAccountImporting && !accountSyncError ? (
-        <GuestDraftLocalSaveNote signedIn={browserHasSession} />
+        <GuestDraftLocalSaveNote signedIn={browserHasSession} loginHref={loginHref} />
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col">
         <GuestStudioEditor
@@ -593,10 +606,10 @@ function TopBar({
               buttonVariants({ size: "sm" }),
               "h-8 gap-1.5 rounded-full bg-[#2268d7] px-3 text-xs font-semibold hover:bg-[#1f5fca]",
             )}
-            aria-label="Sign in to save a project and export a PDF"
+            aria-label="Sign in for free to save your resume to your account and export a PDF when ready"
           >
-            <Download className="size-3.5" aria-hidden />
-            Sign in to export
+            <UserPlus className="size-3.5" aria-hidden />
+            Save to account
           </Link>
         )}
         </div>

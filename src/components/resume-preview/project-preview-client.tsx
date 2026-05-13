@@ -24,7 +24,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { ROUTES } from "@/lib/constants";
 import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
-import { DEFAULT_TEMPLATE_ID, isTemplateSlug } from "@/lib/resume-preview/template-ids";
+import { DEFAULT_TEMPLATE_ID, DEFAULT_TEMPLATE_SLUG, isTemplateSlug } from "@/lib/resume-preview/template-ids";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import {
   TEMPLATE_PICKER_CAPTION,
@@ -256,7 +256,7 @@ export function ProjectPreviewClient({
               >
                 {templates.map((t) => {
                   const active = t.id === effectiveId;
-                  const thumbSlug = isTemplateSlug(t.slug) ? t.slug : "athena";
+                  const thumbSlug = isTemplateSlug(t.slug) ? t.slug : DEFAULT_TEMPLATE_SLUG;
                   return (
                     <button
                       key={t.id}

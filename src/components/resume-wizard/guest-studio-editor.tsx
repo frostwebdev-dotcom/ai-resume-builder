@@ -131,7 +131,7 @@ const OPTIONAL_PILL_LABELS: Record<PersonalPillKey, string> = {
 const CUSTOM_FIELD_CHIP_LABEL = "Custom field";
 
 const OPTIONAL_PILL_CLASS =
-  "inline-flex min-h-9 max-w-full items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-left text-xs font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 sm:text-[0.8125rem]";
+  "inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-left text-sm font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 md:min-h-9 md:gap-1.5 md:px-3 md:py-1.5 md:text-xs";
 
 /** Value for `<input type="date">` — ISO `YYYY-MM-DD` or empty (ignores unparseable legacy text). */
 function toHtmlDateInputValue(raw: string): string {
@@ -362,6 +362,35 @@ export function GuestStudioEditor({
       .map((id) => SECTIONS.find((s) => s.id === id))
       .filter((s): s is SectionDef => Boolean(s));
   }, [sectionOrderResolved]);
+
+  const resumeProgress = useMemo(() => {
+    let started = 0;
+    let complete = 0;
+    for (const sid of sectionOrderResolved) {
+      const level = getSectionCompletion(sid, state);
+      if (level !== "empty") started += 1;
+      if (level === "complete") complete += 1;
+    }
+    return { started, complete, total: sectionOrderResolved.length };
+  }, [sectionOrderResolved, state]);
+
+  const firstResumeSoftIssue = useMemo(() => getFirstResumeSoftIssue(state), [state]);
+  const previewableContent = useMemo(() => hasPreviewableResumeContent(state), [state]);
+
+  const scrollStudioSectionIntoView = useCallback((sectionId: SectionId) => {
+    setOpenSection(sectionId);
+    const reduceMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        document.getElementById(`studio-section-${sectionId}`)?.scrollIntoView({
+          behavior: reduceMotion ? "auto" : "smooth",
+          block: "start",
+        });
+      });
+    });
+  }, []);
 
   const toggleSection = useCallback((id: SectionId) => {
     setOpenSection((cur) => (cur === id ? null : id));
@@ -629,12 +658,13 @@ export function GuestStudioEditor({
       mobilePreviewOpen={mobilePreviewOpen}
       previewAccent={previewTheme.accent}
       editor={(
-        <div className="w-full min-w-0 space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+        <div className="w-full min-w-0 space-y-4 px-4 py-5 pb-28 sm:px-6 sm:py-6 lg:pb-5">
           {persistMode === "guest" ? (
             <SaveBadge
               status={guestAutosave.saveStatus}
               error={guestAutosave.lastError}
               onRetry={guestAutosave.retry}
+              isDirty={guestAutosave.isDirty}
             />
           ) : null}
 
@@ -656,6 +686,42 @@ export function GuestStudioEditor({
             currentSlug={templateSlug}
             onSelectTemplate={applyExampleForTemplate}
           />
+
+          <div className="rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-sm sm:px-4 sm:py-3.5">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Resume progress</p>
+                <p className="text-xs text-muted-foreground">
+                  {resumeProgress.started} of {resumeProgress.total} sections started ·{" "}
+                  {resumeProgress.complete} looking interview-ready
+                </p>
+              </div>
+              {previewableContent ? (
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-[#2268d7] underline-offset-4 hover:underline lg:hidden"
+                  onClick={() => setMobilePreviewOpen(true)}
+                >
+                  Quick preview
+                </button>
+              ) : null}
+            </div>
+            <div
+              className="mt-2.5 h-2 overflow-hidden rounded-full bg-slate-100"
+              role="progressbar"
+              aria-valuenow={resumeProgress.complete}
+              aria-valuemin={0}
+              aria-valuemax={resumeProgress.total}
+              aria-label="Sections marked interview-ready"
+            >
+              <div
+                className="h-full rounded-full bg-[#2268d7] transition-[width] duration-300 ease-out"
+                style={{
+                  width: `${resumeProgress.total ? (resumeProgress.complete / resumeProgress.total) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </div>
 
           <nav
             className={cn(
@@ -694,6 +760,7 @@ export function GuestStudioEditor({
               return (
               <div
                 key={section.id}
+                id={`studio-section-${section.id}`}
                 draggable={true}
                 aria-grabbed={isDragSource}
                 aria-label={`${section.label} — drag to reorder`}
@@ -753,11 +820,11 @@ export function GuestStudioEditor({
               <SectionCard
                 section={section}
                 displayLabel={sectionLabelOverrides[section.id] ?? section.label}
+                completion={getSectionCompletion(section.id, state)}
                 onNativeSectionDragStart={beginSectionListDrag}
                 onNativeSectionDragEnd={clearSectionReorderDrag}
                 open={openSection === section.id}
                 onToggle={() => toggleSection(section.id)}
-                filled={isSectionFilled(section.id, state)}
                 titleEditing={editingSectionTitleId === section.id}
                 titleDraft={sectionTitleDraft}
                 onTitleDraftChange={setSectionTitleDraft}
@@ -905,7 +972,7 @@ export function GuestStudioEditor({
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     type="button"
-                    className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-900 shadow-sm outline-none transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 sm:text-[0.8125rem]"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-sm font-medium text-neutral-900 shadow-sm outline-none transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 md:min-h-0 md:gap-1 md:px-3 md:py-1.5 md:text-xs"
                   >
                     <Plus className="size-3.5 shrink-0 stroke-neutral-500" aria-hidden />
                     Custom section
@@ -948,7 +1015,7 @@ export function GuestStudioEditor({
               <Link
                 href={exportHref}
                 className={cn(
-                  "inline-flex shrink-0 items-center justify-center gap-1.5 self-end rounded-full bg-[#2268d7] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1f5fca] sm:self-auto",
+                  "inline-flex min-h-12 shrink-0 items-center justify-center gap-2 self-end rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1f5fca] sm:self-auto",
                 )}
                 aria-label={
                   persistMode === "project"
@@ -962,7 +1029,7 @@ export function GuestStudioEditor({
             </div>
           </footer>
 
-          <p className="pt-4 pb-10 text-center text-xs text-muted-foreground">
+          <p className="pt-4 pb-28 text-center text-xs text-muted-foreground lg:pb-10">
             {persistMode === "guest" ? (
               <>
                 Saved to this device only.{" "}
@@ -1158,7 +1225,7 @@ export function GuestStudioEditor({
                       disabled={!templateStripArrows.canLeft}
                       aria-label="Show previous templates"
                       className={cn(
-                        "absolute left-1 top-1/2 z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200/90 bg-white/92 text-slate-800 shadow-[0_4px_18px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] backdrop-blur-sm outline-none transition-[transform,box-shadow,background-color,border-color,opacity] sm:left-1.5",
+                        "absolute left-1 top-1/2 z-20 flex size-11 min-h-[var(--touch-target-min)] min-w-[var(--touch-target-min)] -translate-y-1/2 items-center justify-center rounded-full border border-slate-200/90 bg-white/92 text-slate-800 shadow-[0_4px_18px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] backdrop-blur-sm outline-none transition-[transform,box-shadow,background-color,border-color,opacity] sm:left-1.5 md:size-10 md:min-h-0 md:min-w-0",
                         "hover:border-slate-300/90 hover:bg-white hover:shadow-[0_6px_22px_rgba(15,23,42,0.16)]",
                         "active:scale-[0.96]",
                         "focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
@@ -1197,7 +1264,7 @@ export function GuestStudioEditor({
                               : undefined,
                           }}
                           className={cn(
-                            "flex shrink-0 flex-col items-center gap-1.5 rounded-lg p-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#2268d7]/40",
+                            "flex min-h-[7.5rem] min-w-[5.75rem] shrink-0 flex-col items-center gap-2 rounded-xl p-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 sm:min-h-0 sm:min-w-0 sm:gap-1.5 sm:rounded-lg sm:p-1",
                             !hovered && "hover:bg-slate-50",
                           )}
                         >
@@ -1215,7 +1282,7 @@ export function GuestStudioEditor({
                               className="absolute inset-0 h-full w-full rounded-none shadow-none ring-0"
                             />
                           </div>
-                          <span className="max-w-[5.5rem] text-center text-[0.65rem] font-semibold leading-tight whitespace-normal break-words text-slate-800 sm:text-xs">
+                          <span className="max-w-[6rem] text-center text-xs font-semibold leading-tight whitespace-normal break-words text-slate-800 sm:max-w-[5.5rem]">
                             {theme.name}
                           </span>
                         </button>
@@ -1229,7 +1296,7 @@ export function GuestStudioEditor({
                       disabled={!templateStripArrows.canRight}
                       aria-label="Show more templates"
                       className={cn(
-                        "absolute right-1 top-1/2 z-20 flex size-10 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200/90 bg-white/92 text-slate-800 shadow-[0_4px_18px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] backdrop-blur-sm outline-none transition-[transform,box-shadow,background-color,border-color,opacity] sm:right-1.5",
+                        "absolute right-1 top-1/2 z-20 flex size-11 min-h-[var(--touch-target-min)] min-w-[var(--touch-target-min)] -translate-y-1/2 items-center justify-center rounded-full border border-slate-200/90 bg-white/92 text-slate-800 shadow-[0_4px_18px_rgba(15,23,42,0.14),0_1px_2px_rgba(15,23,42,0.06)] backdrop-blur-sm outline-none transition-[transform,box-shadow,background-color,border-color,opacity] sm:right-1.5 md:size-10 md:min-h-0 md:min-w-0",
                         "hover:border-slate-300/90 hover:bg-white hover:shadow-[0_6px_22px_rgba(15,23,42,0.16)]",
                         "active:scale-[0.96]",
                         "focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
@@ -1355,7 +1422,7 @@ export function GuestStudioEditor({
               <button
                 type="button"
                 onClick={() => setFocusMode((v) => !v)}
-                className="inline-flex size-9 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                className="inline-flex size-11 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 md:size-9"
                 aria-label={focusMode ? "Exit focus mode" : "Focus preview"}
                 aria-pressed={focusMode}
               >
@@ -1529,18 +1596,70 @@ export function GuestStudioEditor({
         </>
       )}
       mobileFab={(
-        <button
-          type="button"
-          onClick={() => setMobilePreviewOpen((v) => !v)}
-          aria-pressed={mobilePreviewOpen}
-          aria-label={mobilePreviewOpen ? "Show editor" : "Show preview"}
-          className={cn(
-            "fixed bottom-4 right-4 z-40 inline-flex h-11 items-center gap-2 rounded-full bg-slate-900 px-4 text-sm font-semibold text-white shadow-lg ring-1 ring-black/10 transition-transform hover:-translate-y-0.5 active:translate-y-0",
-            "lg:hidden",
-          )}
+        <div
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-white/95 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] shadow-[0_-10px_40px_-12px_rgba(15,23,42,0.18)] backdrop-blur-md lg:hidden"
+          role="navigation"
+          aria-label="Resume editor mobile actions"
         >
-          {mobilePreviewOpen ? "Edit" : "Preview"}
-        </button>
+          {mobilePreviewOpen ? (
+            <Button
+              type="button"
+              variant="default"
+              size="touch"
+              className="w-full gap-2 bg-slate-900 text-white hover:bg-slate-800"
+              onClick={() => setMobilePreviewOpen(false)}
+            >
+              <ChevronLeft className="size-4 shrink-0" aria-hidden />
+              Back to editing
+            </Button>
+          ) : (
+            <>
+              <div className="mx-auto flex w-full max-w-lg items-stretch gap-2">
+                {firstResumeSoftIssue ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="touch"
+                    className="shrink-0 px-4"
+                    onClick={() => scrollStudioSectionIntoView(firstResumeSoftIssue.section)}
+                  >
+                    Fix next
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="default"
+                  size="touch"
+                  className={cn(
+                    "min-w-0 flex-1 gap-2",
+                    previewableContent
+                      ? "bg-[#2268d7] text-white hover:bg-[#1f5fca]"
+                      : "bg-slate-200 text-slate-600 hover:bg-slate-300",
+                  )}
+                  onClick={() => {
+                    if (!previewableContent) {
+                      scrollStudioSectionIntoView("personal");
+                      return;
+                    }
+                    setMobilePreviewOpen(true);
+                  }}
+                >
+                  <SquareSplitHorizontal className="size-4 shrink-0" aria-hidden />
+                  {previewableContent ? "Preview resume" : "Start in Personal details"}
+                </Button>
+              </div>
+              {firstResumeSoftIssue && !mobilePreviewOpen ? (
+                <p className="mx-auto mt-2 max-w-lg text-pretty text-center text-xs leading-snug text-muted-foreground">
+                  {firstResumeSoftIssue.message}
+                </p>
+              ) : !previewableContent ? (
+                <p className="mx-auto mt-2 max-w-lg text-pretty text-center text-xs leading-snug text-muted-foreground">
+                  Add a name, profile, or work history — then open a full-page preview here.
+                </p>
+              ) : null}
+            </>
+          )}
+        </div>
       )}
     />
   );
@@ -1604,7 +1723,7 @@ function ToolbarButton({
       aria-label={ariaLabel}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-9 items-center gap-1.5 px-2.5 text-xs font-medium transition-colors sm:text-sm",
+        "inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors md:h-9 md:min-h-0 md:px-2.5 md:text-xs",
         variant === "templates"
           ? "rounded-full border"
           : "rounded-md",
@@ -1627,9 +1746,9 @@ function ModulePill({ label, onClick }: { label: string; onClick: () => void }) 
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-left text-xs font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 sm:text-[0.8125rem]"
+      className="inline-flex max-w-full min-h-11 items-center gap-2 rounded-full border border-neutral-200 bg-white px-3.5 py-2 text-left text-sm font-medium text-neutral-900 shadow-sm transition-colors hover:border-neutral-300 hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2268d7]/40 md:min-h-9 md:gap-1.5 md:px-3 md:py-1.5 md:text-xs"
     >
-      <Plus className="size-3.5 shrink-0 text-neutral-500" aria-hidden />
+      <Plus className="size-4 shrink-0 text-neutral-500 md:size-3.5" aria-hidden />
       <span className="min-w-0">{label}</span>
     </button>
   );
@@ -1639,17 +1758,38 @@ function SaveBadge({
   status,
   error,
   onRetry,
+  isDirty = false,
 }: {
   status: SaveStatus;
   error: string | null;
   onRetry: () => void;
+  isDirty?: boolean;
 }) {
   const base =
     "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.7rem] font-semibold ring-1";
+  if (status === "error") {
+    return (
+      <button
+        type="button"
+        onClick={onRetry}
+        className={cn(base, "bg-destructive/12 text-destructive ring-destructive/25")}
+      >
+        {error ?? "Save failed — tap to retry"}
+      </button>
+    );
+  }
   if (status === "saving") {
     return (
       <div className={cn(base, "bg-muted/50 text-muted-foreground ring-border")}>
         Saving locally…
+      </div>
+    );
+  }
+  if (isDirty) {
+    return (
+      <div className={cn(base, "bg-amber-50 text-amber-950 ring-amber-200/80")}>
+        Unsaved changes
+        {status === "saved" ? <span className="font-normal opacity-80"> — saving soon</span> : null}
       </div>
     );
   }
@@ -1659,17 +1799,6 @@ function SaveBadge({
         <Check className="size-3" aria-hidden />
         Saved on this device
       </div>
-    );
-  }
-  if (status === "error") {
-    return (
-      <button
-        type="button"
-        onClick={onRetry}
-        className={cn(base, "bg-destructive/12 text-destructive ring-destructive/25")}
-      >
-        {error ?? "Save failed — retry"}
-      </button>
     );
   }
   return (
@@ -1917,7 +2046,7 @@ function SectionCard({
   onNativeSectionDragEnd,
   open,
   onToggle,
-  filled,
+  completion,
   titleEditing,
   titleDraft,
   onTitleDraftChange,
@@ -1937,7 +2066,7 @@ function SectionCard({
   onNativeSectionDragEnd: () => void;
   open: boolean;
   onToggle: () => void;
-  filled: boolean;
+  completion: SectionCompletion;
   titleEditing: boolean;
   titleDraft: string;
   onTitleDraftChange: (value: string) => void;
@@ -2028,10 +2157,10 @@ function SectionCard({
                 e.stopPropagation();
                 sectionReorder.onMoveUp();
               }}
-              className="size-7 shrink-0 cursor-pointer text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
+              className="size-10 min-h-[var(--touch-target-min)] shrink-0 cursor-pointer text-neutral-500 hover:text-neutral-800 disabled:opacity-30 md:size-7 md:min-h-0"
               aria-label={`Move ${displayLabel} up in the list`}
             >
-              <ChevronUp className="size-3.5" aria-hidden />
+              <ChevronUp className="size-4 md:size-3.5" aria-hidden />
             </Button>
             <Button
               type="button"
@@ -2044,10 +2173,10 @@ function SectionCard({
                 e.stopPropagation();
                 sectionReorder.onMoveDown();
               }}
-              className="size-7 shrink-0 cursor-pointer text-neutral-500 hover:text-neutral-800 disabled:opacity-30"
+              className="size-10 min-h-[var(--touch-target-min)] shrink-0 cursor-pointer text-neutral-500 hover:text-neutral-800 disabled:opacity-30 md:size-7 md:min-h-0"
               aria-label={`Move ${displayLabel} down in the list`}
             >
-              <ChevronDown className="size-3.5" aria-hidden />
+              <ChevronDown className="size-4 md:size-3.5" aria-hidden />
             </Button>
           </div>
         ) : null}
@@ -2105,17 +2234,36 @@ function SectionCard({
                 "rounded-lg ring-1 ring-[#2d9f6d]/35 ring-offset-1 ring-offset-transparent",
             )}
           >
-            <span
-              className={cn(
-                !isSectionDragSource && open && "text-[#2268d7]",
-                !isSectionDragSource && !open && "text-neutral-500",
-                !isSectionDragSource && filled && !open && "text-neutral-600",
-                isSectionDragSource && "text-base font-bold tracking-tight text-white",
-                isSectionDropTarget && !isSectionDragSource && "font-bold text-emerald-900",
-                isSectionDragContext && "text-neutral-600",
-              )}
-            >
-              {displayLabel}
+            <span className="inline-flex min-w-0 max-w-full items-center gap-2.5">
+              <span
+                className={cn(
+                  "size-2.5 shrink-0 rounded-full ring-1 ring-black/[0.06]",
+                  completion === "complete" && "bg-emerald-500",
+                  completion === "started" && "bg-amber-400",
+                  completion === "empty" && "bg-neutral-300",
+                )}
+                title={
+                  completion === "complete"
+                    ? "Section looks strong"
+                    : completion === "started"
+                      ? "In progress"
+                      : "Not started"
+                }
+                aria-hidden
+              />
+              <span
+                className={cn(
+                  "min-w-0 truncate",
+                  !isSectionDragSource && open && "text-[#2268d7]",
+                  !isSectionDragSource && !open && "text-neutral-500",
+                  !isSectionDragSource && completion !== "empty" && !open && "text-neutral-600",
+                  isSectionDragSource && "text-base font-bold tracking-tight text-white",
+                  isSectionDropTarget && !isSectionDragSource && "font-bold text-emerald-900",
+                  isSectionDragContext && "text-neutral-600",
+                )}
+              >
+                {displayLabel}
+              </span>
             </span>
           </button>
         )}
@@ -2131,7 +2279,7 @@ function SectionCard({
             aria-expanded={open}
             aria-label={open ? "Collapse section" : "Expand section"}
             className={cn(
-              "inline-flex size-8 shrink-0 cursor-grab items-center justify-center rounded-full border-2 transition-colors active:cursor-grabbing",
+              "inline-flex size-10 shrink-0 cursor-grab items-center justify-center rounded-full border-2 transition-colors active:cursor-grabbing md:size-8",
               isSectionDragSource &&
                 "border-white/80 bg-white/10 text-white hover:bg-white/20",
               !isSectionDragSource &&
@@ -2139,12 +2287,16 @@ function SectionCard({
                 "border-[#2268d7] bg-[#2268d7]/8 text-[#2268d7]",
               !isSectionDragSource &&
                 !open &&
-                filled &&
+                completion !== "empty" &&
                 "border-neutral-300 text-neutral-500",
               !isSectionDragSource &&
                 !open &&
-                !filled &&
+                completion === "empty" &&
                 "border-neutral-300 text-neutral-400",
+              !isSectionDragSource &&
+                !open &&
+                completion === "complete" &&
+                "border-emerald-400/80 text-emerald-700",
             )}
           >
             {open ? (
@@ -2217,6 +2369,116 @@ function isSectionFilled(id: SectionId, s: WizardStateV1): boolean {
     default:
       return false;
   }
+}
+
+type SectionCompletion = "empty" | "started" | "complete";
+
+function hasDisplayName(s: WizardStateV1): boolean {
+  if (s.personal.fullName.trim()) return true;
+  return Boolean(s.personal.givenName.trim() || s.personal.familyName.trim());
+}
+
+function hasReasonableEmail(s: WizardStateV1): boolean {
+  const e = s.personal.email.trim();
+  return e.includes("@") && e.length >= 5;
+}
+
+function lineBlockDepth(lines: string): number {
+  return lines
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean).length;
+}
+
+function getSectionCompletion(id: SectionId, s: WizardStateV1): SectionCompletion {
+  if (!isSectionFilled(id, s)) return "empty";
+  switch (id) {
+    case "personal":
+      return hasDisplayName(s) && hasReasonableEmail(s) ? "complete" : "started";
+    case "summary":
+      return Boolean(
+        s.summary.headline.trim() && !isProfileDescriptionEmpty(s.summary.summary),
+      )
+        ? "complete"
+        : "started";
+    case "experience": {
+      const strong = s.experience.entries.some(
+        (e) =>
+          e.title.trim() &&
+          e.company.trim() &&
+          (e.startDate.trim() || e.current) &&
+          e.highlights.some((h) => h.trim().length > 12),
+      );
+      return strong ? "complete" : "started";
+    }
+    case "education": {
+      const strong = s.education.entries.some(
+        (e) => e.school.trim() && e.degree.trim() && (e.startDate.trim() || e.endDate.trim()),
+      );
+      return strong ? "complete" : "started";
+    }
+    case "skills":
+      return lineBlockDepth(s.skills.lines) >= 2 ? "complete" : "started";
+    case "languages":
+    case "hobbies":
+    case "courses":
+    case "internships": {
+      const lines =
+        id === "languages"
+          ? s.languages.lines
+          : id === "hobbies"
+            ? s.hobbies.lines
+            : id === "courses"
+              ? s.courses.lines
+              : s.internships.lines;
+      return lineBlockDepth(lines) >= 2 ? "complete" : "started";
+    }
+    case "projects": {
+      const strong = s.projects.entries.some(
+        (p) => p.name.trim() && p.description.trim().length > 24,
+      );
+      return strong ? "complete" : "started";
+    }
+    case "certifications": {
+      const strong = s.certifications.entries.some(
+        (c) => c.name.trim() && c.issuer.trim(),
+      );
+      return strong ? "complete" : "started";
+    }
+    case "additional":
+      return s.additional.notes.trim().length > 80 ? "complete" : "started";
+    default:
+      return "started";
+  }
+}
+
+type ResumeSoftIssue = { section: SectionId; message: string };
+
+/** Friendly checks — not blocking save; used for guidance + scroll targets. */
+function getFirstResumeSoftIssue(s: WizardStateV1): ResumeSoftIssue | null {
+  if (!hasDisplayName(s)) {
+    return {
+      section: "personal",
+      message: "Add your name so it appears correctly on the resume and in emails.",
+    };
+  }
+  if (!hasReasonableEmail(s)) {
+    return {
+      section: "personal",
+      message: "Add a working email — it is the main way people reach you back.",
+    };
+  }
+  return null;
+}
+
+function hasPreviewableResumeContent(s: WizardStateV1): boolean {
+  return (
+    isSectionFilled("personal", s) ||
+    isSectionFilled("summary", s) ||
+    isSectionFilled("experience", s) ||
+    isSectionFilled("education", s) ||
+    isSectionFilled("skills", s)
+  );
 }
 
 /* ------------------------------ Section bodies ---------------------------- */
@@ -2516,7 +2778,7 @@ function PersonalBody({
       <DropdownMenu>
         <DropdownMenuTrigger
           type="button"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-neutral-500 outline-none hover:bg-neutral-200/80 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 sm:size-7"
+          className="inline-flex size-10 min-h-[var(--touch-target-min)] min-w-[var(--touch-target-min)] shrink-0 items-center justify-center rounded-lg text-neutral-500 outline-none hover:bg-neutral-200/80 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 md:size-7 md:min-h-0 md:min-w-0"
           aria-label="Field options"
         >
           <MoreHorizontal className="size-4" aria-hidden />
@@ -2545,7 +2807,7 @@ function PersonalBody({
       <DropdownMenu>
         <DropdownMenuTrigger
           type="button"
-          className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-neutral-500 outline-none hover:bg-neutral-200/80 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 sm:size-7"
+          className="inline-flex size-10 min-h-[var(--touch-target-min)] min-w-[var(--touch-target-min)] shrink-0 items-center justify-center rounded-lg text-neutral-500 outline-none hover:bg-neutral-200/80 hover:text-neutral-900 focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 md:size-7 md:min-h-0 md:min-w-0"
           aria-label="Field options"
         >
           <MoreHorizontal className="size-4" aria-hidden />
@@ -2690,6 +2952,14 @@ function PersonalBody({
 
   return (
     <div className="space-y-6">
+      {!isSectionFilled("personal", state) ? (
+        <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
+          <p className="text-sm font-semibold text-slate-900">Let&apos;s start with the essentials</p>
+          <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground">
+            Your name and email power the header and contact block. You can always add more fields below.
+          </p>
+        </div>
+      ) : null}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <div className="flex shrink-0 flex-col gap-1.5">
           <p className="text-caption font-medium text-neutral-600">Photo</p>
@@ -2951,6 +3221,14 @@ function SummaryBody({
 }) {
   return (
     <div className="space-y-4">
+      {!isSectionFilled("summary", state) ? (
+        <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
+          <p className="text-sm font-semibold text-slate-900">Tell your story in a few lines</p>
+          <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground">
+            A clear headline plus a short profile helps recruiters understand you in seconds.
+          </p>
+        </div>
+      ) : null}
       <Field
         id="headline"
         label="Headline"
@@ -2966,13 +3244,13 @@ function SummaryBody({
           }
         />
       </Field>
-      <div className="space-y-1.5">
-        <label
+      <div className="space-y-2">
+        <Label
           htmlFor="guest-profile-description"
-          className="text-[0.7rem] font-medium text-neutral-500"
+          className="text-sm font-medium text-foreground"
         >
           Description
-        </label>
+        </Label>
         <ProfileDescriptionEditor
           id="guest-profile-description"
           value={state.summary.summary}
@@ -2982,7 +3260,7 @@ function SummaryBody({
           loginHref={loginHref}
           signedIn={Boolean(jobAssist)}
         />
-        <p className="text-[0.7rem] text-neutral-500">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           3–5 sentences: strengths, scope, and what you are looking for next.
         </p>
       </div>
@@ -3039,6 +3317,14 @@ function ExperienceBody({
   const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
     <div ref={stackRef} className="space-y-3">
+      {!isSectionFilled("experience", state) ? (
+        <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
+          <p className="text-sm font-semibold text-slate-900">Work history is the core of most resumes</p>
+          <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground">
+            Start with your latest role. Short bullets with results read best on phones and on paper.
+          </p>
+        </div>
+      ) : null}
       {entries.map((entry, index) => (
         <EntryCard
           key={entry.id}
@@ -3135,10 +3421,10 @@ function ExperienceBody({
               </Field>
             </div>
           </div>
-          <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm">
+          <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-3 rounded-lg py-1 text-base leading-snug">
             <input
               type="checkbox"
-              className="size-4 rounded border border-input accent-brand"
+              className="size-5 shrink-0 rounded border border-input accent-brand"
               checked={entry.current}
               onChange={(e) => {
                 const checked = e.target.checked;
@@ -3168,7 +3454,6 @@ function ExperienceBody({
             {entry.highlights.map((line, hi) => (
               <Textarea
                 key={`${entry.id}-h-${hi}`}
-                className="min-h-[4rem]"
                 value={line}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -3186,7 +3471,8 @@ function ExperienceBody({
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              size="touch"
+              className="w-full sm:w-auto"
               onClick={() =>
                 setState((s) => {
                   const next = [...s.experience.entries];
@@ -3240,6 +3526,7 @@ function ExperienceBody({
       <Button
         type="button"
         variant="outline"
+        size="touch"
         className={cn(
           "w-full justify-center motion-safe:transition-[opacity,filter] motion-safe:duration-200",
           activeEntryId !== null && "opacity-[0.42] saturate-[0.65]",
@@ -3286,6 +3573,14 @@ function EducationBody({
   const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
     <div ref={stackRef} className="space-y-3">
+      {!isSectionFilled("education", state) ? (
+        <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
+          <p className="text-sm font-semibold text-slate-900">Education builds credibility fast</p>
+          <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground">
+            Add your highest degree first, then certifications or courses if they matter for the role.
+          </p>
+        </div>
+      ) : null}
       {entries.map((entry, index) => (
         <EntryCard
           key={entry.id}
@@ -3408,6 +3703,7 @@ function EducationBody({
       <Button
         type="button"
         variant="outline"
+        size="touch"
         className={cn(
           "w-full justify-center motion-safe:transition-[opacity,filter] motion-safe:duration-200",
           activeEntryId !== null && "opacity-[0.42] saturate-[0.65]",
@@ -3479,6 +3775,14 @@ function SkillsBody({
 }) {
   return (
     <div className="space-y-4">
+      {!state.skills.lines.trim() ? (
+        <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
+          <p className="text-sm font-semibold text-slate-900">List the skills you want to be known for</p>
+          <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground">
+            One per line is easiest to edit on your phone. You can reorder later.
+          </p>
+        </div>
+      ) : null}
       <Field
         id="skills"
         label="Skills"
@@ -3517,6 +3821,14 @@ function ProjectsBody({ state, setState }: { state: WizardStateV1; setState: Set
   const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
     <div ref={stackRef} className="space-y-3">
+      {!isSectionFilled("projects", state) ? (
+        <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
+          <p className="text-sm font-semibold text-slate-900">Show work you are proud to explain</p>
+          <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground">
+            Side projects, open source, or client work all count — focus on impact, not buzzwords.
+          </p>
+        </div>
+      ) : null}
       {entries.map((entry, index) => (
         <EntryCard
           key={entry.id}
@@ -3580,7 +3892,7 @@ function ProjectsBody({ state, setState }: { state: WizardStateV1; setState: Set
           </Field>
           <Field id={`proj-desc-${entry.id}`} label="Description" className="mt-3">
             <Textarea
-              className="min-h-[5rem]"
+              className="min-h-[6.5rem] md:min-h-[5rem]"
               value={entry.description}
               onChange={(e) => {
                 const v = e.target.value;
@@ -3598,6 +3910,7 @@ function ProjectsBody({ state, setState }: { state: WizardStateV1; setState: Set
       <Button
         type="button"
         variant="outline"
+        size="touch"
         className={cn(
           "w-full justify-center motion-safe:transition-[opacity,filter] motion-safe:duration-200",
           activeEntryId !== null && "opacity-[0.42] saturate-[0.65]",
@@ -3633,6 +3946,14 @@ function CertificationsBody({ state, setState }: { state: WizardStateV1; setStat
   const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
     <div ref={stackRef} className="space-y-3">
+      {!isSectionFilled("certifications", state) ? (
+        <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
+          <p className="text-sm font-semibold text-slate-900">Certifications signal credibility</p>
+          <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground">
+            Add the name as it appears on the certificate plus who issued it.
+          </p>
+        </div>
+      ) : null}
       {entries.map((entry, index) => (
         <EntryCard
           key={entry.id}
@@ -3714,6 +4035,7 @@ function CertificationsBody({ state, setState }: { state: WizardStateV1; setStat
       <Button
         type="button"
         variant="outline"
+        size="touch"
         className={cn(
           "w-full justify-center motion-safe:transition-[opacity,filter] motion-safe:duration-200",
           activeEntryId !== null && "opacity-[0.42] saturate-[0.65]",
@@ -3755,6 +4077,14 @@ function AdditionalBody({
 }) {
   return (
     <div className="space-y-4">
+      {!state.additional.notes.trim() ? (
+        <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
+          <p className="text-sm font-semibold text-slate-900">Optional — only if it strengthens your story</p>
+          <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground">
+            Volunteering, awards, or publications fit well here. Skip this section if you do not need it.
+          </p>
+        </div>
+      ) : null}
       <Field
         id="additional"
         label="Additional information"
@@ -3805,7 +4135,7 @@ function EntryCard({
       onPointerDownCapture={() => onActivate?.()}
       onFocusCapture={() => onActivate?.()}
       className={cn(
-        "rounded-lg border border-border/70 bg-white p-3 sm:p-4 motion-safe:transition-[opacity,filter,box-shadow,ring-color] motion-safe:duration-200 motion-safe:ease-out",
+        "rounded-lg border border-border/70 bg-white p-4 motion-safe:transition-[opacity,filter,box-shadow,ring-color] motion-safe:duration-200 motion-safe:ease-out sm:p-4",
         dimmed && "pointer-events-auto opacity-[0.42] saturate-[0.68] contrast-[0.98]",
         elevated &&
           "relative z-[1] opacity-100 ring-2 ring-[#2d9f6d]/35 shadow-sm contrast-100 saturate-100",
@@ -3822,8 +4152,8 @@ function EntryCard({
           <button
             type="button"
             onClick={onRemove}
-            className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
-            aria-label="Remove"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive md:size-8"
+            aria-label="Remove entry"
           >
             <Trash2 className="size-4" aria-hidden />
           </button>

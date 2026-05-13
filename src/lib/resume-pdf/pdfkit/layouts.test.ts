@@ -3,28 +3,26 @@ import { describe, expect, it } from "vitest";
 import { getPdfLayout } from "./layouts";
 
 describe("getPdfLayout font mapping", () => {
-  it("uses Helvetica for sans-serif themes", () => {
-    const layout = getPdfLayout("athena");
+  it("uses Helvetica for launch sans-serif themes", () => {
+    const layout = getPdfLayout("professional-ats");
     expect(layout.fonts.regular).toBe("Helvetica");
     expect(layout.fonts.bold).toBe("Helvetica-Bold");
     expect(layout.fonts.italic).toBe("Helvetica-Oblique");
   });
 
-  it("uses Times-Roman for serif themes", () => {
-    const layoutH = getPdfLayout("helios");
-    expect(layoutH.fonts.regular).toBe("Times-Roman");
-    expect(layoutH.fonts.bold).toBe("Times-Bold");
-    expect(layoutH.fonts.italic).toBe("Times-Italic");
+  it("propagates header + section style from each launch theme", () => {
+    const ats = getPdfLayout("professional-ats");
+    expect(ats.headerStyle).toBe("compact");
+    expect(ats.sectionTitleStyle).toBe("underline");
+    expect(ats.layoutFamily).toBe("classic");
+    expect(ats.showAvatar).toBe(false);
 
-    const layoutC = getPdfLayout("clio");
-    expect(layoutC.fonts.regular).toBe("Times-Roman");
-  });
+    const modern = getPdfLayout("modern-professional");
+    expect(modern.headerStyle).toBe("split");
+    expect(modern.sectionTitleStyle).toBe("accent-rule");
 
-  it("propagates header + section style from theme", () => {
-    const onyx = getPdfLayout("onyx");
-    expect(onyx.headerStyle).toBe("banner");
-    expect(onyx.sectionTitleStyle).toBe("accent-rule");
-    expect(onyx.bodyAlign).toBe("left");
-    expect(onyx.bodyLineGap).toBeGreaterThanOrEqual(0);
+    const tech = getPdfLayout("technical-clean");
+    expect(tech.headerStyle).toBe("compact");
+    expect(tech.sectionTitleStyle).toBe("rule");
   });
 });

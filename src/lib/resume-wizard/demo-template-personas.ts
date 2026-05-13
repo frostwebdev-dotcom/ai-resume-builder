@@ -20,21 +20,8 @@ const DEMO_PORTRAIT_URLS: readonly string[] = [
   "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&w=512&h=512&fit=crop&q=80",
 ];
 
-/** Slugs that render an avatar slot (must match `template-theme` layout sets). */
-const PHOTO_SLUGS_ORDERED: readonly TemplateSlug[] = [
-  "astra",
-  "borealis",
-  "denali",
-  "ember",
-  "iris",
-  "matrix",
-  "nimbus",
-  "pacific",
-  "quartz",
-  "titan",
-  "vertex",
-  "willow",
-];
+/** Launch catalog is classic-only — no demo avatars. */
+const PHOTO_SLUGS_ORDERED: readonly TemplateSlug[] = [];
 
 export function getDemoAvatarUrlForTemplate(slug: TemplateSlug): string | null {
   if (!templateSupportsAvatar(getTemplateTheme(slug))) return null;

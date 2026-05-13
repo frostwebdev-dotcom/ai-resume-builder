@@ -45,8 +45,8 @@ function densityOf(theme: TemplateTheme): Density {
  * Single themed preview component used for every template slug.
  * Visual choices — colors, font, header composition, section titles,
  * density, two-column meta — are all driven by the theme returned by
- * `getTemplateTheme`. Add a new template by adding a row to
- * `template-theme.ts`; no code changes here.
+ * `getTemplateTheme` (launch catalog in `template-theme.ts`). Structural variants
+ * (sidebar / banner) remain supported for future templates.
  */
 export function ThemedTemplate({
   doc,

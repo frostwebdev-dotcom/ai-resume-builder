@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { hydrateWizardState } from "@/lib/resume-wizard/parse";
-import type { WizardStateV1 } from "@/lib/resume-wizard/types";
-
 import type { SaveStatus } from "@/hooks/use-wizard-autosave";
-
-const STORAGE_KEY = "resume-real-andy:guest-wizard-draft:v1";
+import {
+  saveGuestWizardDraftToStorage,
+} from "@/lib/resume-wizard/guest-draft-storage";
+import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 
 type Options = {
   state: WizardStateV1;
@@ -30,22 +29,23 @@ export function useGuestWizardAutosave({
   const hydratedRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stateRef = useRef(state);
+  const lastOkJsonRef = useRef(lastOkJson);
 
   useEffect(() => {
     stateRef.current = state;
   });
 
+  useEffect(() => {
+    lastOkJsonRef.current = lastOkJson;
+  }, [lastOkJson]);
+
   const persist = useCallback((json: string) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, json);
-    } catch (e) {
-      console.warn("[guest-wizard] localStorage write failed", e);
-      throw e;
-    }
+    const parsed = JSON.parse(json) as WizardStateV1;
+    saveGuestWizardDraftToStorage(parsed);
   }, []);
 
-  const flushSave = useCallback(async () => {
-    if (!enabled) return;
+  const flushSave = useCallback(async (): Promise<boolean> => {
+    if (!enabled) return true;
     const current = stateRef.current;
     const snapshot = JSON.stringify(current);
     setSaveStatus("saving");
@@ -54,11 +54,14 @@ export function useGuestWizardAutosave({
       persist(snapshot);
       setLastOkJson(snapshot);
       setSaveStatus("saved");
-    } catch {
+      return true;
+    } catch (e) {
+      console.warn("[guest-wizard] localStorage write failed", e);
       setSaveStatus("error");
       setLastError(
         "Could not save on this device (storage may be full, blocked, or private mode is on).",
       );
+      return false;
     }
   }, [enabled, persist]);
 
@@ -84,6 +87,19 @@ export function useGuestWizardAutosave({
     };
   }, [state, debounceMs, flushSave, lastOkJson, enabled]);
 
+  /** Flush to disk when the user switches tabs or minimizes (reduces loss on mobile). */
+  useEffect(() => {
+    if (!enabled) return;
+    const onVisibility = () => {
+      if (document.visibilityState !== "hidden") return;
+      const serialized = JSON.stringify(stateRef.current);
+      if (serialized === lastOkJsonRef.current) return;
+      void flushSave();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [enabled, flushSave]);
+
   const retry = useCallback(() => {
     void flushSave();
   }, [flushSave]);
@@ -91,32 +107,5 @@ export function useGuestWizardAutosave({
   return { saveStatus, lastError, retry, flushSave, isDirty };
 }
 
-export function loadGuestWizardDraftFromStorage(): WizardStateV1 | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as unknown;
-    if (
-      parsed &&
-      typeof parsed === "object" &&
-      "v" in parsed &&
-      (parsed as { v: unknown }).v === 1
-    ) {
-      return hydrateWizardState(parsed);
-    }
-  } catch {
-    /* ignore corrupt drafts */
-  }
-  return null;
-}
-
-/** After a successful import to a server project, drop the browser-only draft. */
-export function clearGuestWizardDraftFromStorage(): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
-}
+export { loadGuestWizardDraftFromStorage } from "@/lib/resume-wizard/guest-draft-storage";
+export { clearGuestWizardDraftFromStorage } from "@/lib/resume-wizard/guest-draft-storage";

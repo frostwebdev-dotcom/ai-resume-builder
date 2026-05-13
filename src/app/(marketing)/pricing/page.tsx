@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Check, CreditCard, Lock, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  HelpCircle,
+  Lock,
+  Mail,
+  Shield,
+  ShieldCheck,
+} from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -13,165 +22,302 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { ROUTES } from "@/lib/constants";
+import { BILLING_PRODUCTS } from "@/lib/billing/catalog";
 import {
   PAY_ONCE_PDF_PER_PROJECT_LINE,
+  PDF_UNLOCK_PROJECT_SCOPE_LINE,
+  PRICING_COMING_SOON_OFFERS,
+  PRICING_HERO_TAGLINE,
   RESUME_PDF_EXPORT_PRICE_USD,
 } from "@/lib/billing/monetization-copy";
+import { ROUTES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: "Pricing",
-  description:
-    `Resume PDF export (${RESUME_PDF_EXPORT_PRICE_USD} today in checkout): free draft and preview, then a one-time purchase to unlock downloads for that project. Cover letter and bundles are not sold yet.`,
-};
+const launchPdf = BILLING_PRODUCTS.resume_pdf_v1;
 
-const plans = [
+const pricingFaq = [
   {
-    name: "Resume PDF",
-    price: "Pay once",
-    description:
-      "When your resume is ready in a project, pay once to unlock PDF generation and downloads for that same project—including after you make edits.",
-    bullets: [
-      "Draft & preview are free first",
-      "Readable templates for screen and print",
-      "Private storage; downloads use short-lived signed links",
-    ],
-    cta: "Start free",
-    href: ROUTES.auth.login,
-    featured: true,
-    footnote: `Checkout lists ${RESUME_PDF_EXPORT_PRICE_USD} for this product today; Stripe may add taxes where applicable. No subscription.`,
+    q: "Is it free to start?",
+    a: `Yes. Open ${ROUTES.create} to draft and preview without paying. Sign in when you want your work saved to your account and to unlock PDF export from a project.`,
   },
   {
-    name: "Resume + Cover letter",
-    price: "Coming soon",
-    description:
-      "Planned add-on: matched cover letter from your resume and job context. Not available for purchase in the app yet.",
-    bullets: [
-      "Checkout style aligned with resume PDF (when shipped)",
-      "Tone aligned to your resume and posting (when shipped)",
-      "Downloadable PDF (when shipped)",
-    ],
-    cta: "Get notified",
-    href: ROUTES.contact,
-    featured: false,
-    footnote: "Optional add-on — pricing TBD.",
+    q: "When do I pay?",
+    a: `Only when you choose to export. Inside a saved resume project, open Preview & export and start checkout when you want the downloadable PDF. Until then, editing and on-screen preview stay free.`,
   },
   {
-    name: "Premium bundle",
-    price: "Future",
-    description:
-      "Ideas only for now—nothing here is sold or entitled in checkout yet. We may ship pieces of this over time.",
-    bullets: ["Job-specific passes (roadmap)", "Version packs (roadmap)", "Priority support (exploring)"],
-    cta: "Contact us",
-    href: ROUTES.contact,
-    featured: false,
-    footnote: "Not available yet — schema and checkout will evolve without breaking core pricing.",
+    q: "Is it a subscription?",
+    a: "No subscription at launch. You pay once per resume project to unlock PDF export for that project — not a recurring plan.",
+  },
+  {
+    q: "Can I edit after paying?",
+    a: PDF_UNLOCK_PROJECT_SCOPE_LINE,
+  },
+  {
+    q: "What happens if payment fails?",
+    a: "Stripe handles the card step. If checkout does not complete, you are not charged and your project stays in preview-only mode. If you believe you were charged but the app did not unlock, contact support with the email on your account and we will help match it to Stripe.",
+  },
+  {
+    q: "Can I get support?",
+    a: `Yes. Visit our contact page for billing questions or product help. Include your account email and, for payments, the approximate date of purchase.`,
   },
 ] as const;
 
-export default function PricingPage() {
-  return (
-    <MktSection className="pt-12 sm:pt-20">
-      <PageContainer>
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-eyebrow justify-center">Pricing</p>
-          <h1 className="mt-3 text-display">Pay when you export your PDF</h1>
-          <p className="mt-4 text-body-muted">
-            {`${PAY_ONCE_PDF_PER_PROJECT_LINE} Start on ${ROUTES.create} without an account; when you are ready, sign in, create a project, and unlock PDF from Preview & export.`}
-          </p>
-        </div>
+function contactEmail(): string {
+  return process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "contact@yourdomain.com";
+}
 
-        <ul className="mx-auto mt-14 grid max-w-5xl gap-6 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <li key={plan.name} className="relative">
-              {plan.featured ? (
-                <span className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-brand px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-wider text-brand-foreground shadow-soft">
-                  Most popular
-                </span>
-              ) : null}
-              <Card
-                interactive={!plan.featured}
+export const metadata: Metadata = {
+  title: "Pricing — pay only to export your PDF",
+  description: `${PRICING_HERO_TAGLINE} Resume PDF export is ${RESUME_PDF_EXPORT_PRICE_USD} once per project at checkout (no subscription). Future add-ons are marked coming soon.`,
+  openGraph: {
+    title: `Pricing — ${RESUME_PDF_EXPORT_PRICE_USD} PDF export`,
+    description: PRICING_HERO_TAGLINE,
+  },
+};
+
+export default function PricingPage() {
+  const supportMail = contactEmail();
+
+  return (
+    <>
+      {/* Hero */}
+      <MktSection className="border-b border-border/50 bg-muted/15 pb-12 pt-12 sm:pb-16 sm:pt-20">
+        <PageContainer>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-eyebrow justify-center">Pricing</p>
+            <h1 className="mt-4 text-balance text-display text-foreground">One launch price. No subscription.</h1>
+            <p className="mt-4 text-pretty text-lg font-medium text-foreground/90 sm:text-xl">
+              {PRICING_HERO_TAGLINE}
+            </p>
+            <p className="mx-auto mt-4 max-w-xl text-pretty text-body-muted">
+              {PAY_ONCE_PDF_PER_PROJECT_LINE}
+            </p>
+            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:justify-center">
+              <TrackedLink
+                href={ROUTES.create}
+                cta="start_building"
                 className={cn(
-                  "flex h-full flex-col",
-                  plan.featured &&
-                    "border-brand/40 shadow-elevated ring-1 ring-brand/25",
+                  buttonVariants({ size: "touch" }),
+                  "gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
                 )}
               >
-                <CardHeader>
-                  <p
-                    className={cn(
-                      "text-[0.7rem] font-semibold uppercase tracking-[0.18em]",
-                      plan.featured ? "text-brand" : "text-muted-foreground",
-                    )}
-                  >
-                    {plan.featured
-                      ? "Current focus"
-                      : plan.price === "Coming soon"
-                        ? "Roadmap"
-                        : "Future"}
+                Start building free
+                <ArrowRight className="size-4 shrink-0" aria-hidden />
+              </TrackedLink>
+              <Link
+                href={ROUTES.faq}
+                className={cn(buttonVariants({ variant: "outline", size: "touch" }), "bg-background/80")}
+              >
+                Read FAQ
+              </Link>
+            </div>
+          </div>
+        </PageContainer>
+      </MktSection>
+
+      {/* Main offer */}
+      <MktSection id="resume-pdf-export" className="pb-8 sm:pb-12">
+        <PageContainer>
+          <div className="mx-auto max-w-lg">
+            <article>
+              <Card className="overflow-hidden border-brand/35 shadow-elevated ring-1 ring-brand/20">
+                <CardHeader className="border-b border-border/60 bg-brand/[0.06] pb-6 pt-6 sm:pb-8 sm:pt-8">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span className="inline-flex items-center rounded-full bg-brand px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-brand-foreground">
+                      Available now
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground">No subscription</span>
+                  </div>
+                  <CardTitle className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
+                    {launchPdf.label}
+                  </CardTitle>
+                  <p className="mt-2 text-sm text-muted-foreground">{launchPdf.description}</p>
+                  <p className="mt-6 flex flex-wrap items-baseline gap-2">
+                    <span className="text-4xl font-semibold tabular-nums tracking-tight text-foreground sm:text-5xl">
+                      {RESUME_PDF_EXPORT_PRICE_USD}
+                    </span>
+                    <span className="text-sm text-muted-foreground">once per resume project · plus tax if applicable</span>
                   </p>
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <CardDescription className="text-base font-semibold text-foreground">
-                    {plan.price}
-                  </CardDescription>
-                  <CardDescription className="pt-1 text-sm leading-relaxed">
-                    {plan.description}
-                  </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1">
-                  <ul className="space-y-2.5 text-sm text-muted-foreground">
-                    {plan.bullets.map((b) => (
-                      <li key={b} className="flex gap-2">
-                        <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-                        <span>{b}</span>
-                      </li>
-                    ))}
+                <CardContent className="pt-6 sm:pt-8">
+                  <p className="text-sm font-medium text-foreground">What is included</p>
+                  <ul className="mt-4 space-y-3 text-sm leading-relaxed text-muted-foreground">
+                    <li className="flex gap-3">
+                      <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                      <span>
+                        <strong className="font-medium text-foreground">Build and preview for free</strong> until you
+                        choose to checkout for this project.
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                      <span>
+                        <strong className="font-medium text-foreground">Pay once per resume project</strong> — the
+                        amount at Stripe checkout matches the price shown above for this product.
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                      <span>
+                        <strong className="font-medium text-foreground">Preview before payment</strong> — you only pay
+                        when you are ready to download the PDF file.
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                      <span>
+                        <strong className="font-medium text-foreground">Re-download after edits</strong> —{" "}
+                        {PDF_UNLOCK_PROJECT_SCOPE_LINE}
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                      <span>
+                        <strong className="font-medium text-foreground">Stripe-secured checkout</strong> — we do not
+                        store your full card number on our servers.
+                      </span>
+                    </li>
                   </ul>
                 </CardContent>
-                <CardFooter className="flex flex-col items-stretch gap-2 border-t border-border/60 bg-muted/20">
-                  <Link
-                    href={plan.href}
+                <CardFooter className="flex flex-col gap-3 border-t border-border/60 bg-muted/25 px-6 py-6 sm:px-8">
+                  <TrackedLink
+                    href={ROUTES.create}
+                    cta="start_building"
                     className={cn(
-                      buttonVariants({
-                        size: "touch",
-                        variant: plan.featured ? "default" : "outline",
-                      }),
-                      plan.featured &&
-                        "bg-brand text-brand-foreground hover:bg-brand/90",
+                      buttonVariants({ size: "touch" }),
+                      "w-full gap-2 bg-brand text-brand-foreground hover:bg-brand/90",
                     )}
                   >
-                    {plan.cta}
-                  </Link>
-                  <p className="text-center text-xs text-muted-foreground">{plan.footnote}</p>
+                    Start building free
+                    <ArrowRight className="size-4 shrink-0" aria-hidden />
+                  </TrackedLink>
+                  <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                    Checkout runs on Stripe; tax may be added based on your location. Unlock applies to the project you
+                    pay for — not every project on your account.
+                  </p>
                 </CardFooter>
               </Card>
-            </li>
-          ))}
-        </ul>
+            </article>
+          </div>
+        </PageContainer>
+      </MktSection>
 
-        <div className="mx-auto mt-14 max-w-3xl rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-8">
-          <p className="text-eyebrow justify-center">Secure checkout</p>
-          <p className="mt-3 text-center text-sm text-muted-foreground">
-            Taxes may apply based on your region. Stripe handles checkout securely — we never store
-            card numbers on our servers.
-          </p>
-          <ul className="trust-row mt-5">
-            <li>
-              <Lock className="size-4 text-brand" aria-hidden />
-              <span>Stripe-secured</span>
+      {/* Future upsells — visually distinct, non-purchasable */}
+      <MktSection className="border-t border-border/50 bg-muted/20 pb-4 pt-4 sm:pb-8 sm:pt-8">
+        <PageContainer>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-eyebrow justify-center text-muted-foreground">Coming later</p>
+            <h2 className="mt-3 text-headline text-balance">Future add-ons</h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              These are not sold in the app today. Prices and scope may change before launch — we will label checkout
+              clearly when they go live.
+            </p>
+          </div>
+          <ul className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-2 sm:gap-5">
+            {PRICING_COMING_SOON_OFFERS.map((offer) => (
+              <li key={offer.sku}>
+                <Card
+                  className={cn(
+                    "relative h-full border-dashed border-border/80 bg-background/60 opacity-95",
+                    "ring-1 ring-foreground/[0.04]",
+                  )}
+                >
+                  <span className="absolute right-3 top-3 rounded-full border border-border bg-muted/80 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Coming soon
+                  </span>
+                  <CardHeader className="pb-2 pt-5">
+                    <CardTitle className="pr-24 text-lg">{offer.headline}</CardTitle>
+                    <CardDescription className="text-sm leading-relaxed">{offer.teaser}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pb-5">
+                    <p className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                      <HelpCircle className="size-3.5 shrink-0" aria-hidden />
+                      Not available in checkout yet — no charge.
+                    </p>
+                  </CardContent>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </PageContainer>
+      </MktSection>
+
+      {/* FAQ */}
+      <MktSection id="pricing-faq" className="border-t border-border/50">
+        <PageContainer>
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-headline">Questions about pricing</h2>
+            <p className="mt-2 text-sm text-muted-foreground">Short answers — see the full FAQ for more detail.</p>
+          </div>
+          <div className="mx-auto mt-10 max-w-2xl space-y-3">
+            {pricingFaq.map((item) => (
+              <section
+                key={item.q}
+                className="rounded-xl border border-border/80 bg-card px-4 py-4 text-left sm:px-5 sm:py-5"
+              >
+                <h3 className="text-sm font-semibold text-foreground">{item.q}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
+              </section>
+            ))}
+          </div>
+          <div className="mt-8 flex justify-center">
+            <Link href={ROUTES.faq} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+              View all FAQs
+            </Link>
+          </div>
+        </PageContainer>
+      </MktSection>
+
+      {/* Trust */}
+      <MktSection className="border-t border-border/50 bg-muted/15 pb-16 sm:pb-20">
+        <PageContainer>
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-headline">Why you can buy with confidence</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Straightforward pricing and infrastructure you already trust elsewhere on the web.
+            </p>
+          </div>
+          <ul className="mx-auto mt-10 grid max-w-2xl gap-3 sm:grid-cols-2">
+            <li className="flex gap-3 rounded-xl border border-border/70 bg-card p-4 text-left text-sm text-muted-foreground">
+              <Lock className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
+              <span>
+                <strong className="font-medium text-foreground">Secure checkout.</strong> Card collection and receipts
+                are handled by Stripe.
+              </span>
             </li>
-            <li>
-              <ShieldCheck className="size-4 text-success" aria-hidden />
-              <span>256-bit TLS in transit</span>
+            <li className="flex gap-3 rounded-xl border border-border/70 bg-card p-4 text-left text-sm text-muted-foreground">
+              <Shield className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+              <span>
+                <strong className="font-medium text-foreground">Private resume data.</strong> Your content is stored for
+                the service we provide — not sold for ads.
+              </span>
             </li>
-            <li>
-              <CreditCard className="size-4 text-foreground/70" aria-hidden />
-              <span>One-time charge</span>
+            <li className="flex gap-3 rounded-xl border border-border/70 bg-card p-4 text-left text-sm text-muted-foreground">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-foreground" aria-hidden />
+              <span>
+                <strong className="font-medium text-foreground">No hidden subscription.</strong> Launch pricing is a
+                one-time PDF unlock per project — we will label new plans loudly if we add them.
+              </span>
+            </li>
+            <li className="flex gap-3 rounded-xl border border-border/70 bg-card p-4 text-left text-sm text-muted-foreground">
+              <Mail className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
+              <span>
+                <strong className="font-medium text-foreground">Clear support contact.</strong>{" "}
+                <Link href={ROUTES.contact} className="font-medium text-brand underline-offset-4 hover:underline">
+                  Contact page
+                </Link>{" "}
+                ·{" "}
+                <a
+                  href={`mailto:${supportMail}`}
+                  className="font-medium text-brand underline-offset-4 hover:underline"
+                >
+                  {supportMail}
+                </a>
+              </span>
             </li>
           </ul>
-        </div>
-      </PageContainer>
-    </MktSection>
+        </PageContainer>
+      </MktSection>
+    </>
   );
 }

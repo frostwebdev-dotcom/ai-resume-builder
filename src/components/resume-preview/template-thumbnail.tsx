@@ -1,5 +1,5 @@
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
-import { isTemplateSlug } from "@/lib/resume-preview/template-ids";
+import { DEFAULT_TEMPLATE_SLUG, isTemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,7 @@ type Props = {
  * header style, density, accent color, and serif vs sans.
  */
 export function TemplateThumbnail({ slug, className, compact = false }: Props) {
-  const safeSlug: TemplateSlug = isTemplateSlug(slug) ? slug : "athena";
+  const safeSlug: TemplateSlug = isTemplateSlug(slug) ? slug : DEFAULT_TEMPLATE_SLUG;
   const theme = getTemplateTheme(safeSlug);
   const fontClass = theme.fontFamily === "serif" ? "font-serif" : "font-sans";
 

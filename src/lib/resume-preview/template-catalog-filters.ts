@@ -2,12 +2,13 @@ import {
   TEMPLATE_SLUG_ORDER,
   type TemplateSlug,
 } from "@/lib/resume-preview/template-ids";
+import { launchTemplateFilterHaystack } from "@/lib/resume-preview/template-metadata";
 import type { TemplateTheme } from "@/lib/resume-preview/template-theme";
 import { templateSupportsAvatar } from "@/lib/resume-preview/template-theme";
 
-/** First templates in canonical order — shown with a “Popular” badge in the catalog. */
+/** Curated launch templates — all shown with a “Popular” badge in the catalog. */
 export const POPULAR_TEMPLATE_SLUGS = new Set<TemplateSlug>(
-  TEMPLATE_SLUG_ORDER.slice(0, 4) as TemplateSlug[],
+  TEMPLATE_SLUG_ORDER.slice(0, TEMPLATE_SLUG_ORDER.length) as TemplateSlug[],
 );
 
 /** Occupation & Industry catalog filter buckets (multi-select). */
@@ -232,7 +233,8 @@ function accentNearSwatch(themeAccent: string, swatchHex: string): boolean {
 }
 
 function haystack(theme: TemplateTheme): string {
-  return `${theme.name} ${theme.pickerTagline} ${theme.bestFor}`.toLowerCase();
+  const extra = launchTemplateFilterHaystack(theme.slug);
+  return `${theme.name} ${theme.pickerTagline} ${theme.bestFor} ${extra}`.toLowerCase();
 }
 
 function matchesAny(text: string, needles: readonly string[]): boolean {

@@ -1,7 +1,7 @@
 import { APP_NAME } from "@/lib/constants";
 
 const TAGLINE =
-  "Create a professional ATS-friendly resume in minutes. Preview free — pay only to export your PDF.";
+  "Create a professional ATS-friendly resume in minutes. Build and preview for free — pay only when you download your final PDF.";
 
 type GraphEntity = Record<string, unknown>;
 

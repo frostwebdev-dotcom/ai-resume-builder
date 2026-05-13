@@ -26,6 +26,11 @@ export const summaryTextOpInput = baseAiContext.extend({
   summary: z.string().trim().max(8000),
 });
 
+/** Improve / professional summary — optional target hint from resume (e.g. desired role). */
+export const summaryImproveInput = summaryTextOpInput.extend({
+  targetRoleHint: z.string().trim().max(500).optional(),
+});
+
 export const experienceBulletsInput = baseAiContext.extend({
   entryId: z.string().uuid(),
   company: z.string().trim().max(4000),

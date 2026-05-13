@@ -1,10 +1,8 @@
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import type { ResumePreviewDocument } from "@/lib/resume-preview/model";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
-import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
 import type { WizardEditorSectionId } from "@/lib/resume-wizard/types";
-import { SidebarTemplate } from "@/components/resume-preview/templates/sidebar-template";
-import { ThemedTemplate } from "@/components/resume-preview/templates/themed-template";
+import { ResumeTemplateRoot } from "@/components/resume-preview/resume-template-root";
 
 type Props = {
   document: ResumePreviewDocument;
@@ -12,38 +10,27 @@ type Props = {
   resumeStyle?: ResumeStyleV1 | null;
   /** When set, the matching preview block is visually emphasized (e.g. open studio section). */
   studioFocusSection?: WizardEditorSectionId | null;
+  className?: string;
 };
 
 /**
- * Routes to the correct structural template family. Visual styling (colors,
- * fonts, density, header variant) still derives from the shared theme so that
- * in-family customization remains consistent.
+ * Public preview entry — delegates to {@link ResumeTemplateRoot} so PDF and UI
+ * share one structural routing point.
  */
 export function ResumePreviewRenderer({
   document,
   templateSlug,
   resumeStyle,
   studioFocusSection = null,
+  className,
 }: Props) {
-  const theme = getTemplateTheme(templateSlug);
-
-  if (theme.layoutFamily === "sidebar") {
-    return (
-      <SidebarTemplate
-        doc={document}
-        slug={templateSlug}
-        resumeStyle={resumeStyle}
-        studioFocusSection={studioFocusSection}
-      />
-    );
-  }
-
   return (
-    <ThemedTemplate
-      doc={document}
-      slug={templateSlug}
+    <ResumeTemplateRoot
+      document={document}
+      templateSlug={templateSlug}
       resumeStyle={resumeStyle}
       studioFocusSection={studioFocusSection}
+      className={className}
     />
   );
 }

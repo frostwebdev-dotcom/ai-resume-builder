@@ -1,4 +1,4 @@
-import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
+import { DEFAULT_TEMPLATE_SLUG, type TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { buildDemoWizardStateForTemplateSlug } from "@/lib/resume-wizard/demo-template-personas";
 import { wizardStateSchema } from "@/lib/resume-wizard/schema";
 import { normalizeWizardSectionOrder } from "@/lib/resume-wizard/section-order";
@@ -29,10 +29,10 @@ export function createDemoWizardStateForTemplate(slug: TemplateSlug): WizardStat
 }
 
 /**
- * Default guest / legacy demo — uses the **Athena** template persona (first in catalog order).
+ * Default guest / legacy demo — uses the default launch template persona.
  */
 export function createDemoWizardState(): WizardStateV1 {
-  return createDemoWizardStateForTemplate("athena");
+  return createDemoWizardStateForTemplate(DEFAULT_TEMPLATE_SLUG);
 }
 
 export { getDemoAvatarUrlForTemplate } from "@/lib/resume-wizard/demo-template-personas";

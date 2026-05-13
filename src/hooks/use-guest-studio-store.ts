@@ -6,7 +6,7 @@ import {
   DEFAULT_RESUME_STYLE_V1,
   type ResumeStyleV1,
 } from "@/lib/resume-preview/resume-style";
-import { type TemplateSlug, isTemplateSlug } from "@/lib/resume-preview/template-ids";
+import { DEFAULT_TEMPLATE_SLUG, type TemplateSlug, isTemplateSlug } from "@/lib/resume-preview/template-ids";
 
 /**
  * Persisted presentation state for the guest studio editor:
@@ -23,8 +23,8 @@ export type GuestStudioPresentation = {
 
 const STORAGE_KEY = "resume-real-andy:guest-studio-presentation:v1";
 
-/** Sidebar layout — reads as one polished product template in the studio preview. */
-const DEFAULT_GUEST_TEMPLATE: TemplateSlug = "denali";
+/** Default guest studio template — safest launch layout. */
+const DEFAULT_GUEST_TEMPLATE: TemplateSlug = DEFAULT_TEMPLATE_SLUG;
 
 export const DEFAULT_GUEST_PRESENTATION: GuestStudioPresentation = {
   v: 1,
@@ -73,6 +73,11 @@ export function clearGuestPresentationFromStorage(): void {
 export function useGuestPresentationAutosave(value: GuestStudioPresentation, enabled: boolean = true) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydratedRef = useRef(false);
+  const valueRef = useRef(value);
+
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -93,6 +98,20 @@ export function useGuestPresentationAutosave(value: GuestStudioPresentation, ena
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [value, enabled]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const flush = () => {
+      if (document.visibilityState !== "hidden") return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(valueRef.current));
+      } catch {
+        /* ignore */
+      }
+    };
+    document.addEventListener("visibilitychange", flush);
+    return () => document.removeEventListener("visibilitychange", flush);
+  }, [enabled]);
 }
 
 /* -------------------------------------------------------------------------- */

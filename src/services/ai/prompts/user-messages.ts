@@ -8,8 +8,8 @@ export function userMessageSummaryGenerate(input: {
   return `${JSON_ONLY}
 Schema: { "headline": string, "summary": string }
 
-Task: Write a professional headline (one line) and a 3–5 sentence professional summary for a resume.
-Use ONLY facts implied by the fields below. Lead with the strongest themes the user already named (roles, domains, tools they mentioned). Prefer active voice and concrete nouns; avoid filler. If a field is empty, write a concise neutral headline and 2–3 sentences inviting them to add experience — do not invent employers, metrics, or degrees.
+Task: Write a professional headline (one line) and a **2–4 sentence** professional summary (each sentence reasonably short — aim for a compact paragraph, not a long essay).
+Use ONLY facts implied by the fields below (including the resume context section). Lead with the strongest themes the user already named (roles, domains, tools they mentioned). If a **Target role** appears in the resume context, align headline and summary to that role without inventing employers, metrics, degrees, or dates. Prefer active voice and concrete nouns; avoid filler. If fields are empty, write a concise neutral headline and 2 short sentences inviting them to add experience — do not invent employers, metrics, or degrees.
 
 Current headline (may be empty):
 ${input.headline || "(empty)"}
@@ -17,7 +17,7 @@ ${input.headline || "(empty)"}
 Current summary draft (may be empty):
 ${input.existingSummary || "(empty)"}
 
-Extra notes from user (may be empty):
+Resume context (may include target role, experience bullets, skills — use only as factual grounding; do not fabricate details not implied here):
 ${input.notes ?? "(empty)"}`;
 }
 
@@ -52,7 +52,7 @@ export function userMessageSummaryShorten(input: {
   return `${JSON_ONLY}
 Schema: { "headline": string, "summary": string }
 
-Task: Shorten the headline and summary while preserving meaning. Do not add new facts.
+Task: Shorten the headline and summary while preserving meaning. Prefer a summary of **2–4 tight lines** (roughly 2–4 short sentences). Do not add new facts.
 
 Current headline:
 ${input.headline}
@@ -91,6 +91,42 @@ ${input.headline}
 
 Current summary:
 ${input.summary}`;
+}
+
+export function userMessageSummaryImprove(input: {
+  headline: string;
+  summary: string;
+  targetRoleHint?: string;
+}): string {
+  return `${JSON_ONLY}
+Schema: { "headline": string, "summary": string }
+
+Task: Improve clarity, flow, and impact of the headline and summary using ONLY facts already present. Prefer strong action verbs and parallel structure. Keep the summary to **2–4 sentences** (concise paragraph). Do not add employers, job titles, degrees, dates, metrics, or tools that are not already implied by the text below.
+${input.targetRoleHint?.trim() ? `Prioritize alignment with this target direction (without inventing experience): ${input.targetRoleHint.trim()}` : ""}
+
+Current headline:
+${input.headline || "(empty)"}
+
+Current summary:
+${input.summary || "(empty)"}`;
+}
+
+export function userMessageSummaryProfessional(input: {
+  headline: string;
+  summary: string;
+  targetRoleHint?: string;
+}): string {
+  return `${JSON_ONLY}
+Schema: { "headline": string, "summary": string }
+
+Task: Rewrite for a polished, professional executive tone while preserving every factual claim. Same or fewer words where possible. Summary must be **2–4 sentences**, no hype. Do not invent employers, metrics, certifications, or dates.
+${input.targetRoleHint?.trim() ? `Subtly orient language toward: ${input.targetRoleHint.trim()} — still only using facts from the current text.` : ""}
+
+Current headline:
+${input.headline || "(empty)"}
+
+Current summary:
+${input.summary || "(empty)"}`;
 }
 
 export function userMessageExperienceBullets(input: {
@@ -288,4 +324,25 @@ ${input.field || "(empty)"}
 
 Current details (may be empty):
 ${input.details || "(empty)"}`;
+}
+
+export function userMessageResumeScore(input: { resumeText: string }): string {
+  return `${JSON_ONLY}
+Schema: {
+  "overallScore": number,
+  "summary": { "score": number, "feedback": string },
+  "experience": { "score": number, "feedback": string },
+  "skills": { "score": number, "feedback": string },
+  "ats": { "score": number, "feedback": string },
+  "topActions": string[]
+}
+
+Task: Score this resume snapshot on four dimensions (each 0–100) plus an overall score (0–100). Base scores only on what appears in the text — do not reward invented employers, metrics, or degrees. Feedback must be concise (2–4 short sentences per dimension), actionable, and use professional language. Prefer action verbs and concrete suggestions; where metrics are missing, mention placeholders like [X%] or [number] as optional improvements, not as facts.
+
+topActions: up to 8 short imperative tips (e.g. "Quantify impact in second bullet under DataCorp").
+
+Resume snapshot:
+---
+${input.resumeText}
+---`;
 }

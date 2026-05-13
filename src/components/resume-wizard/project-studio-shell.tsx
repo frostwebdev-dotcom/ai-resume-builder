@@ -298,6 +298,7 @@ export function ProjectStudioShell({
               status={saveStatus}
               lastError={lastError}
               onRetry={retry}
+              isDirty={isDirty}
               surface="dark"
               layout="toolbar"
             />

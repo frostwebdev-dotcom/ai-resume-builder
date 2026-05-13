@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, CloudAlert, CloudCheck, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, CloudAlert, CloudCheck, Loader2 } from "lucide-react";
 
 import type { SaveStatus } from "@/hooks/use-wizard-autosave";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,8 @@ type Props = {
   status: SaveStatus;
   lastError: string | null;
   onRetry: () => void;
+  /** True when the editor differs from the last successful save snapshot. */
+  isDirty?: boolean;
   /** Dark chrome (e.g. guest `/create` header) — higher-contrast chip colors. */
   surface?: "light" | "dark";
   /**
@@ -32,6 +34,7 @@ export function AutosaveStatusChip({
   status,
   lastError,
   onRetry,
+  isDirty = false,
   surface = "light",
   layout = "default",
   iconOnly = false,
@@ -42,6 +45,11 @@ export function AutosaveStatusChip({
   const idlePhrase = `Autosave on · ${idleSuffix}`;
   const dark = surface === "dark";
 
+  const unsavedHint =
+    context === "guestDevice"
+      ? "Unsaved changes — will save to this device."
+      : "Unsaved changes — will sync to your project.";
+
   const iconShell =
     "inline-flex size-8 shrink-0 items-center justify-center rounded-full ring-1 ring-inset";
 
@@ -51,6 +59,8 @@ export function AutosaveStatusChip({
       ? "h-8 min-h-8 sm:min-h-8 sm:px-2.5 sm:py-0 sm:text-[0.6875rem] sm:leading-tight"
       : "min-h-8 sm:min-h-9 sm:px-2.5 sm:py-1 sm:text-xs sm:leading-normal",
   );
+
+  const showUnsaved = isDirty && status !== "saving" && status !== "error";
 
   if (iconOnly) {
     const idleTitle =
@@ -76,7 +86,21 @@ export function AutosaveStatusChip({
             <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
           </span>
         ) : null}
-        {status === "saved" ? (
+        {showUnsaved ? (
+          <span
+            className={cn(
+              iconShell,
+              dark
+                ? "bg-amber-400/15 text-amber-100 ring-amber-300/35"
+                : "bg-amber-500/12 text-amber-900 ring-amber-600/25 dark:text-amber-100",
+            )}
+            title={unsavedHint}
+            aria-label={unsavedHint}
+          >
+            <AlertCircle className="size-4 shrink-0" aria-hidden />
+          </span>
+        ) : null}
+        {status === "saved" && !showUnsaved ? (
           <span
             className={cn(
               iconShell,
@@ -111,7 +135,7 @@ export function AutosaveStatusChip({
             <CloudAlert className="size-4 shrink-0" aria-hidden />
           </button>
         ) : null}
-        {status === "idle" ? (
+        {status === "idle" && !showUnsaved ? (
           <span
             className={cn(
               iconShell,
@@ -151,7 +175,22 @@ export function AutosaveStatusChip({
           Saving…
         </span>
       ) : null}
-      {status === "saved" ? (
+      {showUnsaved ? (
+        <span
+          className={cn(
+            baseChip,
+            "text-balance",
+            dark
+              ? "bg-amber-400/15 text-amber-50 ring-amber-300/40"
+              : "bg-amber-500/12 text-amber-950 ring-amber-600/20 dark:text-amber-50",
+          )}
+          title={unsavedHint}
+        >
+          <AlertCircle className="size-3.5 shrink-0" aria-hidden />
+          Unsaved changes
+        </span>
+      ) : null}
+      {status === "saved" && !showUnsaved ? (
         <span
           className={cn(
             baseChip,
@@ -186,7 +225,7 @@ export function AutosaveStatusChip({
           Couldn&apos;t save—retry
         </button>
       ) : null}
-      {status === "idle" ? (
+      {status === "idle" && !showUnsaved ? (
         <span
           className={cn(
             baseChip,

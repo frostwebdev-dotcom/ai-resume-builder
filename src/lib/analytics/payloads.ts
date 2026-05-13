@@ -1,7 +1,14 @@
 /** Allowlisted typed hints for callers — values only, never PII. */
 
 export type LandingCtaPayload = {
-  cta: "start_free" | "view_pricing" | "hero_secondary" | "footer_signup" | "other";
+  cta:
+    | "start_free"
+    | "start_building"
+    | "view_pricing"
+    | "view_templates"
+    | "hero_secondary"
+    | "footer_signup"
+    | "other";
   href: string;
 };
 

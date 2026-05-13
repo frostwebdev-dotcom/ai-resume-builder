@@ -326,7 +326,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
                 type="search"
                 value={criteria.search}
                 onChange={(e) => setCriteria((c) => ({ ...c, search: e.target.value }))}
-                placeholder="Search thousands of templates"
+                placeholder="Search templates by name or role"
                 autoComplete="off"
                 aria-label="Search templates"
                 className={CATALOG_SEARCH_INPUT}
@@ -345,7 +345,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
                 type="search"
                 value={criteria.search}
                 onChange={(e) => setCriteria((c) => ({ ...c, search: e.target.value }))}
-                placeholder="Search thousands of templates"
+                placeholder="Search templates by name or role"
                 autoComplete="off"
                 aria-label="Search templates"
                 className={CATALOG_SEARCH_INPUT}
@@ -810,7 +810,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
         {hasFilters ? (
           <>
             Showing <span className="font-semibold text-slate-900">{filtered.length}</span> of{" "}
-            <span className="font-semibold text-slate-900">{total}</span> ATS-friendly templates
+            <span className="font-semibold text-slate-900">{total}</span> curated resume layouts
             {" · "}
             <button
               type="button"
@@ -822,7 +822,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
           </>
         ) : (
           <>
-            Choose from <span className="font-semibold text-slate-900">{total}</span> ATS-friendly templates
+            Choose from <span className="font-semibold text-slate-900">{total}</span> curated resume layouts
           </>
         )}
       </p>
@@ -832,7 +832,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
           "mt-6 grid items-start",
           surface === "app"
             ? "grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4"
-            : "grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4",
+            : "grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3",
           surface === "marketing" && "text-left",
         )}
       >

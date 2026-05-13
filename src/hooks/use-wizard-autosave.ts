@@ -35,8 +35,8 @@ export function useWizardAutosave({
     stateRef.current = state;
   });
 
-  const flushSave = useCallback(async () => {
-    if (!enabled) return;
+  const flushSave = useCallback(async (): Promise<boolean> => {
+    if (!enabled) return true;
     const current = stateRef.current;
     const snapshot = JSON.stringify(current);
     setSaveStatus("saving");
@@ -45,10 +45,11 @@ export function useWizardAutosave({
     if (result.ok) {
       setLastOkJson(snapshot);
       setSaveStatus("saved");
-    } else {
-      setSaveStatus("error");
-      setLastError(result.error);
+      return true;
     }
+    setSaveStatus("error");
+    setLastError(result.error);
+    return false;
   }, [projectId, enabled]);
 
   const isDirty = enabled ? JSON.stringify(state) !== lastOkJson : false;
@@ -76,6 +77,24 @@ export function useWizardAutosave({
   const retry = useCallback(() => {
     void flushSave();
   }, [flushSave]);
+
+  const lastOkJsonRef = useRef(lastOkJson);
+  useEffect(() => {
+    lastOkJsonRef.current = lastOkJson;
+  }, [lastOkJson]);
+
+  /** Best-effort sync when leaving the tab (pairs with `useUnsavedWarning` on the same page). */
+  useEffect(() => {
+    if (!enabled) return;
+    const onVisibility = () => {
+      if (document.visibilityState !== "hidden") return;
+      const serialized = JSON.stringify(stateRef.current);
+      if (serialized === lastOkJsonRef.current) return;
+      void flushSave();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [enabled, flushSave]);
 
   return { saveStatus, lastError, retry, flushSave, isDirty };
 }

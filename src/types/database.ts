@@ -483,6 +483,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      ai_suggestions: {
+        Row: {
+          id: string;
+          user_id: string;
+          project_id: string | null;
+          kind: string;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          project_id?: string | null;
+          kind: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          project_id?: string | null;
+          kind?: string;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      ai_usage_limits: {
+        Row: {
+          id: string;
+          user_id: string;
+          bucket: string;
+          used_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          bucket: string;
+          used_count?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          bucket?: string;
+          used_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       admin_audit_logs: {
         Row: {
           id: string;
@@ -546,4 +597,6 @@ export type Order = Database["public"]["Tables"]["orders"]["Row"];
 export type Payment = Database["public"]["Tables"]["payments"]["Row"];
 export type Download = Database["public"]["Tables"]["downloads"]["Row"];
 export type AiGenerationLog = Database["public"]["Tables"]["ai_generation_logs"]["Row"];
+export type AiSuggestion = Database["public"]["Tables"]["ai_suggestions"]["Row"];
+export type AiUsageLimit = Database["public"]["Tables"]["ai_usage_limits"]["Row"];
 export type AdminAuditLog = Database["public"]["Tables"]["admin_audit_logs"]["Row"];

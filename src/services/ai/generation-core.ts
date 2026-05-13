@@ -6,8 +6,8 @@ import OpenAI from "openai";
 
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { trackServerEvent } from "@/lib/analytics/server";
-import { serverEnv } from "@/lib/env";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getOpenAIClient, getOpenAiChatModel, isOpenAiConfigured } from "@/lib/ai/openai-client";
+import { logAiGeneration } from "@/lib/ai/usage-logger";
 import { GLOBAL_PROMPT_VERSION } from "@/services/ai/constants";
 import {
   PROMPT_REGISTRY,
@@ -18,8 +18,6 @@ import {
 import { checkAiUsageAllowed } from "@/services/ai/usage-limits";
 import type { Json } from "@/types/database";
 import type { z } from "zod";
-
-import { aiService } from "./openai.service";
 
 function hashPayload(system: string, user: string): string {
   return createHash("sha256")
@@ -60,6 +58,8 @@ function temperatureForOperation(operationId: AiOperationId): number {
     case AI_OPERATION_IDS.SUMMARY_GENERATE:
     case AI_OPERATION_IDS.SUMMARY_TAILOR:
     case AI_OPERATION_IDS.SUMMARY_EXPAND:
+    case AI_OPERATION_IDS.SUMMARY_IMPROVE:
+    case AI_OPERATION_IDS.SUMMARY_PROFESSIONAL:
     case AI_OPERATION_IDS.EXPERIENCE_REWRITE_BULLETS:
     case AI_OPERATION_IDS.EXPERIENCE_STRENGTHEN:
     case AI_OPERATION_IDS.EXPERIENCE_EXPAND:
@@ -72,6 +72,8 @@ function temperatureForOperation(operationId: AiOperationId): number {
       return 0.32;
     case AI_OPERATION_IDS.RESUME_IMPORT_PARSE:
       return 0.22;
+    case AI_OPERATION_IDS.RESUME_SCORE:
+      return 0.25;
     default:
       return 0.32;
   }
@@ -107,7 +109,7 @@ export async function runStructuredGeneration<T>(opts: {
     }
   }
 
-  if (!serverEnv.OPENAI_API_KEY) {
+  if (!isOpenAiConfigured()) {
     return {
       ok: false,
       error: "AI is not configured on this environment yet.",
@@ -117,9 +119,9 @@ export async function runStructuredGeneration<T>(opts: {
 
   const system = buildSystemPrompt(opts.operationId);
   const promptHash = hashPayload(system, opts.userMessage);
-  const model = aiService.getChatModel();
+  const model = getOpenAiChatModel();
   const maxRetries = opts.maxRetries ?? 2;
-  const client = aiService.getClient();
+  const client = getOpenAIClient();
 
   let lastError: unknown;
   const started = Date.now();
@@ -145,7 +147,6 @@ export async function runStructuredGeneration<T>(opts: {
           await logAiGeneration({
             userId: opts.userId,
             projectId: opts.projectId,
-            operationId: opts.operationId,
             model,
             promptHash,
             ok: false,
@@ -153,6 +154,7 @@ export async function runStructuredGeneration<T>(opts: {
             latencyMs: latency,
             tokensPrompt: usage?.prompt_tokens ?? null,
             tokensCompletion: usage?.completion_tokens ?? null,
+            metadata: buildLogMetadata(opts.operationId),
           });
         }
         return {
@@ -170,7 +172,6 @@ export async function runStructuredGeneration<T>(opts: {
           await logAiGeneration({
             userId: opts.userId,
             projectId: opts.projectId,
-            operationId: opts.operationId,
             model,
             promptHash,
             ok: false,
@@ -178,6 +179,7 @@ export async function runStructuredGeneration<T>(opts: {
             latencyMs: latency,
             tokensPrompt: usage?.prompt_tokens ?? null,
             tokensCompletion: usage?.completion_tokens ?? null,
+            metadata: buildLogMetadata(opts.operationId),
           });
         }
         return {
@@ -193,7 +195,6 @@ export async function runStructuredGeneration<T>(opts: {
           await logAiGeneration({
             userId: opts.userId,
             projectId: opts.projectId,
-            operationId: opts.operationId,
             model,
             promptHash,
             ok: false,
@@ -201,6 +202,7 @@ export async function runStructuredGeneration<T>(opts: {
             latencyMs: latency,
             tokensPrompt: usage?.prompt_tokens ?? null,
             tokensCompletion: usage?.completion_tokens ?? null,
+            metadata: buildLogMetadata(opts.operationId),
           });
         }
         return {
@@ -214,7 +216,6 @@ export async function runStructuredGeneration<T>(opts: {
         await logAiGeneration({
           userId: opts.userId,
           projectId: opts.projectId,
-          operationId: opts.operationId,
           model,
           promptHash,
           ok: true,
@@ -222,6 +223,7 @@ export async function runStructuredGeneration<T>(opts: {
           latencyMs: latency,
           tokensPrompt: usage?.prompt_tokens ?? null,
           tokensCompletion: usage?.completion_tokens ?? null,
+          metadata: buildLogMetadata(opts.operationId),
         });
       }
 
@@ -248,7 +250,6 @@ export async function runStructuredGeneration<T>(opts: {
     await logAiGeneration({
       userId: opts.userId,
       projectId: opts.projectId,
-      operationId: opts.operationId,
       model,
       promptHash,
       ok: false,
@@ -256,6 +257,7 @@ export async function runStructuredGeneration<T>(opts: {
       latencyMs: latency,
       tokensPrompt: null,
       tokensCompletion: null,
+      metadata: buildLogMetadata(opts.operationId),
     });
   }
 
@@ -281,40 +283,10 @@ function friendlyErrorMessage(err: unknown): string {
   return "Something went wrong with AI generation. Please try again.";
 }
 
-async function logAiGeneration(opts: {
-  userId: string;
-  projectId: string | null;
-  operationId: AiOperationId;
-  model: string;
-  promptHash: string;
-  ok: boolean;
-  errorCode: string | null;
-  latencyMs: number;
-  tokensPrompt: number | null;
-  tokensCompletion: number | null;
-}): Promise<void> {
-  try {
-    const supabase = await createSupabaseServerClient();
-    const metadata: Json = {
-      operation_id: opts.operationId,
-      global_prompt_version: GLOBAL_PROMPT_VERSION,
-      bundle_version: PROMPT_REGISTRY[opts.operationId]?.version ?? "unknown",
-    };
-    await supabase.from("ai_generation_logs").insert({
-      user_id: opts.userId,
-      project_id: opts.projectId,
-      section_id: null,
-      provider: "openai",
-      model: opts.model,
-      prompt_hash: opts.promptHash,
-      tokens_prompt: opts.tokensPrompt,
-      tokens_completion: opts.tokensCompletion,
-      latency_ms: opts.latencyMs,
-      ok: opts.ok,
-      error_code: opts.errorCode,
-      metadata,
-    });
-  } catch {
-    // Never fail user flow on logging
-  }
+function buildLogMetadata(operationId: AiOperationId): Json {
+  return {
+    operation_id: operationId,
+    global_prompt_version: GLOBAL_PROMPT_VERSION,
+    bundle_version: PROMPT_REGISTRY[operationId]?.version ?? "unknown",
+  };
 }

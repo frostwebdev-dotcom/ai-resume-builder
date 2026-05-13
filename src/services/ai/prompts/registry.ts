@@ -8,6 +8,8 @@ export const AI_OPERATION_IDS = {
   SUMMARY_SHORTEN: "summary.shorten",
   SUMMARY_EXPAND: "summary.expand",
   SUMMARY_GRAMMAR: "summary.grammar",
+  SUMMARY_IMPROVE: "summary.improve",
+  SUMMARY_PROFESSIONAL: "summary.professional",
   EXPERIENCE_REWRITE_BULLETS: "experience.rewrite_bullets",
   EXPERIENCE_STRENGTHEN: "experience.strengthen",
   EXPERIENCE_SHORTEN: "experience.shorten",
@@ -20,6 +22,7 @@ export const AI_OPERATION_IDS = {
   EXPERIENCE_TAILOR_JOB: "experience.tailor_job",
   EDUCATION_POLISH_DETAILS: "education.polish_details",
   RESUME_IMPORT_PARSE: "resume.import_parse",
+  RESUME_SCORE: "resume.score",
 } as const;
 
 export type AiOperationId = (typeof AI_OPERATION_IDS)[keyof typeof AI_OPERATION_IDS];
@@ -49,6 +52,14 @@ export const PROMPT_REGISTRY: Record<AiOperationId, RegistryEntry> = {
   [AI_OPERATION_IDS.SUMMARY_GRAMMAR]: {
     version: "1.0.0",
     description: "Fix grammar and clarity in summary",
+  },
+  [AI_OPERATION_IDS.SUMMARY_IMPROVE]: {
+    version: "1.0.0",
+    description: "Improve summary clarity and flow without new facts",
+  },
+  [AI_OPERATION_IDS.SUMMARY_PROFESSIONAL]: {
+    version: "1.0.0",
+    description: "Polish tone to executive professional level",
   },
   [AI_OPERATION_IDS.EXPERIENCE_REWRITE_BULLETS]: {
     version: "1.0.0",
@@ -97,6 +108,10 @@ export const PROMPT_REGISTRY: Record<AiOperationId, RegistryEntry> = {
   [AI_OPERATION_IDS.RESUME_IMPORT_PARSE]: {
     version: "1.0.0",
     description: "Map extracted resume file text into structured wizard JSON",
+  },
+  [AI_OPERATION_IDS.RESUME_SCORE]: {
+    version: "1.0.0",
+    description: "Score resume sections for clarity, impact, skills, ATS hygiene",
   },
 };
 
