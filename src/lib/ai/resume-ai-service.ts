@@ -1,11 +1,6 @@
 import "server-only";
 
-import type {
-  ApiGenerateSummaryBody,
-  ApiRewriteBulletBody,
-  ApiScoreResumeBody,
-  ApiTailorResumeBody,
-} from "@/lib/ai/schemas";
+import type { ApiExperienceBulletBody, ApiGenerateSummaryBody, ApiRewriteBulletBody, ApiScoreResumeBody, ApiTailorResumeBody } from "@/lib/ai/schemas";
 import {
   toTailorJobExperienceInput,
   toTailorJobSkillsInput,
@@ -17,6 +12,10 @@ import * as ResumeAi from "@/services/ai/resume-ai";
  * HTTP-facing resume AI entry points. All OpenAI traffic stays on the server
  * (these delegate to `services/ai/resume-ai` + `generation-core`).
  */
+export async function suggestExperienceBullet(userId: string, body: ApiExperienceBulletBody) {
+  return ResumeAi.aiSuggestExperienceBullet(userId, body);
+}
+
 export async function generateResumeSummary(userId: string, body: ApiGenerateSummaryBody) {
   return ResumeAi.aiGenerateSummary(userId, body);
 }

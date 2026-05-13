@@ -67,6 +67,7 @@ function temperatureForOperation(operationId: AiOperationId): number {
     case AI_OPERATION_IDS.SUMMARY_TAILOR_JOB:
     case AI_OPERATION_IDS.SKILLS_TAILOR_JOB:
     case AI_OPERATION_IDS.EXPERIENCE_TAILOR_JOB:
+    case AI_OPERATION_IDS.EXPERIENCE_BULLET_ASSIST:
       return 0.38;
     case AI_OPERATION_IDS.EDUCATION_POLISH_DETAILS:
       return 0.32;

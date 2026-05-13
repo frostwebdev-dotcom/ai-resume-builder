@@ -14,6 +14,7 @@ export const AI_OPERATION_IDS = {
   EXPERIENCE_STRENGTHEN: "experience.strengthen",
   EXPERIENCE_SHORTEN: "experience.shorten",
   EXPERIENCE_EXPAND: "experience.expand",
+  EXPERIENCE_BULLET_ASSIST: "experience.bullet_assist",
   SKILLS_REPHRASE: "skills.rephrase",
   SKILLS_SHORTEN: "skills.shorten",
   CONTENT_GRAMMAR: "content.grammar",
@@ -76,6 +77,10 @@ export const PROMPT_REGISTRY: Record<AiOperationId, RegistryEntry> = {
   [AI_OPERATION_IDS.EXPERIENCE_EXPAND]: {
     version: "1.0.0",
     description: "Expand bullets using only user facts",
+  },
+  [AI_OPERATION_IDS.EXPERIENCE_BULLET_ASSIST]: {
+    version: "1.0.0",
+    description: "Single-bullet assist (rewrite, tone, impact, concise, grammar) with optional note",
   },
   [AI_OPERATION_IDS.SKILLS_REPHRASE]: {
     version: "1.0.0",

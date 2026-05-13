@@ -2,12 +2,18 @@ import { z } from "zod";
 
 import {
   baseAiContext,
+  experienceBulletAssistInput,
   projectIdParam,
   summaryGenerateInput,
   tailorJobExperienceInput,
   tailorJobSkillsInput,
   tailorJobSummaryInput,
 } from "@/validation/ai";
+
+/** POST /api/ai/experience-bullet — single-bullet assist (signed-in). */
+export const apiExperienceBulletBodySchema = experienceBulletAssistInput;
+
+export type ApiExperienceBulletBody = z.infer<typeof apiExperienceBulletBodySchema>;
 
 /** POST /api/ai/generate-summary */
 export const apiGenerateSummaryBodySchema = summaryGenerateInput;

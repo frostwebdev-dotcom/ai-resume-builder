@@ -38,6 +38,15 @@ export const experienceBulletsInput = baseAiContext.extend({
   bullets: z.array(z.string().max(2000)).max(40),
 });
 
+export const experienceBulletAssistInput = baseAiContext.extend({
+  entryId: z.string().uuid(),
+  company: z.string().trim().max(4000),
+  title: z.string().trim().max(4000),
+  bullet: z.string().trim().min(1, "Enter bullet text first.").max(2000),
+  action: z.enum(["rewrite", "professional", "impact", "concise", "grammar"]),
+  targetRoleHint: z.string().trim().max(500).optional(),
+});
+
 export const educationPolishInput = baseAiContext.extend({
   entryId: z.string().uuid(),
   school: z.string().trim().max(4000),

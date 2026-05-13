@@ -8,22 +8,17 @@ import type { AiResult } from "@/types/ai";
 
 import type {
   EducationEntry,
-  WorkExperienceEntry,
   WizardStateV1,
 } from "@/lib/resume-wizard/types";
 import {
-  aiExpandExperienceBulletsAction,
   aiGenerateSummaryAction,
   aiGrammarAdditionalAction,
   aiImproveSummaryAction,
   aiPolishEducationDetailsAction,
   aiProfessionalSummaryAction,
   aiRephraseSkillsAction,
-  aiRewriteExperienceBulletsAction,
-  aiShortenExperienceBulletsAction,
   aiShortenSkillsAction,
   aiShortenSummaryAction,
-  aiStrengthenExperienceBulletsAction,
   aiTailorSummaryAction,
   logAiSuggestionAction,
 } from "@/services/ai/actions";
@@ -35,7 +30,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   AI_ASSIST_ADDITIONAL_LINE,
   AI_ASSIST_EDUCATION_LINE,
-  AI_ASSIST_EXPERIENCE_LINE,
   AI_ASSIST_FAIR_USE_LINE,
   AI_ASSIST_PROFILE_LINE,
   AI_ASSIST_PROFILE_ROLE_LINE,
@@ -386,102 +380,6 @@ export function EducationEntryAiPanel({
           }}
         >
           Polish details
-        </AiButton>
-      </div>
-      <p className="mt-2 text-[0.65rem] leading-snug text-muted-foreground">{AI_ASSIST_FAIR_USE_LINE}</p>
-    </div>
-  );
-}
-
-export function ExperienceEntryAiPanel({
-  projectId,
-  entry,
-  onApplyBullets,
-  className,
-}: PanelProps & {
-  entry: WorkExperienceEntry;
-  onApplyBullets: (bullets: string[]) => void;
-}) {
-  const [pendingKey, setPendingKey] = useState<string | null>(null);
-  const [, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  const bullets = entry.highlights.filter((b) => b.trim().length > 0);
-  const canRun = bullets.length > 0;
-
-  const run = (
-    key: string,
-    promise: Promise<AiResult<{ bullets: string[] }>>,
-  ) => {
-    setError(null);
-    if (!canRun) {
-      setError("Add at least one job highlight first.");
-      return;
-    }
-    setPendingKey(key);
-    start(() => {
-      void (async () => {
-        try {
-          const res = await promise;
-          if (res.ok) {
-            onApplyBullets(res.data.bullets);
-          } else {
-            setError(formatAiAssistClientMessage(res.error, res.code));
-          }
-        } catch {
-          setError(formatAiAssistClientMessage("Request failed. Try again."));
-        } finally {
-          setPendingKey(null);
-        }
-      })();
-    });
-  };
-
-  const payload = {
-    projectId,
-    entryId: entry.id,
-    company: entry.company || "Company",
-    title: entry.title || "Role",
-    bullets: bullets.length ? bullets : [""],
-  };
-
-  return (
-    <div className={cn("mt-4 space-y-2 rounded-lg bg-muted/40 p-3", className)}>
-      <p className="text-xs font-medium text-muted-foreground">AI assist for this role</p>
-      <p className="mt-1 text-[0.7rem] leading-snug text-muted-foreground">{AI_ASSIST_EXPERIENCE_LINE}</p>
-      {error ? (
-        <Alert variant="destructive" className="py-2">
-          <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
-        </Alert>
-      ) : null}
-      <div className="flex flex-wrap gap-2">
-        <AiButton
-          pending={pendingKey === "rw"}
-          disabled={!canRun}
-          onClick={() => run("rw", aiRewriteExperienceBulletsAction(payload))}
-        >
-          Rewrite bullets
-        </AiButton>
-        <AiButton
-          pending={pendingKey === "str"}
-          disabled={!canRun}
-          onClick={() => run("str", aiStrengthenExperienceBulletsAction(payload))}
-        >
-          Strengthen wins
-        </AiButton>
-        <AiButton
-          pending={pendingKey === "sh"}
-          disabled={!canRun}
-          onClick={() => run("sh", aiShortenExperienceBulletsAction(payload))}
-        >
-          Shorten
-        </AiButton>
-        <AiButton
-          pending={pendingKey === "ex"}
-          disabled={!canRun}
-          onClick={() => run("ex", aiExpandExperienceBulletsAction(payload))}
-        >
-          Expand
         </AiButton>
       </div>
       <p className="mt-2 text-[0.65rem] leading-snug text-muted-foreground">{AI_ASSIST_FAIR_USE_LINE}</p>

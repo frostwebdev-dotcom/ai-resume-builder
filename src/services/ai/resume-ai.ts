@@ -13,6 +13,7 @@ import * as UserMessages from "@/services/ai/prompts/user-messages";
 import {
   bulletsOutputSchema,
   educationDetailsOutputSchema,
+  experienceBulletSuggestionSchema,
   linesOutputSchema,
   summaryPairOutputSchema,
   textOutputSchema,
@@ -21,6 +22,7 @@ import {
   assertReasonablePayloadSize,
   additionalTextInput,
   educationPolishInput,
+  experienceBulletAssistInput,
   experienceBulletsInput,
   skillsTextInput,
   summaryGenerateInput,
@@ -608,5 +610,32 @@ export async function aiRewriteSingleBullet(
     company: input.company,
     title: input.title,
     bullets: [input.bullet],
+  });
+}
+
+export async function aiSuggestExperienceBullet(
+  userId: string,
+  input: z.infer<typeof experienceBulletAssistInput>,
+): GenAsync<z.infer<typeof experienceBulletSuggestionSchema>> {
+  const g = await guardProject(userId, input.projectId);
+  if (g !== true) return g;
+  const p = tryPayload(
+    [input.company, input.title, input.bullet, input.action, input.targetRoleHint ?? ""],
+    "Bullet",
+  );
+  if (p !== true) return p;
+  const userMessage = UserMessages.userMessageExperienceBulletAssist({
+    action: input.action,
+    company: input.company,
+    title: input.title,
+    bullet: input.bullet,
+    targetRoleHint: input.targetRoleHint,
+  });
+  return runStructuredGeneration({
+    operationId: AI_OPERATION_IDS.EXPERIENCE_BULLET_ASSIST,
+    userId,
+    projectId: input.projectId,
+    userMessage,
+    outputSchema: experienceBulletSuggestionSchema,
   });
 }

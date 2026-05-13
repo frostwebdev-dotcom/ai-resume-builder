@@ -77,10 +77,10 @@ import type {
 import {
   AdditionalAiPanel,
   EducationEntryAiPanel,
-  ExperienceEntryAiPanel,
   SkillsAiPanel,
   SummaryAiPanel,
 } from "@/components/resume-wizard/wizard-ai-panels";
+import { ExperienceBulletAiControls } from "@/components/resume-wizard/experience-bullet-ai";
 import {
   ExperienceJobTailorSection,
   SkillsJobTailorSection,
@@ -3452,21 +3452,48 @@ function ExperienceBody({
               </p>
             </div>
             {entry.highlights.map((line, hi) => (
-              <Textarea
-                key={`${entry.id}-h-${hi}`}
-                value={line}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setState((s) => {
-                    const next = [...s.experience.entries];
-                    const highlights = [...next[index].highlights];
-                    highlights[hi] = v;
-                    next[index] = { ...next[index], highlights };
-                    return { ...s, experience: { entries: next } };
-                  });
-                }}
-                placeholder="Lead with impact — metric + action + outcome."
-              />
+              <div key={`${entry.id}-h-${hi}`} className="space-y-1">
+                <Textarea
+                  value={line}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setState((s) => {
+                      const next = [...s.experience.entries];
+                      const highlights = [...next[index].highlights];
+                      highlights[hi] = v;
+                      next[index] = { ...next[index], highlights };
+                      return { ...s, experience: { entries: next } };
+                    });
+                  }}
+                  placeholder="Lead with impact — metric + action + outcome."
+                />
+                {jobAssist ? (
+                  <ExperienceBulletAiControls
+                    projectId={jobAssist.projectId}
+                    entryId={entry.id}
+                    company={entry.company}
+                    title={entry.title}
+                    bullet={line}
+                    highlightIndex={hi}
+                    targetRoleHint={
+                      state.personal.desiredJobPosition.trim().length >= 3
+                        ? state.personal.desiredJobPosition.trim()
+                        : state.summary.headline.trim().length >= 3
+                          ? state.summary.headline.trim()
+                          : undefined
+                    }
+                    onApplyBullet={(text: string) =>
+                      setState((s) => {
+                        const next = [...s.experience.entries];
+                        const highlights = [...next[index].highlights];
+                        highlights[hi] = text;
+                        next[index] = { ...next[index], highlights };
+                        return { ...s, experience: { entries: next } };
+                      })
+                    }
+                  />
+                ) : null}
+              </div>
             ))}
             <Button
               type="button"
@@ -3488,20 +3515,6 @@ function ExperienceBody({
           </div>
           {jobAssist ? (
             <div className="mt-4 space-y-4 border-t border-neutral-200 pt-4">
-              <ExperienceEntryAiPanel
-                projectId={jobAssist.projectId}
-                entry={entry}
-                onApplyBullets={(bullets) =>
-                  setState((s) => {
-                    const next = [...s.experience.entries];
-                    next[index] = {
-                      ...next[index],
-                      highlights: bullets.length > 0 ? bullets : [""],
-                    };
-                    return { ...s, experience: { entries: next } };
-                  })
-                }
-              />
               <ExperienceJobTailorSection
                 projectId={jobAssist.projectId}
                 entry={entry}

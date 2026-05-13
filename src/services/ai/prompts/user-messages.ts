@@ -129,6 +129,50 @@ Current summary:
 ${input.summary || "(empty)"}`;
 }
 
+export type ExperienceBulletAssistAction =
+  | "rewrite"
+  | "professional"
+  | "impact"
+  | "concise"
+  | "grammar";
+
+export function userMessageExperienceBulletAssist(input: {
+  action: ExperienceBulletAssistAction;
+  company: string;
+  title: string;
+  bullet: string;
+  targetRoleHint?: string;
+}): string {
+  const roleLine = `Role context: ${input.title.trim() || "(role)"} at ${input.company.trim() || "(employer)"}`;
+  const hint = input.targetRoleHint?.trim()
+    ? `\nCandidate direction (tone only; do not invent jobs or metrics): ${input.targetRoleHint.trim()}`
+    : "";
+
+  const taskByAction: Record<ExperienceBulletAssistAction, string> = {
+    rewrite:
+      "Rewrite this single resume bullet for clarity and achievement focus. Output exactly one bullet string. Do not invent employers, tools, dates, or metrics not implied by the text. Avoid buzzwords (“rockstar”, “ninja”, “synergy”). Use strong action verbs.",
+    professional:
+      "Rewrite this bullet in a polished, professional tone suitable for a hiring manager. Same facts only. One concise bullet. No invented metrics; if you suggest quantification the user did not provide, use placeholders like [X%] or [number] inside the bullet.",
+    impact:
+      "Strengthen the bullet toward measurable impact using ONLY facts implied by the user’s wording. Do NOT invent percentages, revenue, or team sizes. If clearer impact could be stated with numbers the user did not give, use placeholders like [X%], [number], or [time saved] rather than fake figures. One bullet line.",
+    concise:
+      "Make the bullet shorter and tighter while preserving meaning. One bullet line. Do not add new claims.",
+    grammar:
+      "Fix grammar, spelling, and light punctuation only. Preserve meaning and facts. One bullet line.",
+  };
+
+  return `${JSON_ONLY}
+Schema: { "bullet": string, "improvementNote"?: string }
+
+Task (${input.action}): ${taskByAction[input.action]}
+Also optionally include "improvementNote": one short sentence (max ~20 words) explaining what changed or what the user could add next — do not claim false metrics there either.
+
+${roleLine}${hint}
+
+Current bullet:
+${input.bullet.trim() || "(empty)"}`;
+}
+
 export function userMessageExperienceBullets(input: {
   company: string;
   title: string;
