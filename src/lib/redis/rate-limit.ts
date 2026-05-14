@@ -90,6 +90,11 @@ export function getAuthPasswordResetRateLimiter(): Ratelimit | null {
   return getLimiter("auth_reset_user", 20, "1 h");
 }
 
+/** Public marketing contact form — per client IP. */
+export function getContactFormRateLimiter(): Ratelimit | null {
+  return getLimiter("contact_form_ip", 10, "1 h");
+}
+
 /**
  * @deprecated Use getPdfDownloadRateLimiter — kept for any stale imports.
  */

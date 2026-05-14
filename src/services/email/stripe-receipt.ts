@@ -5,7 +5,8 @@ import type Stripe from "stripe";
 import { getBillingProduct } from "@/lib/billing/catalog";
 import { formatUsdFromCents } from "@/lib/billing/format-money";
 import { appAbsoluteUrl } from "@/lib/email/app-origin";
-import { sendTransactionalEmail } from "@/lib/email/send";
+import { getPublicSupportEmailDisplay } from "@/lib/email/support-inbox";
+import { logTransactionalEmailResult, sendTransactionalEmail } from "@/lib/email/send";
 import {
   buildPurchaseReceiptEmail,
   purchaseReceiptSubject,
@@ -34,7 +35,7 @@ async function getChargeReceiptUrl(session: Stripe.Checkout.Session): Promise<st
 
 /**
  * Receipt + purchase confirmation (single message). Idempotent via `orders.metadata.receipt_email_sent_at`.
- * Called after Stripe webhook marks the order paid.
+ * Called after Stripe webhook marks the order paid. Does not throw; failures are logged only.
  */
 export async function sendPurchaseReceiptEmailIfNeeded(params: {
   orderId: string;
@@ -59,8 +60,19 @@ export async function sendPurchaseReceiptEmailIfNeeded(params: {
 
   const { data: userData, error: userErr } = await service.auth.admin.getUserById(params.userId);
   if (userErr || !userData.user?.email) {
-    console.error("[email] receipt: user lookup", userErr);
+    console.error("[email] receipt: missing user email", userErr);
     return;
+  }
+
+  let projectTitle: string | null = null;
+  if (params.projectId) {
+    const { data: proj } = await service
+      .from("resume_projects")
+      .select("title")
+      .eq("id", params.projectId)
+      .eq("user_id", params.userId)
+      .maybeSingle();
+    projectTitle = proj?.title?.trim() || null;
   }
 
   const product = getBillingProduct(params.productSku);
@@ -75,14 +87,21 @@ export async function sendPurchaseReceiptEmailIfNeeded(params: {
     ? ROUTES.app.projectPreview(params.projectId)
     : ROUTES.app.root;
   const previewUrl = appAbsoluteUrl(previewPath);
+  const dashboardUrl = appAbsoluteUrl(ROUTES.app.root);
+  const supportUrl = appAbsoluteUrl(ROUTES.contact);
+  const supportEmailDisplay = getPublicSupportEmailDisplay();
 
   const { html, text } = buildPurchaseReceiptEmail({
     productLabel,
+    projectTitle,
     amountFormatted: formatUsdFromCents(params.amountCents),
     paidAtFormatted: paidAt,
     orderIdShort: params.orderId.slice(0, 8),
     receiptUrl,
     previewUrl,
+    dashboardUrl,
+    supportUrl,
+    supportEmailDisplay,
   });
 
   const result = await sendTransactionalEmail({
@@ -96,10 +115,8 @@ export async function sendPurchaseReceiptEmailIfNeeded(params: {
     ],
   });
 
-  if (result.ok === false) {
-    if ("skipped" in result && result.reason === "not_configured") {
-      return;
-    }
+  if (!result.ok) {
+    logTransactionalEmailResult("purchase-receipt", result);
     return;
   }
 

@@ -1,12 +1,12 @@
 import "server-only";
 
+import { ROUTES } from "@/lib/constants";
 import { appAbsoluteUrl } from "@/lib/email/app-origin";
-import { sendTransactionalEmail } from "@/lib/email/send";
+import { logTransactionalEmailResult, sendTransactionalEmail } from "@/lib/email/send";
 import {
   buildDownloadReadyEmail,
   downloadReadySubject,
 } from "@/lib/email/templates/download-ready";
-import { ROUTES } from "@/lib/constants";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import type { Json } from "@/types/database";
 
@@ -43,14 +43,16 @@ export async function trySendDownloadReadyEmail(params: {
 
   const { data: userData, error: userErr } = await service.auth.admin.getUserById(params.userId);
   if (userErr || !userData.user?.email) {
-    console.error("[email] download-ready: user lookup", userErr);
+    console.error("[email] download-ready: missing user email", userErr);
     return;
   }
 
   const previewUrl = appAbsoluteUrl(ROUTES.app.projectPreview(params.projectId));
+  const dashboardUrl = appAbsoluteUrl(ROUTES.app.root);
   const { html, text } = buildDownloadReadyEmail({
     projectTitle: params.projectTitle,
     previewUrl,
+    dashboardUrl,
   });
 
   const result = await sendTransactionalEmail({
@@ -61,10 +63,8 @@ export async function trySendDownloadReadyEmail(params: {
     tags: [{ name: "category", value: "download_ready" }],
   });
 
-  if (result.ok === false) {
-    if ("skipped" in result && result.reason === "not_configured") {
-      return;
-    }
+  if (!result.ok) {
+    logTransactionalEmailResult("download-ready", result);
     return;
   }
 

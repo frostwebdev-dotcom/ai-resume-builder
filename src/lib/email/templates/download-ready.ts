@@ -1,19 +1,29 @@
 import { escapeHtml } from "@/lib/email/escape-html";
-import { emailParagraph, emailPrimaryButton, renderEmailLayout } from "@/lib/email/layout";
+import {
+  emailParagraph,
+  emailPrimaryButton,
+  emailSecondaryButton,
+  renderEmailLayout,
+} from "@/lib/email/layout";
 
 export function buildDownloadReadyEmail(params: {
+  /** Resume / project display name */
   projectTitle: string;
+  /** Where they open preview and tap Download PDF */
   previewUrl: string;
+  dashboardUrl: string;
 }): { html: string; text: string } {
   const title = escapeHtml(params.projectTitle);
   const bodyHtml = `
-    ${emailParagraph(`Your resume PDF for <strong>${title}</strong> is ready. Open the preview to download. Links expire quickly for security, so we always recommend downloading from your account.`)}
+    ${emailParagraph(`Your print-ready PDF for <strong>${title}</strong> is ready.`)}
+    ${emailParagraph(`Open the link below in your browser. You may need to <strong>sign in</strong> with the same account you used to purchase—then use <strong>Download PDF</strong> on the preview page. Download links from the app expire quickly for security; always start from here or your dashboard.`)}
     ${emailPrimaryButton(params.previewUrl, "Open preview & download")}
-    ${emailParagraph(`If you already downloaded the file, you can disregard this message.`)}
+    ${emailSecondaryButton(params.dashboardUrl, "Open dashboard")}
+    ${emailParagraph(`If you already downloaded the file, you can ignore this message.`)}
   `;
 
   const html = renderEmailLayout({
-    previewText: "Your PDF is ready to download.",
+    previewText: "Your resume PDF is ready.",
     title: "Download ready",
     bodyHtml,
   });
@@ -21,11 +31,14 @@ export function buildDownloadReadyEmail(params: {
   const text = [
     "Your resume PDF is ready",
     "",
-    `Project: ${params.projectTitle}`,
+    `Resume: ${params.projectTitle}`,
     "",
-    "Open the preview in the app to download. Links expire quickly for security.",
+    "Open the preview in the app to download. Sign in with the same account you used to purchase.",
     "",
-    `Preview: ${params.previewUrl}`,
+    `Preview & download: ${params.previewUrl}`,
+    `Dashboard: ${params.dashboardUrl}`,
+    "",
+    "If you already downloaded the file, you can ignore this message.",
   ].join("\n");
 
   return { html, text };

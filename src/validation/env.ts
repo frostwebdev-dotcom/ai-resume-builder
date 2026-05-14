@@ -51,6 +51,9 @@ export const serverEnvSchema = z.object({
   SENTRY_AUTH_TOKEN: optionalSecret,
   SENTRY_ORG: optionalSecret,
   SENTRY_PROJECT: optionalSecret,
+
+  /** Optional: inbox to receive staff copies of public contact form submissions. */
+  CONTACT_FORM_NOTIFY_EMAIL: z.preprocess(emptyToUndefined, z.string().email().optional()),
 });
 
 /**
@@ -72,6 +75,11 @@ export const clientEnvSchema = z.object({
   NEXT_PUBLIC_ANALYTICS_ENABLED: z.preprocess(
     (v) => (v === "true" || v === "false" ? v : undefined),
     z.enum(["true", "false"]).optional(),
+  ),
+  /** Public support inbox (marketing contact page + email footers). */
+  NEXT_PUBLIC_CONTACT_EMAIL: z.preprocess(
+    emptyToUndefined,
+    z.string().email().optional(),
   ),
 });
 

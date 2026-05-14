@@ -9,6 +9,7 @@ import {
   getAuthSignupRateLimiter,
   getCheckoutPollRateLimiter,
   getCheckoutStartRateLimiter,
+  getContactFormRateLimiter,
   getPdfDownloadRateLimiter,
   getResumeImportRateLimiter,
 } from "@/lib/redis/rate-limit";
@@ -24,6 +25,8 @@ const MSG_AUTH_IP =
 const MSG_CHECKOUT =
   "Too many checkout attempts. Please wait before starting another payment.";
 const MSG_POLL = "Too many requests. Please wait a moment.";
+const MSG_CONTACT =
+  "Too many messages from this network. Please wait an hour and try again, or email us directly.";
 const MSG_PDF =
   "Too many download requests. Please wait a moment before trying again.";
 const MSG_RESUME_IMPORT =
@@ -91,6 +94,19 @@ export async function enforcePdfDownloadLimit(userId: string): Promise<RateLimit
   return {
     ok: false,
     message: MSG_PDF,
+    retryAfterSec: retryAfterSecFromReset(reset),
+  };
+}
+
+export async function enforceContactFormLimit(ip: string): Promise<RateLimitOk | RateLimitDenied> {
+  const limiter = getContactFormRateLimiter();
+  if (!limiter) return { ok: true };
+  const { success, reset } = await limiter.limit(ip);
+  if (success) return { ok: true };
+  logSuspicious("rate_limit_contact_form", { ip: ip.slice(0, 32), reset });
+  return {
+    ok: false,
+    message: MSG_CONTACT,
     retryAfterSec: retryAfterSecFromReset(reset),
   };
 }

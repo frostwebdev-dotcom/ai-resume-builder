@@ -60,6 +60,26 @@ export function renderEmailLayout(props: EmailLayoutProps): string {
 </html>`;
 }
 
+/** Muted text link (support, secondary navigation). */
+export function emailTextLink(href: string, label: string): string {
+  const safeHref = escapeHtml(href);
+  const safeLabel = escapeHtml(label);
+  return `<a href="${safeHref}" style="color:#3f3f46;font-weight:600;text-decoration:underline;text-underline-offset:2px;">${safeLabel}</a>`;
+}
+
+/** Outlined secondary CTA for a second destination (e.g. dashboard). */
+export function emailSecondaryButton(href: string, label: string): string {
+  const safeHref = escapeHtml(href);
+  const safeLabel = escapeHtml(label);
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:12px 0 0;">
+  <tr>
+    <td style="border-radius:6px;border:1px solid #d4d4d8;background-color:#fafafa;">
+      <a href="${safeHref}" style="display:inline-block;padding:11px 20px;font-family:ui-sans-serif,system-ui,sans-serif;font-size:15px;font-weight:600;color:#18181b;text-decoration:none;border-radius:6px;">${safeLabel}</a>
+    </td>
+  </tr>
+</table>`;
+}
+
 /** Primary CTA — table button for Outlook-friendly rendering. */
 export function emailPrimaryButton(href: string, label: string): string {
   const safeHref = escapeHtml(href);

@@ -1,9 +1,9 @@
 import "server-only";
 
-import { appAbsoluteUrl } from "@/lib/email/app-origin";
-import { sendTransactionalEmail } from "@/lib/email/send";
-import { buildWelcomeEmail, welcomeEmailSubject } from "@/lib/email/templates/welcome";
 import { ROUTES } from "@/lib/constants";
+import { appAbsoluteUrl } from "@/lib/email/app-origin";
+import { logTransactionalEmailResult, sendTransactionalEmail } from "@/lib/email/send";
+import { buildWelcomeEmail, welcomeEmailSubject } from "@/lib/email/templates/welcome";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import type { Json } from "@/types/database";
 
@@ -33,7 +33,8 @@ export async function trySendWelcomeEmail(userId: string, email: string): Promis
   }
 
   const dashboardUrl = appAbsoluteUrl(ROUTES.app.root);
-  const { html, text } = buildWelcomeEmail({ dashboardUrl });
+  const supportUrl = appAbsoluteUrl(ROUTES.contact);
+  const { html, text } = buildWelcomeEmail({ dashboardUrl, supportUrl });
 
   const result = await sendTransactionalEmail({
     to: email,
@@ -43,10 +44,8 @@ export async function trySendWelcomeEmail(userId: string, email: string): Promis
     tags: [{ name: "category", value: "welcome" }],
   });
 
-  if (result.ok === false) {
-    if ("skipped" in result && result.reason === "not_configured") {
-      return;
-    }
+  if (!result.ok) {
+    logTransactionalEmailResult("welcome", result);
     return;
   }
 

@@ -10,11 +10,13 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { ContactForm } from "@/components/marketing/contact-form";
 import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { APP_NAME, ROUTES } from "@/lib/constants";
+import { clientEnv } from "@/lib/env";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -24,9 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 function getContactEmail(): string {
-  return (
-    process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "contact@yourdomain.com"
-  );
+  return clientEnv.NEXT_PUBLIC_CONTACT_EMAIL ?? "contact@yourdomain.com";
 }
 
 const topics = [
@@ -96,6 +96,10 @@ export default function ContactPage() {
               </Link>{" "}
               and explore the editor.
             </p>
+
+            <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-soft sm:p-6">
+              <ContactForm />
+            </div>
           </div>
 
           <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-8">
