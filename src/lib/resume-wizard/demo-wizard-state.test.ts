@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_TEMPLATE_SLUG, TEMPLATE_SLUG_ORDER } from "@/lib/resume-preview/template-ids";
+import { getTemplateTheme, templateSupportsAvatar } from "@/lib/resume-preview/template-theme";
 import {
   createDemoWizardState,
   createDemoWizardStateForTemplate,
@@ -32,9 +33,17 @@ describe("createDemoWizardState / createDemoWizardStateForTemplate", () => {
     expect(names.size).toBe(TEMPLATE_SLUG_ORDER.length);
   });
 
-  it("launch classic templates do not inject demo portrait URLs", () => {
+  it("classic-only templates omit demo portrait URLs; photo-capable templates include one", () => {
+    let sawPortrait = false;
     for (const slug of TEMPLATE_SLUG_ORDER) {
-      expect(getDemoAvatarUrlForTemplate(slug)).toBeNull();
+      const url = getDemoAvatarUrlForTemplate(slug);
+      if (templateSupportsAvatar(getTemplateTheme(slug))) {
+        expect(url).toMatch(/^https:\/\//);
+        sawPortrait = true;
+      } else {
+        expect(url).toBeNull();
+      }
     }
+    expect(sawPortrait).toBe(true);
   });
 });

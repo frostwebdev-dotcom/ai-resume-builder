@@ -80,6 +80,12 @@ import { ALL_TEMPLATE_THEMES } from "@/lib/resume-preview/template-theme";
 import { createProjectFormAction } from "@/services/projects/actions";
 import { cn } from "@/lib/utils";
 
+/** Dropdown scroll rails: avoid `preventDefault` on touch so mobile taps register. */
+function keepScrollRailOnMouseOnly(e: { pointerType: string; preventDefault(): void }) {
+  if (e.pointerType === "touch") return;
+  e.preventDefault();
+}
+
 /** “All Filters” — white chip, subtle border, navy label (matches catalog reference). */
 const ALL_FILTERS_BUTTON = cn(
   "inline-flex h-10 max-w-full shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold tracking-tight outline-none transition-[color,background-color,border-color,box-shadow]",
@@ -396,7 +402,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
             >
               <div
                 className="max-h-[min(20rem,50vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
-                onPointerDown={(e) => e.preventDefault()}
+                onPointerDown={keepScrollRailOnMouseOnly}
               >
                 {TEMPLATE_CATALOG_INDUSTRY_ORDER.map((key) => {
                   const checked = criteria.industry.includes(key);
@@ -468,7 +474,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
             >
               <div
                 className="max-h-[min(16.5rem,42vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
-                onPointerDown={(e) => e.preventDefault()}
+                onPointerDown={keepScrollRailOnMouseOnly}
               >
                 {TEMPLATE_CATALOG_CAREER_STAGE_ORDER.map((key) => {
                   const checked = criteria.careerStages.includes(key);
@@ -540,7 +546,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
             >
               <div
                 className="max-h-[min(16.5rem,42vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
-                onPointerDown={(e) => e.preventDefault()}
+                onPointerDown={keepScrollRailOnMouseOnly}
               >
                 {TEMPLATE_CATALOG_STYLE_LOOK_ORDER.map((key) => {
                   const checked = criteria.styleLooks.includes(key);
@@ -612,7 +618,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
             >
               <div
                 className="max-h-[min(20rem,50vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
-                onPointerDown={(e) => e.preventDefault()}
+                onPointerDown={keepScrollRailOnMouseOnly}
               >
                 {TEMPLATE_CATALOG_FORMAT_FACET_ORDER.map((key) => {
                   const checked = criteria.formatFacets.includes(key);
@@ -684,7 +690,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
             >
               <div
                 className="grid grid-cols-5 gap-2 p-3"
-                onPointerDown={(e) => e.preventDefault()}
+                onPointerDown={keepScrollRailOnMouseOnly}
               >
                 {TEMPLATE_CATALOG_ACCENT_SWATCHES.map((hex) => {
                   const canon = normalizeCatalogAccentHex(hex) ?? hex;
@@ -760,7 +766,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
             >
               <div
                 className="max-h-[min(16.5rem,42vh)] overflow-y-auto overscroll-contain py-1 [scrollbar-width:thin]"
-                onPointerDown={(e) => e.preventDefault()}
+                onPointerDown={keepScrollRailOnMouseOnly}
               >
                 {TEMPLATE_CATALOG_TAG_ORDER.map((key) => {
                   const checked = criteria.tagFilters.includes(key);

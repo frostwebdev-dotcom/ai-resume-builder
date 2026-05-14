@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { TEMPLATE_SLUG_ORDER, type TemplateSlug } from "@/lib/resume-preview/template-ids";
-import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
+import { getTemplateTheme, sortTemplateSlugsPhotoCapableFirst } from "@/lib/resume-preview/template-theme";
 import { cn } from "@/lib/utils";
 
 export type SelectTemplateForExampleModalProps = {
@@ -75,8 +75,8 @@ export function SelectTemplateForExampleModal({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [...TEMPLATE_SLUG_ORDER];
-    return TEMPLATE_SLUG_ORDER.filter((slug) => {
+    if (!q) return sortTemplateSlugsPhotoCapableFirst([...TEMPLATE_SLUG_ORDER]);
+    return sortTemplateSlugsPhotoCapableFirst([...TEMPLATE_SLUG_ORDER]).filter((slug) => {
       const name = getTemplateTheme(slug).name.toLowerCase();
       return name.includes(q) || slug.toLowerCase().includes(q);
     });

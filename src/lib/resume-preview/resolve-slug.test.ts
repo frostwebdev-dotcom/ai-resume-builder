@@ -8,7 +8,7 @@ import {
   TEMPLATE_IDS,
   TEMPLATE_SLUG_ORDER,
 } from "./template-ids";
-import { ALL_TEMPLATE_THEMES, getTemplateTheme } from "./template-theme";
+import { ALL_TEMPLATE_THEMES, getTemplateTheme, templateSupportsAvatar } from "./template-theme";
 
 describe("templateIdToSlug", () => {
   it("maps each known template id to its slug", () => {
@@ -41,7 +41,6 @@ describe("isTemplateSlug", () => {
 describe("template themes", () => {
   it("exposes a well-formed theme for every slug", () => {
     expect(ALL_TEMPLATE_THEMES).toHaveLength(TEMPLATE_SLUG_ORDER.length);
-    expect(TEMPLATE_SLUG_ORDER.length).toBe(3);
     for (const theme of ALL_TEMPLATE_THEMES) {
       expect(theme.accent).toMatch(/^#[0-9a-f]{6}$/i);
       expect(theme.accentStrong).toMatch(/^#[0-9a-f]{6}$/i);
@@ -51,7 +50,11 @@ describe("template themes", () => {
       expect(theme.bestFor.length).toBeGreaterThan(0);
       expect(["sans", "serif"]).toContain(theme.fontFamily);
       expect(["centered", "split", "compact", "banner"]).toContain(theme.headerStyle);
-      expect(theme.layoutFamily).toBe("classic");
+      if (templateSupportsAvatar(theme)) {
+        expect(["sidebar", "photo-banner"]).toContain(theme.layoutFamily);
+      } else {
+        expect(theme.layoutFamily).toBe("classic");
+      }
     }
   });
 

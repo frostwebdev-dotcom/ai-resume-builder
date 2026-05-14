@@ -17,8 +17,7 @@ export type ResumeTemplateRootProps = {
 
 /**
  * Single entry point for resume preview + PDF-facing structure.
- * Launch catalog is classic-only; sidebar/photo-banner remain wired for future
- * templates without changing call sites.
+ * Classic, sidebar, and photo-banner families are driven by `getTemplateTheme(slug)`.
  */
 export function ResumeTemplateRoot({
   document,

@@ -1,6 +1,10 @@
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { TEMPLATE_SLUG_ORDER } from "@/lib/resume-preview/template-ids";
-import { getTemplateTheme, templateSupportsAvatar } from "@/lib/resume-preview/template-theme";
+import {
+  getTemplateTheme,
+  sortTemplateSlugsPhotoCapableFirst,
+  templateSupportsAvatar,
+} from "@/lib/resume-preview/template-theme";
 import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-order";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 
@@ -20,8 +24,10 @@ const DEMO_PORTRAIT_URLS: readonly string[] = [
   "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&w=512&h=512&fit=crop&q=80",
 ];
 
-/** Launch catalog is classic-only — no demo avatars. */
-const PHOTO_SLUGS_ORDERED: readonly TemplateSlug[] = [];
+/** Sidebar / photo-banner templates — stable order for rotating stock portraits in catalog previews. */
+const PHOTO_SLUGS_ORDERED: readonly TemplateSlug[] = sortTemplateSlugsPhotoCapableFirst([
+  ...TEMPLATE_SLUG_ORDER,
+]).filter((s) => templateSupportsAvatar(getTemplateTheme(s)));
 
 export function getDemoAvatarUrlForTemplate(slug: TemplateSlug): string | null {
   if (!templateSupportsAvatar(getTemplateTheme(slug))) return null;

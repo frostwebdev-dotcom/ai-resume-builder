@@ -26,7 +26,7 @@ import {
   launchTemplateMetadata,
   templateCreateUrl,
 } from "@/lib/resume-preview/template-metadata";
-import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
+import { getTemplateTheme, sortTemplateSlugsPhotoCapableFirst } from "@/lib/resume-preview/template-theme";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -87,22 +87,28 @@ export function TemplatesLaunchGrid({ guest = false, signedIn = false, className
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Quick guide</p>
         <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-800">
           <li>
-            <span className="font-semibold text-slate-900">Recommended default:</span>{" "}
-            <span className="text-slate-700">Professional ATS — safest linear layout for screening tools.</span>
+            <span className="font-semibold text-slate-900">Layouts:</span>{" "}
+            <span className="text-slate-700">
+              Each card is a single-column, ATS-minded structure with different accents and rhythm — pick what fits your
+              industry and taste.
+            </span>
           </li>
           <li>
-            <span className="font-semibold text-slate-900">Developers &amp; builders:</span>{" "}
-            <span className="text-slate-700">Technical Clean — tuned for skills and project-heavy résumés.</span>
+            <span className="font-semibold text-slate-900">Your text:</span>{" "}
+            <span className="text-slate-700">
+              Changing templates updates fonts, spacing, and section styling only — it does not rewrite your experience
+              or projects.
+            </span>
           </li>
           <li>
-            <span className="font-semibold text-slate-900">Polished general use:</span>{" "}
-            <span className="text-slate-700">Modern Professional — refined header and accents for business-facing roles.</span>
+            <span className="font-semibold text-slate-900">Try before you start:</span>{" "}
+            <span className="text-slate-700">Use Preview on a card to zoom the sample résumé, then Use this template.</span>
           </li>
         </ul>
       </div>
 
       <ul className="mt-8 grid list-none grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-3">
-        {TEMPLATE_SLUG_ORDER.map((slug) => {
+        {sortTemplateSlugsPhotoCapableFirst([...TEMPLATE_SLUG_ORDER]).map((slug) => {
           const theme = getTemplateTheme(slug);
           const meta = launchTemplateMetadata(slug);
           const ribbon = LAUNCH_TEMPLATE_RIBBON[slug];

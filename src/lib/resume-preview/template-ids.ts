@@ -1,11 +1,48 @@
 /**
- * Launch catalog: three curated, single-column templates (preview + PDF share tokens).
- * UUID suffix `00…001` … `00…003` = stable `template_id` in `resume_projects`.
+ * Resume layout templates — UUID suffix `…000001` through `…000028` (hex) matches
+ * `public.templates` seeds (`supabase/migrations/*seed*templates*.sql`) — 40 templates total.
  */
 export const TEMPLATE_SLUG_ORDER = [
   "professional-ats",
   "modern-professional",
   "technical-clean",
+  "helios",
+  "vanta",
+  "lumen",
+  "onyx",
+  "clio",
+  "astra",
+  "borealis",
+  "cypress",
+  "denali",
+  "ember",
+  "fjord",
+  "granite",
+  "harbor",
+  "iris",
+  "jade",
+  "kelvin",
+  "luna",
+  "matrix",
+  "nimbus",
+  "orion",
+  "pacific",
+  "quartz",
+  "ridge",
+  "slate",
+  "titan",
+  "umber",
+  "vertex",
+  "willow",
+  "xenon",
+  "yield",
+  "zephyr",
+  "apex",
+  "bridge",
+  "cipher",
+  "drift",
+  "echo",
+  "forge",
 ] as const;
 
 export type TemplateSlug = (typeof TEMPLATE_SLUG_ORDER)[number];
@@ -28,4 +65,15 @@ const SLUG_SET = new Set<string>(TEMPLATE_SLUG_ORDER);
 
 export function isTemplateSlug(s: string): s is TemplateSlug {
   return SLUG_SET.has(s);
+}
+
+/** Human-readable name for UI (picker, catalog, PDF). */
+export function templatePublicDisplayName(slug: TemplateSlug): string {
+  if (slug === "professional-ats") return "Professional ATS";
+  if (slug === "modern-professional") return "Modern Professional";
+  if (slug === "technical-clean") return "Technical Clean";
+  return slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }

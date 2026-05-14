@@ -61,11 +61,8 @@ import { useGuestWizardAutosave } from "@/hooks/use-guest-wizard-autosave";
 import type { SaveStatus } from "@/hooks/use-wizard-autosave";
 import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-preview";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
-import {
-  TEMPLATE_SLUG_ORDER,
-  type TemplateSlug,
-} from "@/lib/resume-preview/template-ids";
-import { getTemplateTheme } from "@/lib/resume-preview/template-theme";
+import { TEMPLATE_SLUG_ORDER, type TemplateSlug } from "@/lib/resume-preview/template-ids";
+import { getTemplateTheme, sortTemplateSlugsPhotoCapableFirst } from "@/lib/resume-preview/template-theme";
 import { isProfileDescriptionEmpty } from "@/lib/profile-description-html";
 import { createDemoWizardStateForTemplate } from "@/lib/resume-wizard/demo-wizard-state";
 import { ensureEntryId } from "@/lib/resume-wizard/ids";
@@ -1280,7 +1277,7 @@ export function GuestStudioEditor({
                       )}
                     >
                       <div className="flex w-max min-w-full flex-nowrap justify-center gap-3 px-11 sm:gap-4 sm:px-12">
-                    {TEMPLATE_SLUG_ORDER.map((slug) => {
+                    {sortTemplateSlugsPhotoCapableFirst([...TEMPLATE_SLUG_ORDER]).map((slug) => {
                       const theme = getTemplateTheme(slug);
                       const selected = slug === templateSlug;
                       const hovered = templateHoverSlug === slug;

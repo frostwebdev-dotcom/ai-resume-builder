@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { MktSection } from "@/components/marketing/mkt-section";
-import { TemplatesLaunchGrid } from "@/components/templates/templates-launch-grid";
+import { TemplatesCatalog } from "@/components/templates/templates-catalog";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
@@ -12,14 +12,14 @@ import { ROUTES } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Templates",
   description:
-    "Three curated, ATS-friendly resume templates. Pick one, preview with sample content, then start building — your wording stays when you switch layouts.",
+    "Browse ATS-friendly resume layouts with live previews. Filter by industry and style, pick one to start, then edit in the builder — your wording stays when you switch templates.",
 };
 
 function TemplatesGridFallback() {
   return (
-    <div className="mx-auto mt-10 grid w-full max-w-5xl grid-cols-1 gap-5 animate-pulse lg:grid-cols-3">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-[420px] rounded-2xl bg-slate-200/60" />
+    <div className="mx-auto mt-10 grid w-full max-w-6xl grid-cols-2 gap-3 animate-pulse sm:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: 8 }, (_, i) => (
+        <div key={i} className="h-[280px] rounded-xl bg-slate-200/60 sm:h-[300px]" />
       ))}
     </div>
   );
@@ -34,13 +34,14 @@ export default function TemplatesPage() {
             <p className="text-eyebrow justify-center">Templates</p>
             <h1 className="mt-3 text-display text-balance">Pick a layout you trust</h1>
             <p className="mt-4 text-body-muted">
-              Three launch templates — each tuned for readability, mobile editing, and PDF export that matches your
-              preview. Choose one to start; you can switch later without losing your content.
+              Full catalog of curated single-column résumé layouts — tuned for readability, mobile editing, and PDF export
+              that matches your preview. Use search and filters to narrow the list, then start building; you can switch
+              later without losing your content.
             </p>
           </div>
 
           <Suspense fallback={<TemplatesGridFallback />}>
-            <TemplatesLaunchGrid guest className="mx-auto mt-10 max-w-6xl" />
+            <TemplatesCatalog surface="marketing" guest className="mx-auto mt-10 max-w-6xl" />
           </Suspense>
 
           <div className="mx-auto mt-14 flex max-w-xl flex-col items-center gap-4 rounded-2xl border border-border/70 bg-card px-6 py-8 text-center shadow-soft sm:px-10">

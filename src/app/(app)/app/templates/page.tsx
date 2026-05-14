@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 import { GuestAppRouteBanner } from "@/components/layout/guest-app-route-banner";
 import { PageContainer } from "@/components/layout/page-container";
-import { TemplatesLaunchGrid } from "@/components/templates/templates-launch-grid";
+import { TemplatesCatalog } from "@/components/templates/templates-catalog";
 import { buttonVariants } from "@/components/ui/button";
 import { getOptionalAuth } from "@/lib/auth/guards";
 import { ROUTES } from "@/lib/constants";
@@ -15,14 +15,14 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Templates",
   description:
-    "Pick a resume template to start a project. Preview with sample content, then edit in the studio — switching templates updates layout only.",
+    "Browse the full resume template catalog with previews and filters. Start a project from the app or open the public builder — switching templates updates layout only.",
 };
 
 function TemplatesGridFallback() {
   return (
-    <div className="mx-auto mt-6 grid w-full max-w-5xl grid-cols-1 gap-5 animate-pulse lg:grid-cols-3">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-[420px] rounded-2xl bg-slate-200/60" />
+    <div className="mx-auto mt-6 grid w-full max-w-6xl grid-cols-2 gap-3 animate-pulse sm:grid-cols-3 lg:grid-cols-4">
+      {Array.from({ length: 8 }, (_, i) => (
+        <div key={i} className="h-[280px] rounded-xl bg-slate-200/60 sm:h-[300px]" />
       ))}
     </div>
   );
@@ -49,18 +49,18 @@ export default async function AppTemplatesPage() {
           <header className="min-w-0 border-b border-slate-200/90 pb-5 sm:pb-6">
             <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-slate-500">Templates</p>
             <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-              Choose a launch template
+              Choose a resume template
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600 sm:text-[0.9375rem]">
-              Preview sample résumés, compare layouts, then start with{" "}
-              <span className="font-medium text-slate-800">Use this template</span>. In the studio you can switch
-              anytime — only styling changes. Export from{" "}
+              Browse the full catalog with live previews and filters. Start with{" "}
+              <span className="font-medium text-slate-800">Edit this template</span> (signed in) or open the public
+              builder. In the studio you can switch anytime — only styling changes. Export from{" "}
               <span className="font-medium text-slate-800">Preview &amp; export</span>.
             </p>
           </header>
 
           <Suspense fallback={<TemplatesGridFallback />}>
-            <TemplatesLaunchGrid guest={!ctx} signedIn={Boolean(ctx)} className="mx-auto mt-6 max-w-6xl" />
+            <TemplatesCatalog surface="app" guest={!ctx} className="mx-auto mt-6 max-w-6xl" />
           </Suspense>
 
           <div className="mx-auto mt-10 flex max-w-2xl flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8">
