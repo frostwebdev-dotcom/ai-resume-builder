@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { KeyRound, Loader2 } from "lucide-react";
 
@@ -12,6 +12,7 @@ import { ROUTES } from "@/lib/constants";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { emailOtpTokenSchema } from "@/validation/auth";
+import type { Session } from "@supabase/supabase-js";
 
 /** Strips non-digits and keeps up to 6 characters (handles SMS / keyboard autofill). */
 function normalizeOtpInput(raw: string): string {
@@ -43,9 +44,47 @@ export function EmailOtpVerifyCard({
   resendDisabled = false,
 }: EmailOtpVerifyCardProps) {
   const formRef = useRef<HTMLFormElement>(null);
+  const verifiedOnceRef = useRef(false);
+  const onVerifiedRef = useRef(onVerified);
+  onVerifiedRef.current = onVerified;
+
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<"none" | "verify" | "resend">("none");
+
+  function completeVerificationOnce() {
+    if (verifiedOnceRef.current) return;
+    verifiedOnceRef.current = true;
+    void onVerifiedRef.current();
+  }
+
+  /**
+   * Magic link in email establishes a session; continue when auth updates for **this** email
+   * (avoids treating an unrelated existing session as success).
+   */
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    const normalized = email.trim().toLowerCase();
+
+    function sessionMatchesOtpEmail(session: Session | null): boolean {
+      const addr = session?.user?.email?.trim().toLowerCase();
+      return Boolean(addr && addr === normalized);
+    }
+
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (sessionMatchesOtpEmail(session)) completeVerificationOnce();
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && sessionMatchesOtpEmail(session)) {
+        completeVerificationOnce();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [email]);
 
   function applyCodeFromString(raw: string, opts?: { submitIfComplete?: boolean }) {
     const next = normalizeOtpInput(raw);
@@ -85,7 +124,7 @@ export function EmailOtpVerifyCard({
         return;
       }
 
-      onVerified();
+      completeVerificationOnce();
     } catch {
       setError("Something went wrong. Check your connection and try again.");
       setPending("none");
@@ -112,9 +151,10 @@ export function EmailOtpVerifyCard({
       <div className="space-y-2">
         <h2 className="text-headline text-foreground">Enter your sign-in code</h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          We sent a 6-digit code to{" "}
-          <span className="font-semibold text-foreground">{email}</span>. Paste from your email or
-          type it here — no link required.
+          We emailed{" "}
+          <span className="font-semibold text-foreground">{email}</span>. If you see a 6-digit code,
+          paste or type it below. If the message only has a sign-in link, open it — this screen
+          continues automatically once you are signed in (same browser).
         </p>
       </div>
 
@@ -154,7 +194,8 @@ export function EmailOtpVerifyCard({
           />
           <p className="text-xs text-muted-foreground">
             Tip: paste the whole line from your email; we keep the six digits. If a banner above
-            mentions a wait, send again after the timer.
+            mentions a wait, send again after the timer. After using only a link, return to this tab
+            if it does not advance on its own.
           </p>
         </div>
         <Button
