@@ -92,7 +92,7 @@ export function SidebarTemplate({
             <div className="text-center">
               {showNameInSidebarTitle ? (
                 <>
-                  <h1 className="text-[1.15rem] font-bold leading-tight tracking-tight">
+                  <h1 className="text-[1.15rem] font-bold leading-tight tracking-tight [&_span.text-neutral-400]:text-white/65">
                     {doc.identity.fullName || <PlaceholderName>Your name</PlaceholderName>}
                   </h1>
                   {doc.identity.headline ? (
@@ -124,14 +124,14 @@ export function SidebarTemplate({
                 {doc.contact.lines.length > 0 ? (
                   <ContactStack
                     lines={doc.contact.lines}
-                    className="mt-2 space-y-1 text-[10px] opacity-95 [&_a]:text-white [&_a]:underline-offset-2 hover:[&_a]:underline [&_span.text-neutral-500]:text-white/60"
+                    className="mt-2 space-y-1 text-[10px] text-white opacity-95 [&_a]:text-white [&_a]:underline-offset-2 hover:[&_a]:underline [&_span.text-neutral-500]:text-white/60"
                     accent="#ffffff"
                   />
                 ) : null}
                 {doc.personalOptionalLines.length > 0 ? (
                   <ContactStack
                     lines={doc.personalOptionalLines}
-                    className="mt-2 space-y-1 text-[10px] opacity-95 [&_a]:text-white [&_a]:underline-offset-2 hover:[&_a]:underline [&_span.text-neutral-500]:text-white/60"
+                    className="mt-2 space-y-1 text-[10px] text-white opacity-95 [&_a]:text-white [&_a]:underline-offset-2 hover:[&_a]:underline [&_span.text-neutral-500]:text-white/60"
                     accent="#ffffff"
                   />
                 ) : null}
