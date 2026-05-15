@@ -31,6 +31,7 @@ import {
   RESUME_PDF_EXPORT_PRICE_USD,
 } from "@/lib/billing/monetization-copy";
 import { ROUTES } from "@/lib/constants";
+import { getPublicSupportEmailDisplay } from "@/lib/email/support-inbox";
 import { cn } from "@/lib/utils";
 
 const launchPdf = BILLING_PRODUCTS.resume_pdf_v1;
@@ -62,10 +63,6 @@ const pricingFaq = [
   },
 ] as const;
 
-function contactEmail(): string {
-  return process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "contact@yourdomain.com";
-}
-
 export const metadata: Metadata = {
   title: "Pricing — pay only to export your PDF",
   description: `${PRICING_HERO_TAGLINE} Resume PDF export is ${RESUME_PDF_EXPORT_PRICE_USD} once per project at checkout (no subscription). Future add-ons are marked coming soon.`,
@@ -76,7 +73,7 @@ export const metadata: Metadata = {
 };
 
 export default function PricingPage() {
-  const supportMail = contactEmail();
+  const supportEmail = getPublicSupportEmailDisplay();
 
   return (
     <>
@@ -305,14 +302,25 @@ export default function PricingPage() {
                 <strong className="font-medium text-foreground">Clear support contact.</strong>{" "}
                 <Link href={ROUTES.contact} className="font-medium text-brand underline-offset-4 hover:underline">
                   Contact page
-                </Link>{" "}
-                ·{" "}
-                <a
-                  href={`mailto:${supportMail}`}
-                  className="font-medium text-brand underline-offset-4 hover:underline"
-                >
-                  {supportMail}
-                </a>
+                </Link>
+                {supportEmail ? (
+                  <>
+                    {" "}
+                    ·{" "}
+                    <a
+                      href={`mailto:${supportEmail}`}
+                      className="font-medium text-brand underline-offset-4 hover:underline"
+                    >
+                      {supportEmail}
+                    </a>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    — set <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">NEXT_PUBLIC_CONTACT_EMAIL</code> to
+                    show a public inbox here.
+                  </span>
+                )}
               </span>
             </li>
           </ul>

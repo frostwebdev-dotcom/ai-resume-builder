@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 
-import { JobsBoard } from "@/components/jobs/jobs-board";
+import { WorkspaceFeatureComingSoon } from "@/components/workspace/workspace-feature-coming-soon";
+import { APP_NAME } from "@/lib/constants";
 import { getOptionalAuth } from "@/lib/auth/guards";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Jobs",
-  description: "Search roles, filter by location, and review listings alongside your resume work.",
+  description: `Job search in ${APP_NAME} is not available yet — resume editing and PDF export are the current focus.`,
 };
 
 export default async function JobsPage() {
   const ctx = await getOptionalAuth();
 
-  return <JobsBoard guest={!ctx} />;
+  return <WorkspaceFeatureComingSoon feature="jobs" guest={!ctx} />;
 }

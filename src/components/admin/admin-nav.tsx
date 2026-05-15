@@ -9,10 +9,11 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: ROUTES.admin.root, label: "Overview" },
   { href: ROUTES.admin.users, label: "Users" },
-  { href: ROUTES.admin.projects, label: "Projects" },
+  { href: ROUTES.admin.projects, label: "Resumes" },
   { href: ROUTES.admin.orders, label: "Orders" },
   { href: ROUTES.admin.aiUsage, label: "AI usage" },
   { href: ROUTES.admin.downloads, label: "Downloads" },
+  { href: ROUTES.admin.support, label: "Support" },
   { href: ROUTES.admin.audit, label: "Audit log" },
 ] as const;
 

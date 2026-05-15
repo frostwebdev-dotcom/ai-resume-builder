@@ -24,6 +24,7 @@ import {
   UserPlus,
 } from "lucide-react";
 
+import { ResumeStTracker } from "@/components/analytics/resume-st-tracker";
 import { AutosaveStatusChip } from "@/components/resume-wizard/autosave-status-chip";
 import { GuestStudioEditor } from "@/components/resume-wizard/guest-studio-editor";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -296,6 +297,7 @@ export function ProjectStudioShell({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <ResumeStTracker surface="project_build" projectId={projectId} />
       <header className="shrink-0 border-b border-black/30 bg-[#17191d] pt-[env(safe-area-inset-top,0px)] text-white">
         {/*
           Mirrors the guest `/create` top bar: 1fr | auto | 1fr columns so the title block stays
@@ -325,7 +327,7 @@ export function ProjectStudioShell({
             />
           </div>
 
-          <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100dvw_-_15rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))] justify-self-center sm:max-w-[min(32rem,calc(100dvw_-_20rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))]">
+          <div className="relative z-10 flex min-w-0 max-w-[min(18rem,calc(100dvw-11rem-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)))] justify-self-center sm:max-w-[min(32rem,calc(100dvw-20rem-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)))]">
             <div className="flex w-full min-w-0 items-end gap-2.5 sm:gap-3">
               <input
                 ref={titleInputRef}
@@ -357,7 +359,7 @@ export function ProjectStudioShell({
               type="button"
               onClick={handleUndoContent}
               disabled={!contentHistory.canUndo}
-              className="inline-flex size-8 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+              className="inline-flex size-11 min-h-[var(--touch-target-min)] min-w-[var(--touch-target-min)] shrink-0 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent sm:size-8 sm:min-h-0 sm:min-w-0"
               aria-label="Undo"
               title="Undo (Ctrl+Z)"
             >
@@ -367,7 +369,7 @@ export function ProjectStudioShell({
               type="button"
               onClick={handleRedoContent}
               disabled={!contentHistory.canRedo}
-              className="inline-flex size-8 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+              className="inline-flex size-11 min-h-[var(--touch-target-min)] min-w-[var(--touch-target-min)] shrink-0 items-center justify-center rounded-full text-slate-200 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent sm:size-8 sm:min-h-0 sm:min-w-0"
               aria-label="Redo"
               title="Redo (Ctrl+Shift+Z)"
             >
@@ -432,12 +434,13 @@ export function ProjectStudioShell({
               href={previewHref}
               className={cn(
                 buttonVariants({ size: "sm" }),
-                "h-8 gap-1.5 rounded-full bg-[#2268d7] px-3 text-xs font-semibold hover:bg-[#1f5fca]",
+                "h-10 min-h-10 max-w-full shrink gap-1.5 truncate rounded-full bg-[#2268d7] px-2.5 text-xs font-semibold hover:bg-[#1f5fca] sm:h-8 sm:min-h-0 sm:max-w-none sm:px-3",
               )}
-              aria-label="Open Preview and export"
+              aria-label="Open preview and export"
             >
-              <Download className="size-3.5" aria-hidden />
-              Preview &amp; export
+              <Download className="size-3.5 shrink-0" aria-hidden />
+              <span className="truncate sm:hidden">Preview</span>
+              <span className="hidden truncate sm:inline">Preview & export</span>
             </Link>
           </div>
         </div>

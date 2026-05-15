@@ -6,6 +6,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const paths = [
     ROUTES.home,
+    ROUTES.create,
     ROUTES.pricing,
     ROUTES.howItWorks,
     ROUTES.templates,
@@ -13,6 +14,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ROUTES.contact,
     ROUTES.privacy,
     ROUTES.terms,
+    ROUTES.refundPolicy,
+    ROUTES.aiDisclaimer,
+    ROUTES.atsDisclaimer,
   ] as const;
 
   const now = new Date();
@@ -20,7 +24,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return paths.map((path) => ({
     url: new URL(path, base).toString(),
     lastModified: now,
-    changeFrequency: path === ROUTES.home ? ("weekly" as const) : ("monthly" as const),
-    priority: path === ROUTES.home ? 1 : 0.7,
+    changeFrequency:
+      path === ROUTES.home || path === ROUTES.create ? ("weekly" as const) : ("monthly" as const),
+    priority: path === ROUTES.home ? 1 : path === ROUTES.create ? 0.9 : 0.7,
   }));
 }

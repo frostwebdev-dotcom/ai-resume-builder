@@ -69,7 +69,7 @@ export function MarketingPrimaryNav() {
                 data-active={active || undefined}
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "sm" }),
-                  "relative whitespace-nowrap px-2.5 transition-colors sm:px-3",
+                  "relative min-h-11 items-center whitespace-nowrap px-2.5 transition-colors sm:min-h-0 sm:px-3",
                   active
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -95,12 +95,12 @@ type AuthLinksProps = {
 
 const workspaceGhostLink = cn(
   buttonVariants({ variant: "ghost", size: "sm" }),
-  "relative whitespace-nowrap px-2 text-xs sm:px-2.5 sm:text-sm",
+  "relative min-h-11 items-center whitespace-nowrap px-2 text-xs sm:min-h-0 sm:px-2.5 sm:text-sm",
 );
 
 const marketingNewResumeButtonClass = cn(
   buttonVariants({ size: "sm" }),
-  "relative shrink-0 gap-1.5 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
+  "relative min-h-11 shrink-0 gap-1.5 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:min-h-0",
   "disabled:pointer-events-none disabled:opacity-65",
 );
 
@@ -122,7 +122,7 @@ function GuestCreateResumeLink({ className }: { className?: string }) {
       data-active={active || undefined}
       className={cn(
         buttonVariants({ size: "sm" }),
-        "relative gap-1.5 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
+        "relative min-h-11 gap-1.5 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:min-h-0",
         className,
       )}
     >
@@ -206,7 +206,7 @@ export function MarketingAuthLinks({
         data-active={loginActive || undefined}
         className={cn(
           buttonVariants({ variant: "ghost", size: "sm" }),
-          "relative",
+          "relative min-h-11 items-center sm:min-h-0",
           loginActive && "text-foreground",
         )}
       >

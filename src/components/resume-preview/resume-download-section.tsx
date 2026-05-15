@@ -128,7 +128,7 @@ export function ResumeDownloadSection({
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="touch"
                   className="w-full sm:min-w-[12rem]"
                   disabled={checkoutPending}
                   onClick={goToCheckout}

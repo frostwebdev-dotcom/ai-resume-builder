@@ -24,8 +24,8 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   const next = firstParam(sp.next);
   const params = new URLSearchParams();
   if (next) params.set("next", next);
-  const qs = params.toString();
-  redirect(qs ? `${ROUTES.auth.login}?${qs}` : ROUTES.auth.login);
+  params.set("intent", "signup");
+  redirect(`${ROUTES.auth.login}?${params.toString()}`);
 }
 
 export const metadata = {

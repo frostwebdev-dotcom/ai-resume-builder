@@ -159,13 +159,19 @@ function ReviewFooter({
         "pt-2",
       )}
     >
-      <Button type="button" variant="outline" className="w-full min-h-11 sm:w-auto" onClick={onCancel} disabled={loading}>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full min-h-[var(--touch-target-min)] sm:w-auto"
+        onClick={onCancel}
+        disabled={loading}
+      >
         Cancel
       </Button>
       <Button
         type="button"
         variant="outline"
-        className="w-full min-h-11 sm:w-auto"
+        className="w-full min-h-[var(--touch-target-min)] sm:w-auto"
         onClick={onRegenerate}
         disabled={loading}
       >
@@ -181,13 +187,18 @@ function ReviewFooter({
       <Button
         type="button"
         variant="secondary"
-        className="w-full min-h-11 sm:w-auto"
+        className="w-full min-h-[var(--touch-target-min)] sm:w-auto"
         onClick={onToggleEdit}
         disabled={loading || !suggestedDraft}
       >
         {isEditingSuggested ? "Done editing" : "Edit"}
       </Button>
-      <Button type="button" className="w-full min-h-11 sm:w-auto" onClick={onAccept} disabled={loading || !canAccept}>
+      <Button
+        type="button"
+        className="w-full min-h-[var(--touch-target-min)] sm:w-auto"
+        onClick={onAccept}
+        disabled={loading || !canAccept}
+      >
         Accept
       </Button>
     </div>
@@ -277,7 +288,7 @@ export function SummaryAiReviewLayout(props: Props) {
             isEditingSuggested={isEditingSuggested}
           />
         </div>
-        <SheetFooter className="shrink-0 border-t border-border bg-background px-4 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+        <SheetFooter className="shrink-0 border-t border-border bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-4 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
           <ReviewFooter
             loading={loading}
             suggestedDraft={suggestedDraft}

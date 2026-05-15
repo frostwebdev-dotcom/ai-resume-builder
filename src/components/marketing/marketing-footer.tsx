@@ -25,13 +25,16 @@ const footerGroups = [
     links: [
       { href: ROUTES.privacy, label: "Privacy" },
       { href: ROUTES.terms, label: "Terms" },
+      { href: ROUTES.refundPolicy, label: "Refunds" },
+      { href: ROUTES.aiDisclaimer, label: "AI disclaimer" },
+      { href: ROUTES.atsDisclaimer, label: "ATS disclaimer" },
     ],
   },
 ] as const;
 
 export function MarketingFooter() {
   return (
-    <footer className="relative mt-auto border-t border-border/70 bg-muted/25">
+    <footer className="relative mt-auto border-t border-border/70 bg-muted/25 pb-safe">
       <PageContainer className="py-14 sm:py-16">
         <div className="grid gap-10 md:grid-cols-[minmax(0,1fr)_auto] md:gap-12">
           <div className="max-w-sm">

@@ -534,6 +534,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      product_analytics_events: {
+        Row: {
+          id: string;
+          event: string;
+          props: Json;
+          client_ts: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event: string;
+          props?: Json;
+          client_ts?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          event?: string;
+          props?: Json;
+          client_ts?: number | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       admin_audit_logs: {
         Row: {
           id: string;
@@ -575,7 +599,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      admin_sum_paid_cents_between: {
+        Args: { p_from: string; p_to: string };
+        Returns: number;
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -600,3 +627,4 @@ export type AiGenerationLog = Database["public"]["Tables"]["ai_generation_logs"]
 export type AiSuggestion = Database["public"]["Tables"]["ai_suggestions"]["Row"];
 export type AiUsageLimit = Database["public"]["Tables"]["ai_usage_limits"]["Row"];
 export type AdminAuditLog = Database["public"]["Tables"]["admin_audit_logs"]["Row"];
+export type ProductAnalyticsEvent = Database["public"]["Tables"]["product_analytics_events"]["Row"];

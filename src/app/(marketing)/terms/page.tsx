@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { CalendarDays, ScrollText } from "lucide-react";
+import Link from "next/link";
+import { ScrollText } from "lucide-react";
 
-import { PageContainer } from "@/components/layout/page-container";
-import { MktSection } from "@/components/marketing/mkt-section";
-import { APP_NAME } from "@/lib/constants";
+import { LegalDocLayout } from "@/components/marketing/legal-doc-layout";
+import { LegalSupportContact } from "@/components/marketing/legal-support-contact";
+import { APP_NAME, ROUTES } from "@/lib/constants";
+import { LEGAL_LAST_UPDATED_LABEL } from "@/lib/legal/last-updated";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -13,116 +15,172 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const sections = [
-  {
-    id: "the-service",
-    title: "The service",
-    body: "We provide tools to draft, preview, and export resumes. Features may change as we ship improvements. We strive for high availability but do not guarantee uninterrupted access.",
-  },
-  {
-    id: "accounts",
-    title: "Accounts",
-    body: "You are responsible for your account credentials and for the accuracy of information you submit. You must not misuse the service (for example, attempting to access others' data, attacking infrastructure, or uploading unlawful content).",
-  },
-  {
-    id: "payments",
-    title: "Payments & exports",
-    body: "Certain actions (such as PDF export) may require payment. Prices and taxes are presented at checkout. Unless stated otherwise, purchases are subject to the refund approach described in our FAQ and communications — finalize refund language with counsel before launch.",
-  },
-  {
-    id: "content",
-    title: "Content",
-    body: "You retain rights to your resume content. You grant us the license we need to host, process, and display your content to operate the service (including AI-assisted features you request).",
-  },
-  {
-    id: "disclaimer",
-    title: "Disclaimer",
-    body: "The service is provided \u201Cas is.\u201D We do not guarantee job outcomes, interview requests, or compatibility with every employer system. To the maximum extent permitted by law, we disclaim warranties not expressly stated here.",
-  },
-  {
-    id: "liability",
-    title: "Limitation of liability",
-    body: "To the maximum extent permitted by law, our total liability for claims arising from the service will be limited to the amounts you paid us in the twelve months preceding the claim (or, if none, zero). Some jurisdictions do not allow certain limitations — in those cases, our liability is limited to the fullest extent allowed.",
-  },
-  {
-    id: "changes",
-    title: "Changes",
-    body: "We may update these terms. Continued use after changes constitutes acceptance. Material changes will be communicated in-product or by email where appropriate.",
-  },
-] as const;
-
 export default function TermsPage() {
   return (
-    <MktSection className="pt-12 sm:pt-20">
-      <PageContainer>
-        <div className="mx-auto max-w-3xl">
-          <p className="text-eyebrow">
-            <ScrollText className="size-3.5" aria-hidden />
-            Terms of service
-          </p>
-          <h1 className="mt-3 text-display">The rules for using our product</h1>
-          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-3 py-1 text-xs font-medium text-muted-foreground">
-            <CalendarDays className="size-3.5" aria-hidden />
-            Last updated: April 15, 2026
-          </p>
-          <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
-            These terms govern your access to &quot;{APP_NAME}&quot;. By using the service, you agree to
-            them. If you do not agree, do not use the product.
-          </p>
-        </div>
-
-        <div className="mx-auto mt-12 grid max-w-6xl gap-10 lg:grid-cols-[16rem_minmax(0,1fr)]">
-          <aside className="hidden lg:block">
-            <div className="sticky top-24">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                On this page
+    <LegalDocLayout
+      eyebrowIcon={ScrollText}
+      eyebrowLabel="Terms of service"
+      title="The rules for using our product"
+      lastUpdated={LEGAL_LAST_UPDATED_LABEL}
+      intro={
+        <p>
+          These terms govern your access to &quot;{APP_NAME}&quot;. By creating an account, paying for an
+          export, or otherwise using the service, you agree to them. If you do not agree, please do not
+          use the product.
+        </p>
+      }
+      sections={[
+        {
+          id: "the-service",
+          title: "The service",
+          body: (
+            <p>
+              We provide tools to draft, structure, preview, and export resumes. Features, limits, and
+              pricing may change as we ship improvements; we will communicate material changes in-product
+              or by email where appropriate. We aim for reliable uptime but do not guarantee uninterrupted
+              access.
+            </p>
+          ),
+        },
+        {
+          id: "acceptable-use",
+          title: "Acceptable use",
+          body: (
+            <p>
+              You agree not to misuse the service — including attempting to access another person&apos;s
+              account or data, probing or attacking our systems, scraping in violation of technical
+              limits, uploading malware, generating unlawful or harassing content, or using the product in
+              a way that violates applicable law. We may investigate abuse and cooperate with law
+              enforcement when required.
+            </p>
+          ),
+        },
+        {
+          id: "accounts",
+          title: "Accounts and termination",
+          body: (
+            <>
+              <p>
+                You are responsible for safeguarding your login credentials and for activity that occurs
+                under your account (unless caused by our gross negligence or a security failure on our
+                side that we failed to remedy promptly after notice).
               </p>
-              <nav aria-label="Section navigation" className="mt-3">
-                <ol className="space-y-1.5 text-sm">
-                  {sections.map((s, i) => (
-                    <li key={s.id}>
-                      <a
-                        href={`#${s.id}`}
-                        className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-muted-foreground transition-colors hover:bg-brand-muted hover:text-foreground"
-                      >
-                        <span className="mt-0.5 w-5 shrink-0 text-right font-mono text-[0.7rem] text-muted-foreground/80">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        <span>{s.title}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ol>
-              </nav>
-            </div>
-          </aside>
-
-          <article className="min-w-0 max-w-3xl">
-            {sections.map((s, i) => (
-              <section
-                key={s.id}
-                id={s.id}
-                className="scroll-mt-24 border-b border-border/60 pb-10 pt-10 first:pt-0 last:border-b-0"
-              >
-                <div className="flex items-start gap-4">
-                  <span
-                    className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-muted font-mono text-[0.75rem] font-semibold text-brand ring-1 ring-brand/15"
-                    aria-hidden
-                  >
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="text-subhead text-foreground">{s.title}</h2>
-                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-[0.95rem]">
-                      {s.body}
-                    </p>
-                  </div>
-                </div>
-              </section>
-            ))}
-          </article>
-        </div>
-      </PageContainer>
-    </MktSection>
+              <p>
+                We may suspend or terminate access if we reasonably believe these terms were violated, if
+                continued use creates security or legal risk, or if we discontinue the service with
+                reasonable notice where feasible. You may stop using the product at any time; some
+                provisions that naturally survive (such as limitations of liability for past events)
+                continue after termination.
+              </p>
+            </>
+          ),
+        },
+        {
+          id: "accuracy",
+          title: "Accuracy of your resume",
+          body: (
+            <p>
+              You are solely responsible for the truthfulness, completeness, and suitability of the
+              information in your resume. The product helps you format and phrase content — it does not
+              verify employment history, education, licenses, or claims you make to employers. You
+              confirm that you have the right to submit the content you upload or generate.
+            </p>
+          ),
+        },
+        {
+          id: "payments",
+          title: "Payments",
+          body: (
+            <>
+              <p>
+                Paid features (such as PDF export for a project) are billed through{" "}
+                <span className="font-medium text-foreground">Stripe</span> at the prices shown at
+                checkout, plus applicable taxes if displayed. You authorize us and our payment processor
+                to charge your selected payment method for completed purchases.
+              </p>
+              <p>
+                Digital purchases are generally non-refundable except where required by law or as
+                described in our{" "}
+                <Link
+                  href={ROUTES.refundPolicy}
+                  className="font-medium text-brand underline-offset-4 hover:underline"
+                >
+                  Refund policy
+                </Link>
+                . For billing questions, contact us using <LegalSupportContact />.
+              </p>
+            </>
+          ),
+        },
+        {
+          id: "no-job-guarantee",
+          title: "No interview or job guarantee",
+          body: (
+            <>
+              <p>
+                {APP_NAME} is a document and formatting tool. We do not guarantee interviews, callbacks,
+                offers, or any particular outcome with employers. Hiring decisions depend on many factors
+                outside our control.
+              </p>
+              <p>
+                For expectations around employer parsing systems, see our{" "}
+                <Link
+                  href={ROUTES.atsDisclaimer}
+                  className="font-medium text-brand underline-offset-4 hover:underline"
+                >
+                  ATS disclaimer
+                </Link>
+                .
+              </p>
+            </>
+          ),
+        },
+        {
+          id: "content-ip",
+          title: "Your content and license to us",
+          body: (
+            <p>
+              You retain ownership of your original resume content. To operate the service, you grant
+              us a non-exclusive license to host, store, reproduce, adapt (for example, reformatting for
+              preview or PDF export), display, and process your content — including sending portions to
+              subprocessors you interact with (such as Stripe for checkout or an AI provider when you
+              request AI features) — solely to provide and improve the product on your behalf.
+            </p>
+          ),
+        },
+        {
+          id: "disclaimer-liability",
+          title: "Disclaimer and limitation of liability",
+          body: (
+            <>
+              <p>
+                The service is provided &ldquo;as is&rdquo; and &ldquo;as available.&rdquo; To the maximum
+                extent permitted by law, we disclaim implied warranties such as merchantability or
+                fitness for a particular purpose except where such disclaimers are not allowed.
+              </p>
+              <p>
+                To the maximum extent permitted by law, our total liability for claims arising out of or
+                relating to the service will not exceed the amounts you paid us for the service in the
+                twelve (12) months before the event giving rise to the claim (or, if greater, the amount
+                paid for the specific export or feature directly at issue). Some jurisdictions do not
+                allow certain limitations; in those cases, our liability is limited to the fullest extent
+                permitted.
+              </p>
+            </>
+          ),
+        },
+        {
+          id: "changes",
+          title: "Changes to these terms",
+          body: (
+            <p>
+              We may update these terms from time to time. If we make material changes, we will take
+              reasonable steps to notify you (for example, by email or an in-app notice). Continued use
+              after the effective date constitutes acceptance of the revised terms.
+            </p>
+          ),
+        },
+      ]}
+    />
   );
 }

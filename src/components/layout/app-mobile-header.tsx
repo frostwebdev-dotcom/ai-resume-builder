@@ -35,7 +35,7 @@ export function AppMobileHeader({
               href={ROUTES.app.root}
               className={cn(
                 buttonVariants({ variant: "ghost", size: "sm" }),
-                "px-3",
+                "min-h-[var(--touch-target-min)] px-3 sm:min-h-0",
               )}
             >
               ← Back
@@ -73,7 +73,7 @@ export function AppMobileHeader({
               onClick={() => openLogin(ROUTES.app.root)}
               className={cn(
                 buttonVariants({ variant: "ghost", size: "sm" }),
-                "gap-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground",
+                "min-h-[var(--touch-target-min)] gap-1.5 px-2 text-sm font-medium text-muted-foreground hover:text-foreground sm:min-h-0",
               )}
             >
               Log in

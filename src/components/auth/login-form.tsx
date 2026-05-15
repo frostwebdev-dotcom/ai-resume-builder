@@ -15,6 +15,7 @@ import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { trackClientEvent } from "@/lib/analytics/client";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { tryTrackSignupCompletedAfterAuth } from "@/lib/analytics/try-track-signup-completed";
 import { getBrowserOrigin } from "@/lib/app/browser-origin";
 import { ROUTES } from "@/lib/constants";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -38,6 +39,8 @@ type LoginFormProps = {
   variant?: "default" | "panel";
   /** Called when panel sign-up completes with a session (e.g. close the sheet). */
   onPanelAuthSuccess?: () => void;
+  /** True when user arrived from `/signup` redirect — analytics only. */
+  signupIntent?: boolean;
 };
 
 type PendingAction = "none" | "magic" | "google" | "signup" | "signin";
@@ -122,8 +125,17 @@ export function LoginForm({
   nextPath,
   variant = "default",
   onPanelAuthSuccess,
+  signupIntent = false,
 }: LoginFormProps) {
   const isPanel = variant === "panel";
+  const signupIntentTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (!signupIntent || signupIntentTrackedRef.current) return;
+    signupIntentTrackedRef.current = true;
+    trackClientEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, { entry: "signup_redirect" });
+  }, [signupIntent]);
+
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [panelStep, setPanelStep] = useState<PanelStep>("email");
@@ -206,6 +218,11 @@ export function LoginForm({
         setPending("none");
         return false;
       }
+
+      const {
+        data: { user: signedUser },
+      } = await supabase.auth.getUser();
+      tryTrackSignupCompletedAfterAuth(signedUser, "password_signin");
 
       if (variant === "panel") {
         onPanelAuthSuccess?.();
@@ -311,6 +328,7 @@ export function LoginForm({
     setSignInPassword("");
     setShowPasswordSignIn(false);
     setPanelEmailIntent("password_register");
+    trackClientEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, { entry: "panel_password_register" });
     setPanelStep("name");
   }
 
@@ -407,6 +425,7 @@ export function LoginForm({
       }
 
       if (data.session) {
+        tryTrackSignupCompletedAfterAuth(data.session.user, "password_panel");
         onPanelAuthSuccess?.();
         router.refresh();
         setPending("none");
@@ -596,8 +615,13 @@ export function LoginForm({
             setShowPasswordSignIn(false);
             resetErrors();
           }}
-          onVerified={() => {
+          onVerified={async () => {
             setOtpAwaitEmail(null);
+            const supabase = createSupabaseBrowserClient();
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            tryTrackSignupCompletedAfterAuth(user, "email_otp");
             if (isPanel) {
               onPanelAuthSuccess?.();
               router.refresh();

@@ -3,9 +3,19 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { emailConfirmationHandoffResponse } from "@/lib/auth/email-confirm-handoff";
 import { sanitizeNextPath } from "@/lib/auth/redirect";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { trackServerEvent } from "@/lib/analytics/server";
 import { ROUTES } from "@/lib/constants";
 import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
 import { trySendWelcomeEmail } from "@/services/email/welcome";
+
+function maybeTrackSignupCompletedFromUser(user: { created_at?: string } | null): void {
+  if (!user?.created_at) return;
+  const createdMs = new Date(user.created_at).getTime();
+  if (!Number.isFinite(createdMs)) return;
+  if (Date.now() - createdMs > 10 * 60 * 1000) return;
+  trackServerEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETED, { channel: "auth_callback" });
+}
 
 const EMAIL_OTP_TYPES: readonly EmailOtpType[] = [
   "signup",
@@ -57,6 +67,7 @@ export async function GET(request: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    maybeTrackSignupCompletedFromUser(user);
     if (user?.email) {
       void trySendWelcomeEmail(user.id, user.email).catch((e) =>
         console.error("[auth/callback] welcome email", e),
@@ -88,6 +99,7 @@ export async function GET(request: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    maybeTrackSignupCompletedFromUser(user);
     if (user?.email) {
       void trySendWelcomeEmail(user.id, user.email).catch((e) =>
         console.error("[auth/callback] welcome email", e),

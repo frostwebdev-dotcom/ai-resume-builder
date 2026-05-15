@@ -10,7 +10,7 @@ import { ROUTES } from "@/lib/constants";
 import { getAdminProjectsList } from "@/services/admin/projects";
 
 export const metadata: Metadata = {
-  title: "Admin · Projects",
+  title: "Admin · Resumes",
   robots: { index: false, follow: false },
 };
 
@@ -35,7 +35,7 @@ export default async function AdminProjectsPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">Projects</h1>
+        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground">Resumes</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           Resume projects across all users (soft-deleted rows excluded).
         </p>

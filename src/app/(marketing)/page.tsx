@@ -30,6 +30,7 @@ import {
   PAY_ONCE_PDF_PER_PROJECT_LINE,
   RESUME_PDF_EXPORT_PRICE_USD,
 } from "@/lib/billing/monetization-copy";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { APP_NAME, ROUTES } from "@/lib/constants";
 
 const PRIMARY_HEADLINE = "Create a professional ATS-friendly resume in minutes.";
@@ -133,6 +134,7 @@ export default function MarketingHomePage() {
               <TrackedLink
                 href={ROUTES.create}
                 cta="start_building"
+                trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
                 className={cn(
                   buttonVariants({ size: "touch" }),
                   "gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
@@ -144,6 +146,7 @@ export default function MarketingHomePage() {
               <TrackedLink
                 href={ROUTES.templates}
                 cta="view_templates"
+                trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
                 className={cn(
                   buttonVariants({ variant: "outline", size: "touch" }),
                   "border-border/80 bg-background/80 backdrop-blur-sm",
@@ -299,6 +302,7 @@ export default function MarketingHomePage() {
             <TrackedLink
               href={ROUTES.templates}
               cta="view_templates"
+              trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
               className={cn(buttonVariants({ variant: "outline", size: "touch" }), "gap-2")}
             >
               Browse all templates
@@ -328,6 +332,7 @@ export default function MarketingHomePage() {
             <TrackedLink
               href={ROUTES.pricing}
               cta="view_pricing"
+              trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
               className={cn(
                 buttonVariants({ size: "touch" }),
                 "mt-8 inline-flex w-full max-w-xs gap-2 bg-brand text-brand-foreground hover:bg-brand/90 sm:w-auto",
@@ -387,6 +392,7 @@ export default function MarketingHomePage() {
               <TrackedLink
                 href={ROUTES.create}
                 cta="start_building"
+                trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
                 className={cn(
                   buttonVariants({ size: "touch" }),
                   "gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
@@ -398,6 +404,7 @@ export default function MarketingHomePage() {
               <TrackedLink
                 href={ROUTES.templates}
                 cta="view_templates"
+                trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
                 className={cn(buttonVariants({ variant: "outline", size: "touch" }), "bg-background/80")}
               >
                 View templates

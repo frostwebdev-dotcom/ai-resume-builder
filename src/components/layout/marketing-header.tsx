@@ -13,7 +13,7 @@ export async function MarketingHeader() {
   const ctx = await getOptionalAuth();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/75 backdrop-blur-md supports-[backdrop-filter]:bg-background/65">
+    <header className="sticky top-0 z-40 border-b border-border/70 bg-background/75 pt-safe backdrop-blur-md supports-[backdrop-filter]:bg-background/65">
       <div
         className={cn(
           "mx-auto flex h-14 min-h-14 w-full min-w-0 max-w-6xl items-center gap-2 sm:gap-4",

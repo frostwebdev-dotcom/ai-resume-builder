@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { persistProductAnalyticsEvent } from "@/lib/analytics/persist-product-event";
 import { trackServerEvent } from "@/lib/analytics/server";
 import { ROUTES } from "@/lib/constants";
 import { enforcePdfDownloadLimit } from "@/lib/security/rate-limit-enforcement";
@@ -83,6 +84,10 @@ export async function requestResumeDownloadAction(
   }
 
   trackServerEvent(ANALYTICS_EVENTS.PDF_DOWNLOADED, {
+    project_id_prefix: project.id.slice(0, 8),
+  });
+
+  void persistProductAnalyticsEvent(ANALYTICS_EVENTS.PDF_DOWNLOADED, {
     project_id_prefix: project.id.slice(0, 8),
   });
 

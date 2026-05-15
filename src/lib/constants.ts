@@ -15,6 +15,9 @@ export const ROUTES = {
   contact: "/contact",
   privacy: "/privacy",
   terms: "/terms",
+  refundPolicy: "/refund-policy",
+  aiDisclaimer: "/ai-disclaimer",
+  atsDisclaimer: "/ats-disclaimer",
   styleGuide: "/style-guide",
   app: {
     root: "/app",
@@ -40,6 +43,7 @@ export const ROUTES = {
     aiUsage: "/admin/ai-usage",
     downloads: "/admin/downloads",
     audit: "/admin/audit",
+    support: "/admin/support",
   },
   auth: {
     login: "/login",

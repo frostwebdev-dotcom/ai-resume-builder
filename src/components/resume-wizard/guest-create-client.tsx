@@ -37,6 +37,7 @@ import {
 import { AutosaveStatusChip } from "@/components/resume-wizard/autosave-status-chip";
 import { GuestDraftLocalSaveNote } from "@/components/resume-wizard/guest-draft-local-save-note";
 import { GuestStudioEditor } from "@/components/resume-wizard/guest-studio-editor";
+import { ResumeStTracker } from "@/components/analytics/resume-st-tracker";
 import {
   clearGuestWizardDraftFromStorage,
   loadGuestWizardDraftFromStorage,
@@ -345,6 +346,7 @@ export function GuestCreateClient() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <ResumeStTracker surface="guest_create" />
       <TopBar
         title={presentation.title}
         titleInputRef={titleInputRef}

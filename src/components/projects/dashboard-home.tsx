@@ -2,18 +2,13 @@
 
 import {
   ArrowRight,
-  Briefcase,
   Calendar,
   CheckCircle2,
-  ClipboardList,
   FileText,
-  ListTodo,
+  LayoutTemplate,
   Loader2,
-  MapPin,
   Plus,
   Sparkles,
-  Star,
-  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -27,9 +22,7 @@ import {
   ProjectResumePreviewCard,
 } from "@/components/projects/project-resume-preview-card";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { DEMO_APPLICATIONS, type ApplicationStatus } from "@/lib/applications/demo-applications";
 import { APP_NAME, ROUTES } from "@/lib/constants";
-import { DEMO_JOB_LISTINGS } from "@/lib/jobs/demo-listings";
 import { createProjectFormAction } from "@/services/projects/actions";
 import type { DashboardProject } from "@/services/projects/queries";
 import { cn } from "@/lib/utils";
@@ -40,42 +33,20 @@ type Props = {
   isGuest: boolean;
 };
 
-function statusBadgeClass(status: ApplicationStatus) {
-  switch (status) {
-    case "Applied":
-      return "bg-slate-100 text-slate-700";
-    case "Phone screen":
-      return "bg-sky-100 text-sky-800";
-    case "Interview":
-      return "bg-violet-100 text-violet-900";
-    case "Offer":
-      return "bg-emerald-100 text-emerald-900";
-    case "Rejected":
-      return "bg-red-100 text-red-800";
-    case "Withdrawn":
-      return "bg-slate-100 text-slate-500";
-    default:
-      return "bg-slate-100 text-slate-700";
-  }
-}
-
 type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 
 type StatCardProps = {
   label: string;
   value: string | number;
   sub: string;
-  href: string;
+  href?: string;
   icon: IconType;
   iconClass: string;
 };
 
 function StatCard({ label, value, sub, href, icon: Icon, iconClass }: StatCardProps) {
-  return (
-    <Link
-      href={href}
-      className="group flex min-w-0 items-start gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md sm:p-5"
-    >
+  const body = (
+    <>
       <span
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-xl",
@@ -89,15 +60,34 @@ function StatCard({ label, value, sub, href, icon: Icon, iconClass }: StatCardPr
         <p className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
         <div className="mt-0.5 flex items-baseline gap-2">
           <span className="text-2xl font-semibold tracking-tight text-slate-900">{value}</span>
-          <ArrowRight
-            className="size-4 shrink-0 translate-x-0 text-slate-400 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
-            aria-hidden
-          />
+          {href ? (
+            <ArrowRight
+              className="size-4 shrink-0 translate-x-0 text-slate-400 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100"
+              aria-hidden
+            />
+          ) : null}
         </div>
         <p className="mt-0.5 text-xs text-slate-500">{sub}</p>
       </div>
-    </Link>
+    </>
   );
+
+  const shellClass = cn(
+    "group flex min-w-0 items-start gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-5",
+    href
+      ? "transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+      : "cursor-default hover:shadow-sm",
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={shellClass}>
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className={shellClass}>{body}</div>;
 }
 
 const dashboardCreateResumeClass = cn(
@@ -179,8 +169,9 @@ function CreateNewResumeHeroButton({ label }: { label: string }) {
       type="submit"
       disabled={pending}
       aria-busy={pending}
+      size="touch"
       className={cn(
-        "h-10 rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]",
+        "rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]",
         pending && "cursor-wait opacity-90",
       )}
     >
@@ -321,19 +312,6 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
 
   const recentResumes = projects;
 
-  const activeApplications = isGuest
-    ? 0
-    : DEMO_APPLICATIONS.filter((a) => !["Rejected", "Withdrawn"].includes(a.status)).length;
-  const interviewCount = isGuest
-    ? 0
-    : DEMO_APPLICATIONS.filter((a) => a.status === "Interview" || a.status === "Phone screen").length;
-  const savedJobsCount = isGuest ? 0 : 4;
-
-  const upcomingPipeline = DEMO_APPLICATIONS.filter(
-    (a) => !["Rejected", "Withdrawn"].includes(a.status),
-  ).slice(0, 4);
-  const suggestedJobs = DEMO_JOB_LISTINGS.slice(0, 4);
-
   const today = new Intl.DateTimeFormat(undefined, {
     weekday: "long",
     month: "long",
@@ -357,16 +335,16 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
             </h1>
             <p className="mt-1.5 max-w-xl text-sm text-slate-600 sm:text-base">
               {isGuest
-                ? `Preview your ${APP_NAME} workspace. Build a polished resume in minutes — sign in to sync projects, save jobs, and track applications.`
-                : "Pick up where you left off, review interviews coming up, and keep your application pipeline moving."}
+                ? `Preview your ${APP_NAME} workspace. Build a polished resume in minutes — sign in to save projects across devices and export PDFs.`
+                : "Continue your resumes, pick a template, preview your layout, and export when you are ready — that is where we are investing for launch."}
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
               {isGuest ? (
                 <Link
                   href={ROUTES.create}
                   className={cn(
-                    buttonVariants({ size: "default" }),
-                    "h-10 rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]",
+                    buttonVariants({ size: "touch" }),
+                    "rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]",
                   )}
                 >
                   <Plus className="size-4" aria-hidden />
@@ -378,21 +356,22 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
                 />
               )}
               <Link
-                href={ROUTES.app.jobs}
+                href={ROUTES.app.templates}
                 className={cn(
-                  buttonVariants({ variant: "outline", size: "default" }),
-                  "h-10 rounded-full border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50",
+                  buttonVariants({ variant: "outline", size: "touch" }),
+                  "rounded-full border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50",
                 )}
               >
-                <Briefcase className="size-4" aria-hidden />
-                Browse jobs
+                <LayoutTemplate className="size-4" aria-hidden />
+                Browse templates
               </Link>
               {isGuest ? (
                 <Button
                   type="button"
                   onClick={() => openLogin(ROUTES.app.root)}
                   variant="ghost"
-                  className="h-10 rounded-full px-4 text-sm font-semibold text-[#2268d7] hover:bg-sky-100/50 hover:text-[#1a56b8]"
+                  size="touch"
+                  className="rounded-full px-4 text-sm font-semibold text-[#2268d7] hover:bg-sky-100/50 hover:text-[#1a56b8]"
                 >
                   Sign in to sync
                   <ArrowRight className="size-4" aria-hidden />
@@ -410,7 +389,7 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
       </section>
 
       {/* Stats row */}
-      <section aria-label="Workspace stats" className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+      <section aria-label="Workspace stats" className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
         <StatCard
           label="Resumes"
           value={projects.length}
@@ -420,28 +399,19 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
           iconClass="bg-[#2268d7]/10 text-[#2268d7]"
         />
         <StatCard
-          label="Saved jobs"
-          value={savedJobsCount}
-          sub={isGuest ? "Sign in to track" : "Browse listings"}
-          href={ROUTES.app.jobs}
-          icon={Briefcase}
-          iconClass="bg-amber-100 text-amber-700"
+          label="Templates"
+          value="Browse"
+          sub="Layouts for your projects"
+          href={ROUTES.app.templates}
+          icon={LayoutTemplate}
+          iconClass="bg-violet-100 text-violet-800"
         />
         <StatCard
-          label="Applications"
-          value={activeApplications}
-          sub={isGuest ? "Sign in to track" : "Active in pipeline"}
-          href={ROUTES.app.applications}
-          icon={ClipboardList}
-          iconClass="bg-emerald-100 text-emerald-700"
-        />
-        <StatCard
-          label="Interviews"
-          value={interviewCount}
-          sub={isGuest ? "Sign in to track" : "Scheduled this week"}
-          href={ROUTES.app.applications}
-          icon={TrendingUp}
-          iconClass="bg-violet-100 text-violet-700"
+          label="Jobs & applications"
+          value="—"
+          sub="On the roadmap after resume export"
+          icon={Sparkles}
+          iconClass="bg-slate-100 text-slate-600"
         />
       </section>
 
@@ -456,7 +426,7 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
       {/* Recent resumes */}
       <section
         aria-labelledby="recent-resumes-heading"
-        className="min-w-0 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6"
+        className="min-w-0 overflow-x-clip rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6"
       >
         <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
           <div className="min-w-0">
@@ -476,7 +446,7 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
           </div>
           <Link
             href={ROUTES.app.resumes}
-            className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-[#2268d7] transition-colors hover:bg-sky-50 hover:text-[#1a56b8] sm:text-sm"
+            className="inline-flex min-h-11 min-w-[2.75rem] items-center justify-center gap-1 rounded-full px-3 py-2 text-xs font-semibold text-[#2268d7] transition-colors hover:bg-sky-50 hover:text-[#1a56b8] sm:min-h-0 sm:text-sm"
           >
             View all
             <ArrowRight className="size-4" aria-hidden />
@@ -485,136 +455,47 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
         <RecentResumesRow recentResumes={recentResumes} isGuest={isGuest} />
       </section>
 
-      {/* Two column: pipeline + jobs */}
-      <section className="grid min-w-0 gap-4 lg:grid-cols-2 lg:gap-5">
-        {/* Pipeline / next steps */}
-        <article className="flex min-w-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                <ClipboardList className="size-4.5" aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <h2 className="truncate text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
-                  Application pipeline
-                </h2>
-                <p className="truncate text-xs text-slate-500 sm:text-sm">
-                  {isGuest ? "Sample pipeline — sign in to track yours." : "Next steps for active applications."}
-                </p>
-              </div>
+      <section
+        aria-label="Product roadmap"
+        className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6"
+      >
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+              <Sparkles className="size-5" aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
+                Job search &amp; application tracking
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                Not part of this release. There is no live job feed or application database behind the
+                dashboard yet — we are prioritizing resume editing, preview, checkout, and PDF export so
+                what you ship to employers is trustworthy first.
+              </p>
             </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
             <Link
-              href={ROUTES.app.applications}
-              className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-[#2268d7] transition-colors hover:bg-sky-50 hover:text-[#1a56b8] sm:text-sm"
+              href={ROUTES.app.resumes}
+              className={cn(
+                buttonVariants({ variant: "default", size: "touch" }),
+                "rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]",
+              )}
             >
-              Track
-              <ArrowRight className="size-4" aria-hidden />
+              Go to resumes
+            </Link>
+            <Link
+              href={ROUTES.create}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "touch" }),
+                "rounded-full border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50",
+              )}
+            >
+              Resume builder
             </Link>
           </div>
-
-          <ul className="space-y-2.5">
-            {upcomingPipeline.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/40 p-3 transition-colors hover:border-slate-200 hover:bg-white sm:p-3.5"
-              >
-                <div
-                  className={cn(
-                    "flex size-10 shrink-0 items-center justify-center rounded-lg text-xs font-bold",
-                    a.logo.className,
-                  )}
-                  aria-hidden
-                >
-                  {a.logo.letter}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{a.company}</p>
-                    <span
-                      className={cn(
-                        "shrink-0 rounded-full px-2 py-0.5 text-[0.65rem] font-semibold",
-                        statusBadgeClass(a.status),
-                      )}
-                    >
-                      {a.status}
-                    </span>
-                  </div>
-                  <p className="truncate text-xs text-slate-600">{a.roleTitle}</p>
-                  {a.nextStep ? (
-                    <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-slate-500">
-                      <ListTodo className="size-3.5 shrink-0 text-slate-400" aria-hidden />
-                      {a.nextStep}
-                    </p>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </article>
-
-        {/* Suggested jobs */}
-        <article className="flex min-w-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-                <Star className="size-4.5" aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <h2 className="truncate text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
-                  Suggested jobs
-                </h2>
-                <p className="truncate text-xs text-slate-500 sm:text-sm">
-                  Fresh listings near you — tailor a resume per role.
-                </p>
-              </div>
-            </div>
-            <Link
-              href={ROUTES.app.jobs}
-              className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-[#2268d7] transition-colors hover:bg-sky-50 hover:text-[#1a56b8] sm:text-sm"
-            >
-              Browse
-              <ArrowRight className="size-4" aria-hidden />
-            </Link>
-          </div>
-
-          <ul className="space-y-2.5">
-            {suggestedJobs.map((j) => (
-              <li
-                key={j.id}
-                className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/40 p-3 transition-colors hover:border-slate-200 hover:bg-white sm:p-3.5"
-              >
-                <div
-                  className={cn(
-                    "flex size-10 shrink-0 items-center justify-center rounded-lg text-xs font-bold",
-                    j.logo.className,
-                  )}
-                  aria-hidden
-                >
-                  {j.logo.letter}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-slate-900">{j.title}</p>
-                  <p className="truncate text-xs text-slate-600">{j.company}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.7rem] text-slate-500">
-                    <span className="inline-flex items-center gap-1">
-                      <MapPin className="size-3 text-slate-400" aria-hidden />
-                      {j.locationLabel}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Briefcase className="size-3 text-slate-400" aria-hidden />
-                      {j.employmentType}
-                    </span>
-                    {j.salaryLabel ? (
-                      <span className="inline-flex items-center gap-1 font-medium text-emerald-700">
-                        {j.salaryLabel}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </article>
+        </div>
       </section>
 
       {/* Getting started / guest CTA */}
@@ -630,7 +511,7 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
                   Sign in to unlock the full workspace
                 </h2>
                 <p className="mt-0.5 text-sm text-slate-600">
-                  Save unlimited resume versions, track applications, and sync across devices. Your draft on{" "}
+                  Save resume projects to your account, export PDFs, and sync across devices. Your draft on{" "}
                   <Link href={ROUTES.create} className="font-medium text-[#2268d7] underline-offset-2 hover:underline">
                     Create
                   </Link>{" "}
@@ -642,15 +523,16 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
               <Button
                 type="button"
                 onClick={() => openLogin(ROUTES.app.root)}
-                className="h-10 rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]"
+                size="touch"
+                className="rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]"
               >
                 Sign in
               </Button>
               <Link
                 href={ROUTES.create}
                 className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "h-10 rounded-full border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50",
+                  buttonVariants({ variant: "outline", size: "touch" }),
+                  "rounded-full border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50",
                 )}
               >
                 Continue as guest

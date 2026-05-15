@@ -141,10 +141,22 @@ function BulletReviewFooter({
   const canAccept = Boolean(suggested && suggested.trim().length > 0);
   return (
     <div className={cn("flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end", "pt-2")}>
-      <Button type="button" variant="outline" className="w-full min-h-11 sm:w-auto" onClick={onCancel} disabled={loading}>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full min-h-[var(--touch-target-min)] sm:w-auto"
+        onClick={onCancel}
+        disabled={loading}
+      >
         Cancel
       </Button>
-      <Button type="button" variant="outline" className="w-full min-h-11 sm:w-auto" onClick={onRegenerate} disabled={loading}>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full min-h-[var(--touch-target-min)] sm:w-auto"
+        onClick={onRegenerate}
+        disabled={loading}
+      >
         {loading ? (
           <>
             <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
@@ -157,13 +169,18 @@ function BulletReviewFooter({
       <Button
         type="button"
         variant="secondary"
-        className="w-full min-h-11 sm:w-auto"
+        className="w-full min-h-[var(--touch-target-min)] sm:w-auto"
         onClick={onToggleEdit}
         disabled={loading || suggested === null}
       >
         {editing ? "Done editing" : "Edit"}
       </Button>
-      <Button type="button" className="w-full min-h-11 sm:w-auto" onClick={onAccept} disabled={loading || !canAccept}>
+      <Button
+        type="button"
+        className="w-full min-h-[var(--touch-target-min)] sm:w-auto"
+        onClick={onAccept}
+        disabled={loading || !canAccept}
+      >
         Accept
       </Button>
     </div>
@@ -248,7 +265,7 @@ function BulletReviewShell(props: {
             onChangeSuggested={props.onChangeSuggested}
           />
         </div>
-        <SheetFooter className="shrink-0 border-t border-border bg-background px-4 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+        <SheetFooter className="shrink-0 border-t border-border bg-background px-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] pt-4 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
           <BulletReviewFooter
             loading={props.loading}
             suggested={props.suggested}

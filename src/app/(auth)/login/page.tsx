@@ -55,6 +55,7 @@ function loginErrorAlert(error: string | undefined) {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const sp = await searchParams;
   const nextPath = sanitizeNextPath(firstParam(sp.next));
+  const signupIntent = firstParam(sp.intent) === "signup";
 
   return (
     <AuthCard
@@ -63,7 +64,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     >
       <div className="flex flex-col gap-6">
         {loginErrorAlert(firstParam(sp.error))}
-        <LoginForm nextPath={nextPath} />
+        <LoginForm nextPath={nextPath} signupIntent={signupIntent} />
       </div>
     </AuthCard>
   );

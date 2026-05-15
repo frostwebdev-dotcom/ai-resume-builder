@@ -4,8 +4,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  Briefcase,
-  ClipboardList,
   FileText,
   LayoutDashboard,
   LayoutTemplate,
@@ -110,7 +108,7 @@ type Props = {
 };
 
 /**
- * Signed-in dashboard home: 2×2 workspace hub (resumes + placeholders).
+ * Signed-in dashboard home: workspace hub (resumes + templates).
  */
 export function DashboardWorkspaceGrid({ projects }: Props) {
   const topProjects = projects.slice(0, 6);
@@ -150,36 +148,6 @@ export function DashboardWorkspaceGrid({ projects }: Props) {
           <span className="mt-2 text-center text-xs font-semibold">Browse templates</span>
         </Link>
       </PanelChrome>
-
-      <PanelChrome title="Jobs" href={ROUTES.app.jobs} icon={Briefcase}>
-        <ul className="space-y-0 divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/50">
-          {[
-            { title: "Saved roles will appear here", company: "Link postings from the Jobs tab" },
-            { title: "Track status at a glance", company: `Coming soon in ${APP_NAME}` },
-            { title: "Open Jobs to learn more", company: "We’re building this workspace" },
-          ].map((row, i) => (
-            <li key={i} className="flex items-center gap-3 p-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-bold text-slate-400 ring-1 ring-slate-200">
-                {String.fromCharCode(65 + i)}
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900">{row.title}</p>
-                <p className="truncate text-xs text-slate-500">{row.company}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </PanelChrome>
-
-      <PanelChrome title="Applications" href={ROUTES.app.applications} icon={ClipboardList}>
-        <Link
-          href={ROUTES.app.applications}
-          className="flex min-h-[10.5rem] flex-col items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-inner transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
-        >
-          <Plus className="size-7 text-slate-400" aria-hidden />
-          <span className="mt-2 text-sm font-semibold text-slate-800">Add application</span>
-        </Link>
-      </PanelChrome>
     </div>
   );
 }
@@ -199,6 +167,4 @@ export const DASHBOARD_NAV_DESKTOP = [
   { href: ROUTES.app.root, label: "Dashboard", icon: LayoutDashboard },
   { href: ROUTES.app.resumes, label: "Resumes", icon: FileText },
   { href: ROUTES.app.templates, label: "Templates", icon: LayoutTemplate },
-  { href: ROUTES.app.jobs, label: "Jobs", icon: Briefcase },
-  { href: ROUTES.app.applications, label: "Applications", icon: ClipboardList },
 ] as const;

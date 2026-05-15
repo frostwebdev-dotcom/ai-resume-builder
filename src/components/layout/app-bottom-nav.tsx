@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, FileText, LayoutDashboard, UserRound } from "lucide-react";
+import { FileText, LayoutDashboard, LayoutTemplate, UserRound } from "lucide-react";
 
 import { useAppLoginPanel } from "@/components/layout/app-login-panel";
 import { dashboardSidebarActive } from "@/components/projects/dashboard-workspace-grid";
@@ -12,7 +12,7 @@ import { ROUTES } from "@/lib/constants";
 const items = [
   { href: ROUTES.app.root, label: "Home", icon: LayoutDashboard },
   { href: ROUTES.app.resumes, label: "Resumes", icon: FileText },
-  { href: ROUTES.app.jobs, label: "Jobs", icon: Briefcase },
+  { href: ROUTES.app.templates, label: "Templates", icon: LayoutTemplate },
   { href: ROUTES.app.account, label: "Account", icon: UserRound },
 ] as const;
 

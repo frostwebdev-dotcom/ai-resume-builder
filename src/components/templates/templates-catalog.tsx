@@ -88,10 +88,11 @@ function keepScrollRailOnMouseOnly(e: { pointerType: string; preventDefault(): v
 
 /** “All Filters” — white chip, subtle border, navy label (matches catalog reference). */
 const ALL_FILTERS_BUTTON = cn(
-  "inline-flex h-10 max-w-full shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold tracking-tight outline-none transition-[color,background-color,border-color,box-shadow]",
+  "inline-flex h-11 min-h-[var(--touch-target-min)] max-w-full shrink-0 items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold tracking-tight outline-none transition-[color,background-color,border-color,box-shadow]",
   "border-slate-200 bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
   "hover:border-slate-300 hover:bg-slate-50/90",
   "focus-visible:ring-2 focus-visible:ring-slate-900/15 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+  "md:h-10 md:min-h-0",
 );
 
 const ALL_FILTERS_BUTTON_ACTIVE =
@@ -101,19 +102,21 @@ const ALL_FILTERS_BUTTON_OPEN = "border-slate-400/80 bg-sky-50/60";
 
 /** Search field — same height, radius, and chrome as “All Filters” / toolbar. */
 const CATALOG_SEARCH_INPUT = cn(
-  "h-10 min-h-10 w-full rounded-lg border border-slate-200 bg-white py-0 text-sm font-normal text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+  "h-11 min-h-[var(--touch-target-min)] w-full rounded-lg border border-slate-200 bg-white py-0 text-base font-normal text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
   "placeholder:text-slate-500",
   "transition-[border-color,box-shadow,color] outline-none",
   "focus-visible:border-slate-300 focus-visible:ring-2 focus-visible:ring-slate-900/12 focus-visible:ring-offset-0",
   "disabled:cursor-not-allowed disabled:opacity-50",
-  "sm:h-10 sm:min-h-10",
+  "md:h-10 md:min-h-0 md:text-sm",
 );
 
 /** Navy border + pale cyan when active/open (Career Stage, Style look). */
+/** Dropdown / filter triggers — ≥44px tap height on phones; compact on md+. */
 const CATALOG_FILTER_MENU_TRIGGER = cn(
-  "inline-flex h-9 max-w-full shrink-0 items-center gap-1.5 rounded-lg border-2 px-3 text-sm font-semibold outline-none transition-colors",
+  "inline-flex h-11 min-h-[var(--touch-target-min)] max-w-full shrink-0 items-center gap-1.5 rounded-lg border-2 px-3 text-sm font-semibold outline-none transition-colors",
   "border-slate-200 bg-slate-50/80 text-slate-800",
   "hover:bg-sky-50/90 focus-visible:ring-2 focus-visible:ring-slate-900/25 data-popup-open:bg-sky-100",
+  "md:h-9 md:min-h-0",
 );
 
 const CATALOG_FILTER_MENU_TRIGGER_ON = "border-slate-900 bg-sky-100 text-slate-900 shadow-sm";
@@ -341,7 +344,7 @@ export function TemplatesCatalog({ surface, guest = false, className }: Template
           </div>
         ) : null}
 
-        <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:thin] sm:gap-2.5 sm:pb-0">
+        <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto overscroll-x-contain pb-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:gap-2.5 sm:pb-0">
           {surface === "app" ? (
             <InputWithIcon
               className="min-h-10 min-w-0 max-w-full flex-1 basis-0 items-center sm:min-w-[12rem]"

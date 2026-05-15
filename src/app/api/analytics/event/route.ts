@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { persistProductAnalyticsEvent } from "@/lib/analytics/persist-product-event";
 import { inboundAnalyticsEventSchema } from "@/lib/analytics/validate-event";
 
 export const runtime = "nodejs";
@@ -30,6 +31,12 @@ export async function POST(request: NextRequest) {
     ...(props && Object.keys(props).length ? { props } : {}),
   });
   console.info(line);
+
+  void persistProductAnalyticsEvent(
+    event,
+    (props ?? undefined) as Record<string, unknown> | undefined,
+    client_ts ?? null,
+  );
 
   return new NextResponse(null, { status: 204 });
 }

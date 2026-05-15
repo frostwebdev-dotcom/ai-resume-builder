@@ -9,7 +9,7 @@ export function isPublicPath(pathname: string): boolean {
   }
   if (pathname === "/") return true;
   if (pathname.startsWith("/create")) return true;
-  /** Guest dashboard, resumes, in-app templates, jobs, and applications index (other `/app/*` routes stay protected). */
+  /** Guest dashboard, resumes, in-app templates, plus jobs/applications “coming soon” pages (other `/app/*` routes stay protected). */
   if (pathname === ROUTES.app.root || pathname === `${ROUTES.app.root}/`) {
     return true;
   }
@@ -33,6 +33,9 @@ export function isPublicPath(pathname: string): boolean {
     pathname.startsWith("/contact") ||
     pathname.startsWith("/privacy") ||
     pathname.startsWith("/terms") ||
+    pathname.startsWith(ROUTES.refundPolicy) ||
+    pathname.startsWith(ROUTES.aiDisclaimer) ||
+    pathname.startsWith(ROUTES.atsDisclaimer) ||
     pathname.startsWith("/style-guide") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||

@@ -132,7 +132,13 @@ export function ProjectPreviewClient({
             alone.
           </AlertDescription>
           <div className="mt-2 flex justify-end">
-            <Button type="button" variant="outline" size="sm" onClick={dismissCheckoutBanner}>
+            <Button
+              type="button"
+              variant="outline"
+              size="default"
+              className="min-h-11 touch-manipulation sm:min-h-9"
+              onClick={dismissCheckoutBanner}
+            >
               Dismiss
             </Button>
           </div>
@@ -149,7 +155,13 @@ export function ProjectPreviewClient({
             persists.
           </AlertDescription>
           <div className="mt-2 flex justify-end">
-            <Button type="button" variant="outline" size="sm" onClick={dismissCheckoutBanner}>
+            <Button
+              type="button"
+              variant="outline"
+              size="default"
+              className="min-h-11 touch-manipulation sm:min-h-9"
+              onClick={dismissCheckoutBanner}
+            >
               Dismiss
             </Button>
           </div>
@@ -164,7 +176,13 @@ export function ProjectPreviewClient({
             page in a minute—the download unlocks from our database, not from a query parameter.
           </AlertDescription>
           <div className="mt-2 flex justify-end">
-            <Button type="button" variant="outline" size="sm" onClick={dismissCheckoutBanner}>
+            <Button
+              type="button"
+              variant="outline"
+              size="default"
+              className="min-h-11 touch-manipulation sm:min-h-9"
+              onClick={dismissCheckoutBanner}
+            >
               Dismiss
             </Button>
           </div>
@@ -179,7 +197,13 @@ export function ProjectPreviewClient({
             payment.
           </AlertDescription>
           <div className="mt-2 flex justify-end">
-            <Button type="button" variant="outline" size="sm" onClick={dismissCheckoutBanner}>
+            <Button
+              type="button"
+              variant="outline"
+              size="default"
+              className="min-h-11 touch-manipulation sm:min-h-9"
+              onClick={dismissCheckoutBanner}
+            >
               Dismiss
             </Button>
           </div>
@@ -191,7 +215,13 @@ export function ProjectPreviewClient({
           <AlertTitle>Checkout cancelled</AlertTitle>
           <AlertDescription>No charge was made. You can continue previewing and pay when you are ready.</AlertDescription>
           <div className="mt-2 flex justify-end">
-            <Button type="button" variant="outline" size="sm" onClick={dismissCheckoutBanner}>
+            <Button
+              type="button"
+              variant="outline"
+              size="default"
+              className="min-h-11 touch-manipulation sm:min-h-9"
+              onClick={dismissCheckoutBanner}
+            >
               Dismiss
             </Button>
           </div>

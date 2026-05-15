@@ -6,6 +6,7 @@ import { getStripeServer } from "@/lib/stripe/server";
 import { serverEnv } from "@/lib/env";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { persistProductAnalyticsEvent } from "@/lib/analytics/persist-product-event";
 import { trackServerEvent } from "@/lib/analytics/server";
 import type { Json } from "@/types/database";
 import { sendPurchaseReceiptEmailIfNeeded } from "@/services/email/stripe-receipt";
@@ -146,6 +147,12 @@ async function finalizeOrderPaid(params: {
   }
 
   trackServerEvent(ANALYTICS_EVENTS.PAYMENT_SUCCEEDED, {
+    product_sku: order.product_sku,
+    order_id_prefix: order.id.slice(0, 8),
+    amount_cents: amountCents,
+  });
+
+  void persistProductAnalyticsEvent(ANALYTICS_EVENTS.PAYMENT_SUCCEEDED, {
     product_sku: order.product_sku,
     order_id_prefix: order.id.slice(0, 8),
     amount_cents: amountCents,

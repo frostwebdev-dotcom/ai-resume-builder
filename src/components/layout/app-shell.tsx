@@ -48,7 +48,7 @@ function AppShellInner({ children, user }: AppShellProps) {
           )}
         >
           <AppMobileHeader user={user} />
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-auto scroll-pb-28 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:scroll-pb-0 md:pb-8">
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-auto scroll-pb-28 scroll-pt-[calc(3.5rem+env(safe-area-inset-top,0px))] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:scroll-pt-0 md:scroll-pb-0 md:pb-8">
             {children}
           </main>
           <AppBottomNav guest={guest} />

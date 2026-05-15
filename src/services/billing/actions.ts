@@ -1,6 +1,7 @@
 "use server";
 
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
+import { persistProductAnalyticsEvent } from "@/lib/analytics/persist-product-event";
 import { trackServerEvent } from "@/lib/analytics/server";
 import {
   enforceCheckoutPollLimit,
@@ -63,6 +64,11 @@ export async function startCheckoutAction(raw: unknown): Promise<StartCheckoutRe
   }
 
   trackServerEvent(ANALYTICS_EVENTS.CHECKOUT_STARTED, {
+    product_sku: parsed.data.productSku,
+    project_id_prefix: project.id.slice(0, 8),
+  });
+
+  void persistProductAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_STARTED, {
     product_sku: parsed.data.productSku,
     project_id_prefix: project.id.slice(0, 8),
   });

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
@@ -16,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const faqs = [
+const faqs: { q: string; a: ReactNode }[] = [
   {
     q: `Is ${APP_NAME} free to try?`,
     a: "Yes. You can build and preview your resume without paying. You only pay when you export your final PDF.",
@@ -47,7 +48,19 @@ const faqs = [
   },
   {
     q: "How do refunds work?",
-    a: "We aim to be fair if something breaks on export. Contact support with your order details and we will review. Final policy language will live in our Terms as checkout goes live.",
+    a: (
+      <>
+        Digital unlocks are usually final once delivered, but we may refund or credit duplicate charges,
+        confirmed unlock failures we cannot fix in reasonable time, or where the law requires it. See our{" "}
+        <Link
+          href={ROUTES.refundPolicy}
+          className="font-medium text-brand underline-offset-4 hover:underline"
+        >
+          Refund policy
+        </Link>{" "}
+        and contact us with your account email and purchase date if something looks wrong.
+      </>
+    ),
   },
 ];
 
@@ -77,7 +90,7 @@ export default function FaqPage() {
                   aria-hidden
                 />
               </summary>
-              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
+              <div className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.a}</div>
             </details>
           ))}
         </div>
