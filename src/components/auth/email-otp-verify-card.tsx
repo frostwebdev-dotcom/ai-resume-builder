@@ -11,12 +11,16 @@ import { mapEmailOtpVerifyError } from "@/lib/auth/supabase-auth-errors";
 import { ROUTES } from "@/lib/constants";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { emailOtpTokenSchema } from "@/validation/auth";
+import {
+  EMAIL_OTP_TOKEN_MAX_LEN,
+  EMAIL_OTP_TOKEN_MIN_LEN,
+  emailOtpTokenSchema,
+} from "@/validation/auth";
 import type { Session } from "@supabase/supabase-js";
 
-/** Strips non-digits and keeps up to 6 characters (handles SMS / keyboard autofill). */
+/** Strips non-digits and keeps up to `EMAIL_OTP_TOKEN_MAX_LEN` (SMS / autofill / paste). */
 function normalizeOtpInput(raw: string): string {
-  return raw.replace(/\D/g, "").slice(0, 6);
+  return raw.replace(/\D/g, "").slice(0, EMAIL_OTP_TOKEN_MAX_LEN);
 }
 
 type EmailOtpVerifyCardProps = {
@@ -31,7 +35,7 @@ type EmailOtpVerifyCardProps = {
 };
 
 /**
- * Step 2 of email passwordless: user enters the 6-digit code from email.
+ * Step 2 of email passwordless: user enters the one-time code from email (Supabase often uses 8 digits).
  * Requires the Supabase "Magic link" template to include `{{ .Token }}` so emails contain OTP.
  * @see https://supabase.com/docs/guides/auth/auth-email-passwordless#with-otp
  */
@@ -89,7 +93,10 @@ export function EmailOtpVerifyCard({
   function applyCodeFromString(raw: string, opts?: { submitIfComplete?: boolean }) {
     const next = normalizeOtpInput(raw);
     setCode(next);
-    if (opts?.submitIfComplete && next.length === 6 && formRef.current) {
+    const len = next.length;
+    const looksComplete =
+      len === EMAIL_OTP_TOKEN_MIN_LEN || len === EMAIL_OTP_TOKEN_MAX_LEN;
+    if (opts?.submitIfComplete && looksComplete && formRef.current) {
       queueMicrotask(() => formRef.current?.requestSubmit());
     }
   }
@@ -152,7 +159,7 @@ export function EmailOtpVerifyCard({
         <h2 className="text-headline text-foreground">Enter your sign-in code</h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
           We emailed{" "}
-          <span className="font-semibold text-foreground">{email}</span>. If you see a 6-digit code,
+          <span className="font-semibold text-foreground">{email}</span>. If you see a one-time code,
           paste or type it below. If the message only has a sign-in link, open it — this screen
           continues automatically once you are signed in (same browser).
         </p>
@@ -168,7 +175,7 @@ export function EmailOtpVerifyCard({
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 text-left">
         <div className="flex flex-col gap-2">
           <label htmlFor="email-otp-code" className="text-sm font-medium text-foreground">
-            6-digit code
+            One-time code
           </label>
           <Input
             id="email-otp-code"
@@ -177,8 +184,8 @@ export function EmailOtpVerifyCard({
             inputMode="numeric"
             autoComplete="one-time-code"
             pattern="\d*"
-            maxLength={6}
-            placeholder="000000"
+            maxLength={EMAIL_OTP_TOKEN_MAX_LEN}
+            placeholder={"0".repeat(EMAIL_OTP_TOKEN_MAX_LEN)}
             value={code}
             onChange={(e) => applyCodeFromString(e.currentTarget.value)}
             onPaste={(e) => {
@@ -187,13 +194,13 @@ export function EmailOtpVerifyCard({
               applyCodeFromString(text, { submitIfComplete: true });
             }}
             onFocus={(e) => e.currentTarget.select()}
-            className="h-12 text-center font-mono text-lg tracking-[0.35em] tabular-nums"
+            className="h-12 text-center font-mono text-lg tracking-[0.2em] tabular-nums sm:tracking-[0.28em]"
             autoFocus
             disabled={busy}
             aria-invalid={Boolean(error)}
           />
           <p className="text-xs text-muted-foreground">
-            Tip: paste the whole line from your email; we keep the six digits. If a banner above
+            Tip: paste the whole line from your email; we keep the digits. If a banner above
             mentions a wait, send again after the timer. After using only a link, return to this tab
             if it does not advance on its own.
           </p>

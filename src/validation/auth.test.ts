@@ -1,6 +1,35 @@
 import { describe, expect, it } from "vitest";
 
-import { loginSchema, magicLinkSchema, signupSchema } from "@/validation/auth";
+import {
+  emailOtpTokenSchema,
+  loginSchema,
+  magicLinkSchema,
+  signupSchema,
+} from "@/validation/auth";
+
+describe("emailOtpTokenSchema", () => {
+  it("accepts 6-digit tokens", () => {
+    const result = emailOtpTokenSchema.safeParse({ token: "123456" });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts 8-digit tokens", () => {
+    const result = emailOtpTokenSchema.safeParse({ token: "49164750" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects too short", () => {
+    expect(emailOtpTokenSchema.safeParse({ token: "12345" }).success).toBe(false);
+  });
+
+  it("rejects too long", () => {
+    expect(emailOtpTokenSchema.safeParse({ token: "123456789" }).success).toBe(false);
+  });
+
+  it("rejects non-digits", () => {
+    expect(emailOtpTokenSchema.safeParse({ token: "12345a" }).success).toBe(false);
+  });
+});
 
 describe("magicLinkSchema", () => {
   it("accepts a valid email", () => {

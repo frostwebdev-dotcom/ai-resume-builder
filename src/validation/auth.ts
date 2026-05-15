@@ -30,12 +30,18 @@ export const magicLinkSchema = z.object({
   email: emailSchema,
 });
 
-/** 6-digit code from the Supabase email OTP template (`{{ .Token }}`). */
+/** Supabase `{{ .Token }}` is numeric; hosted projects commonly use 6 or 8 digits. */
+export const EMAIL_OTP_TOKEN_MIN_LEN = 6;
+export const EMAIL_OTP_TOKEN_MAX_LEN = 8;
+
 export const emailOtpTokenSchema = z.object({
   token: z
     .string()
     .trim()
-    .regex(/^\d{6}$/, "Enter the 6-digit code from your email."),
+    .regex(
+      new RegExp(`^\\d{${EMAIL_OTP_TOKEN_MIN_LEN},${EMAIL_OTP_TOKEN_MAX_LEN}}$`),
+      "Enter the full one-time code from your email.",
+    ),
 });
 
 /** First + last name collected in the guest `/app` sign-in panel before sending the magic link. */

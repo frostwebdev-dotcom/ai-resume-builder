@@ -115,7 +115,7 @@ function useSecondsUntil(ts: number | null): number {
 }
 
 /**
- * Passwordless-first login: `signInWithOtp` then `verifyOtp` with a 6-digit email code (no link
+ * Passwordless-first login: `signInWithOtp` then `verifyOtp` with the email one-time code (no link
  * click). `shouldCreateUser: true` on send. Returning users only skip this step while a session
  * cookie is still valid (persisted + refreshed in the browser client).
  *
@@ -806,7 +806,7 @@ export function LoginForm({
             What is your email address?
           </h2>
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            Passwordless sign-in: we&apos;ll email you a 6-digit code. Enter it here — no link click
+            Passwordless sign-in: we&apos;ll email you a one-time code. Enter it here — no link click
             and no password.
           </p>
           <form
@@ -1055,7 +1055,7 @@ export function LoginForm({
       </form>
 
       <p className="text-center text-xs text-muted-foreground">
-        We&apos;ll email you a one-time 6-digit code. New here? Your account is created when you
+        We&apos;ll email you a one-time code. New here? Your account is created when you
         verify the code. Stay signed in on this device to skip email on return visits.
       </p>
 
