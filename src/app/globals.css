@@ -171,6 +171,13 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  /* Native fields: never overflow flex/grid; comfortable insets for autofill UI */
+  input:where(:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"])),
+  textarea,
+  select {
+    min-width: 0;
+    max-width: 100%;
+  }
   html {
     @apply font-sans;
     /* Avoid rare horizontal “page bleed” from wide descendants in flex/grid shells */

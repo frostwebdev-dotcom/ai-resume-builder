@@ -33,7 +33,7 @@ export function AuthCard({ title, description, children }: AuthCardProps) {
             <p className="mt-2 text-body-muted text-pretty">{description}</p>
           ) : null}
         </div>
-        <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-8">
+        <div className="min-w-0 rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-8">
           {children}
         </div>
         <ul className="trust-row mt-6">

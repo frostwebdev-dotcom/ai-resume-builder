@@ -68,7 +68,7 @@ export function ContactForm({ className }: { className?: string }) {
             type="text"
             autoComplete="name"
             maxLength={120}
-            className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-base shadow-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+            className="flex h-11 min-h-11 w-full min-w-0 max-w-full rounded-lg border border-input bg-background px-3.5 text-base shadow-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="Ada Lovelace"
           />
           {fieldErrors?.name?.[0] ? (
@@ -85,7 +85,7 @@ export function ContactForm({ className }: { className?: string }) {
             type="email"
             required
             autoComplete="email"
-            className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-base shadow-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+            className="flex h-11 min-h-11 w-full min-w-0 max-w-full rounded-lg border border-input bg-background px-3.5 text-base shadow-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="you@example.com"
           />
           {fieldErrors?.email?.[0] ? (
@@ -102,7 +102,7 @@ export function ContactForm({ className }: { className?: string }) {
           id="contact-topic"
           name="topic"
           required
-          className="flex h-11 w-full rounded-lg border border-input bg-background px-3 text-base shadow-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+          className="flex h-11 min-h-11 w-full min-w-0 max-w-full rounded-lg border border-input bg-background px-3.5 text-base shadow-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
           defaultValue="product"
         >
           {TOPICS.map(([value, label]) => (
@@ -127,7 +127,7 @@ export function ContactForm({ className }: { className?: string }) {
           rows={5}
           minLength={20}
           maxLength={5000}
-          className="min-h-[120px] w-full resize-y rounded-lg border border-input bg-background px-3 py-2.5 text-base shadow-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+          className="min-h-[120px] w-full min-w-0 max-w-full resize-y rounded-lg border border-input bg-background px-3.5 py-2.5 text-base shadow-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
           placeholder="Tell us what you need — a few sentences helps us respond faster."
         />
         {fieldErrors?.message?.[0] ? (

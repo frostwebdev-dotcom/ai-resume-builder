@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { Label } from "@/components/ui/label";
+import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { cn } from "@/lib/utils";
 
 type FieldProps = {
@@ -59,8 +60,38 @@ export function Field({
             "aria-invalid": error ? true : undefined,
             "aria-describedby": describedBy,
           } as const;
+
+          function injectIntoInputWithIcon(
+            wrap: React.ReactElement<{ children?: React.ReactNode }>,
+          ): React.ReactElement {
+            const inner = wrap.props.children;
+            if (!React.isValidElement(inner)) {
+              return wrap;
+            }
+            const innerProps = (inner as React.ReactElement<Record<string, unknown>>).props;
+            return React.cloneElement(wrap, {
+              ...wrap.props,
+              children: React.cloneElement(
+                inner as React.ReactElement<{
+                  id?: string;
+                  "aria-invalid"?: boolean;
+                  "aria-describedby"?: string;
+                }>,
+                {
+                  ...innerProps,
+                  ...injected,
+                },
+              ),
+            });
+          }
+
           // Single child: inject directly (preserves original behavior).
           if (React.isValidElement(children)) {
+            if (children.type === InputWithIcon) {
+              return injectIntoInputWithIcon(
+                children as React.ReactElement<{ children?: React.ReactNode }>,
+              );
+            }
             return React.cloneElement(
               children as React.ReactElement<{
                 id?: string;
@@ -76,6 +107,11 @@ export function Field({
           return React.Children.map(children, (child) => {
             if (!hasInjected && React.isValidElement(child)) {
               hasInjected = true;
+              if (child.type === InputWithIcon) {
+                return injectIntoInputWithIcon(
+                  child as React.ReactElement<{ children?: React.ReactNode }>,
+                );
+              }
               return React.cloneElement(
                 child as React.ReactElement<{
                   id?: string;
