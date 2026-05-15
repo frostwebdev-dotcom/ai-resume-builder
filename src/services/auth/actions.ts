@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { sanitizeNextPath } from "@/lib/auth/redirect";
+import {
+  mapForgotPasswordEmailError,
+  mapResetPasswordUpdateError,
+} from "@/lib/auth/supabase-auth-errors";
 import { clientEnv } from "@/lib/env";
 import { ROUTES } from "@/lib/constants";
 import { abuseHooks } from "@/lib/security/abuse-hooks";
@@ -63,7 +67,8 @@ export async function forgotPasswordAction(
   });
 
   if (error) {
-    return { error: error.message };
+    console.warn("[forgot-password]", error.message);
+    return { error: mapForgotPasswordEmailError(error.message) };
   }
 
   return {
@@ -96,11 +101,16 @@ export async function resetPasswordAction(
   } = await supabase.auth.getUser();
   const email = beforeUser?.email ?? null;
 
-  if (beforeUser?.id) {
-    const rl = await enforceAuthPasswordResetLimit(beforeUser.id);
-    if (!rl.ok) {
-      return { error: rl.message };
-    }
+  if (!beforeUser?.id) {
+    return {
+      error:
+        "Your reset session is missing or expired. Open the link from your latest reset email, or request a new one from Forgot password.",
+    };
+  }
+
+  const rl = await enforceAuthPasswordResetLimit(beforeUser.id);
+  if (!rl.ok) {
+    return { error: rl.message };
   }
 
   const { error } = await supabase.auth.updateUser({
@@ -108,7 +118,8 @@ export async function resetPasswordAction(
   });
 
   if (error) {
-    return { error: error.message };
+    console.warn("[reset-password]", error.message);
+    return { error: mapResetPasswordUpdateError(error.message) };
   }
 
   if (email) {

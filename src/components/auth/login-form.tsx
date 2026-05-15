@@ -17,6 +17,10 @@ import { trackClientEvent } from "@/lib/analytics/client";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { tryTrackSignupCompletedAfterAuth } from "@/lib/analytics/try-track-signup-completed";
 import { getBrowserOrigin } from "@/lib/app/browser-origin";
+import {
+  mapPasswordSignInServerError,
+  mapSignUpError,
+} from "@/lib/auth/supabase-auth-errors";
 import { ROUTES } from "@/lib/constants";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -213,7 +217,7 @@ export function LoginForm({
             "Wrong email or password. Try again, or use Send sign-in code for email login.",
           );
         } else {
-          setGenericError(error.message || "Could not sign in. Try again.");
+          setGenericError(mapPasswordSignInServerError(error.message));
         }
         setPending("none");
         return false;
@@ -408,18 +412,7 @@ export function LoginForm({
       });
 
       if (error) {
-        const msg = error.message.toLowerCase();
-        if (
-          msg.includes("already") ||
-          msg.includes("registered") ||
-          msg.includes("exists")
-        ) {
-          setGenericError(
-            "That email already has an account. Use Send sign-in code, or continue with Google.",
-          );
-        } else {
-          setGenericError(error.message || "Could not create your account. Try again.");
-        }
+        setGenericError(mapSignUpError(error.message));
         setPending("none");
         return;
       }
@@ -1090,7 +1083,7 @@ export function LoginForm({
             onSubmit={handleDefaultSignInSubmit}
             className="mt-4 flex flex-col gap-4"
           >
-            <Field id="login-password" label="Password" required>
+            <Field id="login-password" label="Password" description="At least 8 characters." required>
               <Input
                 id="login-password"
                 name="password"
@@ -1099,7 +1092,8 @@ export function LoginForm({
                 value={signInPassword}
                 onChange={(e) => setSignInPassword(e.currentTarget.value)}
                 required
-                className="h-11"
+                minLength={8}
+                className="h-12 min-h-11 text-base sm:h-11"
               />
             </Field>
 

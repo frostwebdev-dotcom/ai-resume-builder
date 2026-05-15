@@ -24,13 +24,16 @@ export default function AuthIncompletePage() {
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <form action={signOutAction}>
-            <Button type="submit" variant="default">
+            <Button type="submit" variant="default" size="touch">
               Sign out
             </Button>
           </form>
           <Link
             href={ROUTES.home}
-            className={cn(buttonVariants({ variant: "outline" }), "inline-flex justify-center")}
+            className={cn(
+              buttonVariants({ variant: "outline", size: "touch" }),
+              "inline-flex justify-center",
+            )}
           >
             Back to home
           </Link>

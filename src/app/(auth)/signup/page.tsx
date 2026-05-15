@@ -29,6 +29,6 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
 }
 
 export const metadata = {
-  title: "Sign in",
+  title: "Sign up",
   robots: { index: false, follow: false },
 };

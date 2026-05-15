@@ -1,3 +1,6 @@
+import type { Metadata } from "next";
+import { CheckCircle2 } from "lucide-react";
+
 import { AuthCard } from "@/components/auth/auth-card";
 import { LoginForm } from "@/components/auth/login-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -52,6 +55,17 @@ function loginErrorAlert(error: string | undefined) {
   return null;
 }
 
+function resetSuccessAlert(reset: string | undefined) {
+  if (reset !== "success") return null;
+  return (
+    <Alert variant="success">
+      <CheckCircle2 aria-hidden />
+      <AlertTitle>Password updated</AlertTitle>
+      <AlertDescription>You can sign in with your new password below.</AlertDescription>
+    </Alert>
+  );
+}
+
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const sp = await searchParams;
   const nextPath = sanitizeNextPath(firstParam(sp.next));
@@ -59,10 +73,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   return (
     <AuthCard
-      title="Welcome"
-      description="Passwordless sign-in with email or Google — we email you a short code to type in."
+      title={signupIntent ? "Create your account" : "Welcome"}
+      description={
+        signupIntent
+          ? "Use your email for a one-time code, continue with Google, or create a password — same secure sign-in as returning users."
+          : "Sign in with a one-time email code, Google, or your password. New here? Your account is created when you verify your email code."
+      }
     >
       <div className="flex flex-col gap-6">
+        {resetSuccessAlert(firstParam(sp.reset))}
         {loginErrorAlert(firstParam(sp.error))}
         <LoginForm nextPath={nextPath} signupIntent={signupIntent} />
       </div>
@@ -70,7 +89,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   );
 }
 
-export const metadata = {
-  title: "Sign in",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({
+  searchParams,
+}: LoginPageProps): Promise<Metadata> {
+  const sp = await searchParams;
+  const signup = firstParam(sp.intent) === "signup";
+  return {
+    title: signup ? "Create account" : "Sign in",
+    robots: { index: false, follow: false },
+  };
+}

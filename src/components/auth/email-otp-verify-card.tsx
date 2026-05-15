@@ -4,9 +4,10 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { KeyRound, Loader2 } from "lucide-react";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { mapEmailOtpVerifyError } from "@/lib/auth/supabase-auth-errors";
 import { ROUTES } from "@/lib/constants";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -78,7 +79,7 @@ export function EmailOtpVerifyCard({
         if (msg.includes("expired") || msg.includes("invalid")) {
           setError("That code is wrong or expired. Request a new code and try again.");
         } else {
-          setError(verifyError.message || "Could not verify the code. Try again.");
+          setError(mapEmailOtpVerifyError(verifyError.message));
         }
         setPending("none");
         return;

@@ -18,8 +18,8 @@ type MagicLinkSentCardProps = {
 };
 
 /**
- * Shared "Check your inbox" confirmation shown after `signInWithOtp` succeeds.
- * Used by both the login and signup forms so the passwordless experience is consistent.
+ * "Check your inbox" confirmation after email-based auth steps (e.g. password sign-up pending
+ * confirmation, or legacy magic-link templates). Copy adapts for sign-up vs sign-in.
  */
 export function MagicLinkSentCard({
   email,
@@ -30,8 +30,13 @@ export function MagicLinkSentCard({
   const headline = mode === "signUp" ? "Almost there — check your inbox" : "Check your inbox";
   const lead =
     mode === "signUp"
-      ? "We sent a secure link to finish creating your account."
+      ? "We sent an email to confirm your new account."
       : "We sent a secure sign-in link to your inbox.";
+
+  const detail =
+    mode === "signUp"
+      ? "Open it on this device and follow the instructions (confirmation link or code, depending on your project settings). Then you can sign in with your email and password, or request a one-time sign-in code."
+      : "Open it on this device to finish signing in.";
 
   return (
     <div className="space-y-5 text-center">
@@ -45,18 +50,19 @@ export function MagicLinkSentCard({
         <h2 className="text-headline text-foreground">{headline}</h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
           {lead}{" "}
-          <span className="font-semibold text-foreground">{email}</span>. Open it on this device to
-          finish signing in.
+          <span className="font-semibold text-foreground">{email}</span>. {detail}
         </p>
       </div>
       <ul className="mx-auto max-w-xs space-y-2 text-left text-sm text-muted-foreground">
         <li className="flex items-start gap-2">
           <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-          The link expires in about an hour and can be used once.
+          {mode === "signUp"
+            ? "The message expires after a while — request a new one from the sign-in page if needed."
+            : "The link expires in about an hour and can be used once."}
         </li>
         <li className="flex items-start gap-2">
           <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-          Not seeing it? Check spam, then request a new link.
+          Not seeing it? Check spam, then request a new code or link from the sign-in page.
         </li>
       </ul>
       <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
