@@ -8,6 +8,7 @@ import { parseProjectMetadata } from "@/lib/projects/metadata";
 import { templateIdToSlug } from "@/lib/resume-preview/resolve-slug";
 import { DEFAULT_TEMPLATE_ID } from "@/lib/resume-preview/template-ids";
 import { DEFAULT_RESUME_STYLE_V1 } from "@/lib/resume-preview/resume-style";
+import { isStripeCheckoutConfigured } from "@/lib/billing/checkout-config";
 import {
   createSignedAvatarUrl,
   isAvatarPathOwnedBy,
@@ -18,10 +19,12 @@ import {
   fetchJobTargetForProject,
   toJobTargetClientView,
 } from "@/services/job-target/queries";
+import { getResumeDownloadAccess } from "@/services/downloads/queries";
 import { fetchWizardStateForProject } from "@/services/resume-wizard/actions";
 
 type PageProps = {
   params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ checkout?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -33,18 +36,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `Draft · ${detail.project.title}`,
     description:
-      "Studio resume draft with live preview (same editor as the public builder). Open Preview & export to choose a template and export a PDF.",
+      "Studio resume draft with live preview (same editor as the public builder). Pay once to unlock and download a final PDF.",
   };
 }
 
-export default async function ProjectBuildPage({ params }: PageProps) {
+export default async function ProjectBuildPage({ params, searchParams }: PageProps) {
   const { projectId } = await params;
-  const { user } = await requireUser({ nextPath: ROUTES.app.projectBuild(projectId) });
+  const query = await searchParams;
+  const checkoutStatus = Array.isArray(query.checkout) ? query.checkout[0] : query.checkout;
+  const { user, profile } = await requireUser({ nextPath: ROUTES.app.projectBuild(projectId) });
 
-  const [detail, wizard, jobTargetRow] = await Promise.all([
+  const [detail, wizard, jobTargetRow, downloadAccess] = await Promise.all([
     getProjectDetailForUser(user.id, projectId),
     fetchWizardStateForProject(user.id, projectId),
     fetchJobTargetForProject(user.id, projectId),
+    getResumeDownloadAccess(user.id, projectId),
   ]);
 
   if (!detail || !wizard) {
@@ -82,6 +88,17 @@ export default async function ProjectBuildPage({ params }: PageProps) {
         templateSlug={templateSlug}
         initialResumeStyle={initialResumeStyle}
         avatarSignedUrl={avatarSignedUrl}
+        canDownload={downloadAccess.canDownload}
+        checkoutStatus={
+          checkoutStatus === "success" ||
+          checkoutStatus === "pending" ||
+          checkoutStatus === "failed" ||
+          checkoutStatus === "cancelled"
+            ? checkoutStatus
+            : undefined
+        }
+        checkoutEnabled={isStripeCheckoutConfigured()}
+        showPaymentSetupDetails={profile.role === "admin" || process.env.NODE_ENV !== "production"}
       />
     </section>
   );

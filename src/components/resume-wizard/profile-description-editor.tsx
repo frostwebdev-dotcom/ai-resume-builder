@@ -38,8 +38,8 @@ type Props = {
   loginHref: string;
   className?: string;
   /**
-   * When `true`, hides the guest-only "Sign in for AI assist" CTA and the sign-in nudge
-   * footnote — signed-in drafts already render `SummaryAiPanel` below this editor.
+   * When `true`, hides the old "Sign in for AI assist" CTA because an AI panel
+   * is rendered below this editor (signed-in projects and public guest drafts).
    */
   signedIn?: boolean;
 };

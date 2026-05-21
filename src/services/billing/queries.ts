@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { reconcilePaidCheckoutSession } from "@/services/billing/stripe-webhook";
 
 export type CheckoutReturnState =
   | { kind: "missing_session" }
@@ -44,6 +45,15 @@ export async function getCheckoutReturnState(
 
   if (order.status === "failed" || order.status === "refunded") {
     return { kind: "failed", orderId: order.id };
+  }
+
+  const reconciled = await reconcilePaidCheckoutSession({
+    checkoutSessionId: checkoutSessionId.trim(),
+    userId,
+    projectId,
+  });
+  if (reconciled === "completed") {
+    return { kind: "paid", orderId: order.id };
   }
 
   return {

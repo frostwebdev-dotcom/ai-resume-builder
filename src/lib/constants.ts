@@ -32,6 +32,9 @@ export const ROUTES = {
     project: (id: string) => `/app/projects/${id}`,
     projectBuild: (id: string) => `/app/projects/${id}/build`,
     projectPreview: (id: string) => `/app/projects/${id}/preview`,
+    projectPreviewExport: (id: string) => `/app/projects/${id}/preview-export`,
+    projectPaymentSuccess: (id: string) => `/app/projects/${id}/payment-success`,
+    projectPaymentCancelled: (id: string) => `/app/projects/${id}/payment-cancelled`,
     /** Post-Stripe Checkout return (session_id filled by Stripe) */
     projectCheckoutReturn: (id: string) => `/app/projects/${id}/checkout/return`,
   },

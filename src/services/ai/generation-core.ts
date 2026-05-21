@@ -104,6 +104,9 @@ export async function runStructuredGeneration<T>(opts: {
   /** When true, skips `ai_generation_logs` insert (e.g. anonymous guest import). */
   skipLogging?: boolean;
 }): Promise<GenerationSuccess<T> | GenerationFailure> {
+  const skipLogging = opts.skipLogging || opts.userId.startsWith("guest:");
+  const logProjectId = opts.userId.startsWith("guest:") ? null : opts.projectId;
+
   if (!opts.skipUsageCheck) {
     const quota = await checkAiUsageAllowed(opts.userId);
     if (!quota.allowed) {
@@ -145,10 +148,10 @@ export async function runStructuredGeneration<T>(opts: {
       const usage = completion.usage;
 
       if (!choice?.trim()) {
-        if (!opts.skipLogging) {
+        if (!skipLogging) {
           await logAiGeneration({
             userId: opts.userId,
-            projectId: opts.projectId,
+            projectId: logProjectId,
             model,
             promptHash,
             ok: false,
@@ -170,10 +173,10 @@ export async function runStructuredGeneration<T>(opts: {
       try {
         parsed = extractJsonObject(choice);
       } catch {
-        if (!opts.skipLogging) {
+        if (!skipLogging) {
           await logAiGeneration({
             userId: opts.userId,
-            projectId: opts.projectId,
+            projectId: logProjectId,
             model,
             promptHash,
             ok: false,
@@ -193,10 +196,10 @@ export async function runStructuredGeneration<T>(opts: {
 
       const safe = opts.outputSchema.safeParse(parsed);
       if (!safe.success) {
-        if (!opts.skipLogging) {
+        if (!skipLogging) {
           await logAiGeneration({
             userId: opts.userId,
-            projectId: opts.projectId,
+            projectId: logProjectId,
             model,
             promptHash,
             ok: false,
@@ -214,10 +217,10 @@ export async function runStructuredGeneration<T>(opts: {
         };
       }
 
-      if (!opts.skipLogging) {
+      if (!skipLogging) {
         await logAiGeneration({
           userId: opts.userId,
-          projectId: opts.projectId,
+          projectId: logProjectId,
           model,
           promptHash,
           ok: true,
@@ -248,10 +251,10 @@ export async function runStructuredGeneration<T>(opts: {
   const code =
     lastError instanceof OpenAI.APIError ? String(lastError.status) : "UNKNOWN";
 
-  if (!opts.skipLogging) {
+  if (!skipLogging) {
     await logAiGeneration({
       userId: opts.userId,
-      projectId: opts.projectId,
+      projectId: logProjectId,
       model,
       promptHash,
       ok: false,

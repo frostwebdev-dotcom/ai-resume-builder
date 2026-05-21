@@ -401,6 +401,85 @@ export async function processStripeWebhookEvent(event: Stripe.Event): Promise<vo
   }
 }
 
+export async function reconcilePaidCheckoutSession(params: {
+  checkoutSessionId: string;
+  userId: string;
+  projectId: string;
+}): Promise<"completed" | "pending" | "not_found"> {
+  const service = createSupabaseServiceRoleClient();
+  const { data: order, error } = await service
+    .from("orders")
+    .select("id, status")
+    .eq("stripe_checkout_session_id", params.checkoutSessionId)
+    .eq("user_id", params.userId)
+    .eq("project_id", params.projectId)
+    .maybeSingle();
+
+  if (error || !order) {
+    if (error) console.error("[checkout reconcile] order lookup", error);
+    return "not_found";
+  }
+
+  if (order.status === "completed") {
+    return "completed";
+  }
+
+  try {
+    const stripe = getStripeServer();
+    const session = await stripe.checkout.sessions.retrieve(params.checkoutSessionId, {
+      expand: ["payment_intent"],
+    });
+
+    const paid =
+      session.payment_status === "paid" || session.payment_status === "no_payment_required";
+    if (!paid) {
+      return "pending";
+    }
+
+    await markOrderCompletedFromSession(session, "checkout.session.retrieved");
+
+    const { data: refreshed } = await service
+      .from("orders")
+      .select("status")
+      .eq("id", order.id)
+      .maybeSingle();
+
+    return refreshed?.status === "completed" ? "completed" : "pending";
+  } catch (e) {
+    console.error("[checkout reconcile] stripe session retrieve", e);
+    return "pending";
+  }
+}
+
+export async function reconcileLatestPaidCheckoutForProject(params: {
+  userId: string;
+  projectId: string;
+}): Promise<"completed" | "pending" | "not_found"> {
+  const service = createSupabaseServiceRoleClient();
+  const { data: order, error } = await service
+    .from("orders")
+    .select("stripe_checkout_session_id")
+    .eq("user_id", params.userId)
+    .eq("project_id", params.projectId)
+    .eq("product_sku", "resume_pdf_v1")
+    .in("status", ["pending", "processing"])
+    .not("stripe_checkout_session_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !order?.stripe_checkout_session_id) {
+    if (error) console.error("[checkout reconcile] latest order lookup", error);
+    return "not_found";
+  }
+
+  return reconcilePaidCheckoutSession({
+    checkoutSessionId: order.stripe_checkout_session_id,
+    userId: params.userId,
+    projectId: params.projectId,
+  });
+}
+
 export function verifyStripeWebhookSignature(
   rawBody: string | Buffer,
   signature: string | null,

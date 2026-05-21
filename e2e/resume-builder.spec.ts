@@ -21,6 +21,14 @@ test.describe("Resume builder smoke", () => {
     await expect(page.getByLabel("Resume title")).toBeVisible({ timeout: 120_000 });
   });
 
+  test("Guest /create shows AI assist without sign-in", async ({ page }) => {
+    await page.goto("/create", { waitUntil: "domcontentloaded" });
+    await expect(page.getByLabel("Resume title")).toBeVisible({ timeout: 120_000 });
+    await page.getByText("Profile", { exact: true }).first().click();
+    await expect(page.getByRole("button", { name: "Generate summary" })).toBeVisible();
+    await expect(page.getByText("Sign in for AI assist")).toHaveCount(0);
+  });
+
   test("Marketing /templates shows catalog search", async ({ page }) => {
     await page.goto("/templates", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: /pick a layout you trust/i })).toBeVisible();

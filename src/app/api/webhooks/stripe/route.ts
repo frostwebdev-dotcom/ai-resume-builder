@@ -26,9 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Webhook verification failed." }, { status: 400 });
   }
 
-  if (process.env.NODE_ENV === "production") {
-    console.info("[stripe webhook]", JSON.stringify({ id: event.id, type: event.type }));
-  }
+  console.info("[stripe webhook]", JSON.stringify({ id: event.id, type: event.type }));
 
   try {
     await processStripeWebhookEvent(event);

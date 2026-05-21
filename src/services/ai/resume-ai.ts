@@ -1,6 +1,7 @@
 import "server-only";
 
 import { resumeScoreOutputSchema } from "@/lib/ai/schemas";
+import { isGuestAiProjectId } from "@/lib/ai/guest";
 import { tryLogAiSuggestion } from "@/lib/ai/usage-logger";
 import { hydrateWizardState } from "@/lib/resume-wizard/parse";
 import { wizardStateSchema } from "@/lib/resume-wizard/schema";
@@ -57,6 +58,7 @@ async function guardProject(
   userId: string,
   projectId: string,
 ): Promise<true | Gen<never>> {
+  if (userId.startsWith("guest:") && isGuestAiProjectId(projectId)) return true;
   const ok = await assertResumeProjectOwned(userId, projectId);
   if (!ok) return { ok: false, error: "Project not found.", code: "NOT_FOUND" };
   return true;

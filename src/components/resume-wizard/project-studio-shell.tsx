@@ -12,6 +12,7 @@ import {
   type SetStateAction,
 } from "react";
 import {
+  AlertTriangle,
   ChevronDown,
   Copy,
   Download,
@@ -24,6 +25,7 @@ import {
   UserPlus,
 } from "lucide-react";
 
+import { DownloadResumeModal } from "@/components/download/download-resume-modal";
 import { ResumeStTracker } from "@/components/analytics/resume-st-tracker";
 import { AutosaveStatusChip } from "@/components/resume-wizard/autosave-status-chip";
 import { GuestStudioEditor } from "@/components/resume-wizard/guest-studio-editor";
@@ -34,10 +36,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { FeedbackBanner } from "@/components/ui/feedback-banner";
 import { useCoalescedHistory } from "@/hooks/use-guest-studio-store";
 import { useUnsavedWarning } from "@/hooks/use-unsaved-warning";
 import { useWizardAutosave } from "@/hooks/use-wizard-autosave";
+import { trackClientEvent } from "@/lib/analytics/client";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
@@ -51,9 +63,51 @@ import {
   setProjectTemplateAction,
   updateResumeStyleAction,
 } from "@/services/projects/actions";
+import { saveWizardDraftAction } from "@/services/resume-wizard/actions";
 
 const projectMenuItemClass =
   "cursor-pointer gap-3 rounded-sm px-2 py-2.5 text-slate-700 focus-visible:bg-[#2268d7] focus-visible:text-white data-[highlighted]:bg-[#2268d7] data-[highlighted]:text-white [&_svg]:opacity-80 [&_svg]:data-[highlighted]:opacity-100 [&_svg]:data-[highlighted]:text-white";
+
+function hasMeaningfulText(value: string | null | undefined): boolean {
+  const normalized = value?.trim().toLowerCase() ?? "";
+  return Boolean(normalized && normalized !== "untitled resume");
+}
+
+function getExportMissingItems(state: WizardStateV1, projectTitle: string): string[] {
+  const p = state.personal;
+  const hasNameOrTitle =
+    hasMeaningfulText(p.fullName) ||
+    hasMeaningfulText([p.givenName, p.middleName, p.familyName].filter(Boolean).join(" ")) ||
+    hasMeaningfulText(projectTitle);
+  const hasContact =
+    hasMeaningfulText(p.email) ||
+    hasMeaningfulText(p.phone) ||
+    hasMeaningfulText(p.location) ||
+    hasMeaningfulText(p.city) ||
+    hasMeaningfulText(p.linkedIn) ||
+    hasMeaningfulText(p.website);
+  const hasExperience = state.experience.entries.some(
+    (e) =>
+      hasMeaningfulText(e.title) ||
+      hasMeaningfulText(e.company) ||
+      e.highlights.some(hasMeaningfulText),
+  );
+  const hasEducation = state.education.entries.some(
+    (e) => hasMeaningfulText(e.school) || hasMeaningfulText(e.degree) || hasMeaningfulText(e.field),
+  );
+  const hasProjects = state.projects.entries.some(
+    (pjt) => hasMeaningfulText(pjt.name) || hasMeaningfulText(pjt.description),
+  );
+  const hasSkills = hasMeaningfulText(state.skills.lines);
+
+  const missing: string[] = [];
+  if (!hasNameOrTitle) missing.push("Candidate name or resume title");
+  if (!hasContact) missing.push("At least one contact method");
+  if (!(hasExperience || hasEducation || hasSkills || hasProjects)) {
+    missing.push("Experience, education, skills, or projects");
+  }
+  return missing;
+}
 
 export type ProjectStudioShellProps = {
   projectId: string;
@@ -63,6 +117,10 @@ export type ProjectStudioShellProps = {
   templateSlug: TemplateSlug;
   initialResumeStyle: ResumeStyleV1;
   avatarSignedUrl: string | null;
+  canDownload: boolean;
+  checkoutStatus?: "success" | "pending" | "failed" | "cancelled";
+  checkoutEnabled: boolean;
+  showPaymentSetupDetails: boolean;
 };
 
 /**
@@ -77,6 +135,10 @@ export function ProjectStudioShell({
   templateSlug: serverTemplateSlug,
   initialResumeStyle,
   avatarSignedUrl,
+  canDownload,
+  checkoutStatus,
+  checkoutEnabled,
+  showPaymentSetupDetails,
 }: ProjectStudioShellProps) {
   const router = useRouter();
   const [content, setContent] = useState<WizardStateV1>(initialWizard);
@@ -190,6 +252,11 @@ export function ProjectStudioShell({
     state: content,
     enabled: true,
   });
+  const [exportPending, setExportPending] = useState<null | "saving" | "preparing" | "checkout">(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [incompleteExportOpen, setIncompleteExportOpen] = useState(false);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [missingExportItems, setMissingExportItems] = useState<string[]>([]);
 
   useUnsavedWarning(isDirty);
 
@@ -242,7 +309,7 @@ export function ProjectStudioShell({
     return () => window.removeEventListener("keydown", onKey);
   }, [handleUndoContent, handleRedoContent]);
 
-  const previewHref = ROUTES.app.projectPreview(projectId);
+  const focusedExportHref = ROUTES.app.projectPreviewExport(projectId);
   const loginHref = `${ROUTES.auth.login}?next=${encodeURIComponent(ROUTES.app.projectBuild(projectId))}`;
 
   const styleSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -294,6 +361,61 @@ export function ProjectStudioShell({
     },
     [projectId, router, templateSlug],
   );
+
+  const candidateName = [
+    content.personal.givenName,
+    content.personal.middleName,
+    content.personal.familyName,
+  ]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" ") || content.personal.fullName.trim();
+  const defaultDownloadName = candidateName
+    ? `${candidateName} Resume`
+    : titleDraft.trim() || projectTitle.trim() || "Resume";
+
+  const handlePreviewExportClick = useCallback(async () => {
+    if (exportPending) return;
+    setExportError(null);
+    trackClientEvent(ANALYTICS_EVENTS.PAY_ONCE_DOWNLOAD_CLICKED, {
+      project_id_prefix: projectId.slice(0, 8),
+    });
+    setExportPending("saving");
+    const latest = contentRef.current;
+    const result = await saveWizardDraftAction(projectId, latest);
+    setExportPending(null);
+
+    if (!result.ok) {
+      setExportError(result.error);
+      return;
+    }
+
+    const missing = getExportMissingItems(latest, titleDraft || projectTitle);
+    if (missing.length > 0) {
+      setMissingExportItems(missing);
+      trackClientEvent(ANALYTICS_EVENTS.EXPORT_VALIDATION_FAILED, {
+        project_id_prefix: projectId.slice(0, 8),
+        missing_count: missing.length,
+      });
+      setIncompleteExportOpen(true);
+      return;
+    }
+
+    setDownloadModalOpen(true);
+    trackClientEvent(ANALYTICS_EVENTS.DOWNLOAD_MODAL_OPENED, {
+      project_id_prefix: projectId.slice(0, 8),
+      source: "builder_cta",
+    });
+  }, [exportPending, projectId, projectTitle, titleDraft]);
+
+  const ctaBusyLabel =
+    exportPending === "saving"
+      ? "Saving resume..."
+      : exportPending === "preparing"
+        ? "Preparing PDF..."
+        : exportPending === "checkout"
+          ? "Starting checkout..."
+          : null;
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white">
@@ -430,18 +552,25 @@ export function ProjectStudioShell({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Link
-              href={previewHref}
+            <button
+              type="button"
+              disabled={Boolean(exportPending)}
+              onClick={() => void handlePreviewExportClick()}
               className={cn(
                 buttonVariants({ size: "sm" }),
-                "h-10 min-h-10 max-w-full shrink gap-1.5 truncate rounded-full bg-[#2268d7] px-2.5 text-xs font-semibold hover:bg-[#1f5fca] sm:h-8 sm:min-h-0 sm:max-w-none sm:px-3",
+                "h-10 min-h-10 max-w-full shrink gap-1.5 truncate rounded-full bg-[#2268d7] px-2.5 text-xs font-semibold hover:bg-[#1f5fca] disabled:cursor-wait disabled:opacity-75 sm:h-8 sm:min-h-0 sm:max-w-none sm:px-3",
               )}
-              aria-label="Open preview and export"
+              aria-label="Pay once to download"
+              aria-busy={Boolean(exportPending)}
             >
-              <Download className="size-3.5 shrink-0" aria-hidden />
-              <span className="truncate sm:hidden">Preview</span>
-              <span className="hidden truncate sm:inline">Preview & export</span>
-            </Link>
+              {exportPending ? (
+                <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
+              ) : (
+                <Download className="size-3.5 shrink-0" aria-hidden />
+              )}
+              <span className="truncate sm:hidden">{ctaBusyLabel ?? "Pay & Download"}</span>
+              <span className="hidden truncate sm:inline">{ctaBusyLabel ?? "Pay once to download"}</span>
+            </button>
           </div>
         </div>
       </header>
@@ -449,6 +578,50 @@ export function ProjectStudioShell({
       {titleError ? (
         <div className="shrink-0 border-b border-border/60 px-4 py-3" id="project-title-error">
           <FeedbackBanner tone="error" title="Could not rename" description={titleError} />
+        </div>
+      ) : null}
+
+      {checkoutStatus ? (
+        <div className="shrink-0 border-b border-border/60 px-4 py-3">
+          <FeedbackBanner
+            tone={
+              checkoutStatus === "success"
+                ? "success"
+                : checkoutStatus === "pending"
+                  ? "warning"
+                  : checkoutStatus === "cancelled"
+                    ? "info"
+                    : "error"
+            }
+            title={
+              checkoutStatus === "success"
+                ? "Your PDF export is unlocked."
+                : checkoutStatus === "pending"
+                  ? "Payment is still processing"
+                  : checkoutStatus === "cancelled"
+                    ? "Checkout was cancelled"
+                    : "Payment did not complete"
+            }
+            description={
+              checkoutStatus === "success"
+                ? "Use Pay once to download again and the modal will offer Download PDF without another payment."
+                : checkoutStatus === "pending"
+                  ? "Stripe is still confirming the payment. Refresh in a moment before trying again."
+                  : checkoutStatus === "cancelled"
+                    ? "You can continue editing or restart checkout when you are ready."
+                    : "No PDF entitlement was unlocked. You can try checkout again from this builder."
+            }
+          />
+        </div>
+      ) : null}
+
+      {exportError ? (
+        <div className="shrink-0 border-b border-border/60 px-4 py-3">
+          <FeedbackBanner
+            tone="error"
+            title="Could not prepare download"
+            description={exportError}
+          />
         </div>
       ) : null}
 
@@ -485,7 +658,10 @@ export function ProjectStudioShell({
           onResumeStyleChange={handleResumeStyleChange}
           loginHref={loginHref}
           persistMode="project"
-          projectPreviewHref={previewHref}
+          projectPreviewHref={focusedExportHref}
+          onProjectPreviewClick={() => void handlePreviewExportClick()}
+          projectPreviewPending={Boolean(exportPending)}
+          projectPreviewPendingText={ctaBusyLabel ?? undefined}
           previewAvatarUrl={avatarSignedUrl}
           jobAssist={{
             projectId,
@@ -511,6 +687,69 @@ export function ProjectStudioShell({
           }}
         />
       </div>
+
+      <Dialog open={incompleteExportOpen} onOpenChange={setIncompleteExportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="mb-1 flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-600/15">
+              <AlertTriangle className="size-5" aria-hidden />
+            </div>
+            <DialogTitle>Your resume needs a little more information</DialogTitle>
+            <DialogDescription>
+              Please add the required details before downloading your final PDF.
+            </DialogDescription>
+          </DialogHeader>
+          {missingExportItems.length > 0 ? (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-50/80 p-3">
+              <p className="text-sm font-semibold text-amber-950">Missing details</p>
+              <ul className="mt-2 space-y-1.5 text-sm text-amber-950/85">
+                {missingExportItems.map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span aria-hidden>•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              size="touch"
+              onClick={() => setIncompleteExportOpen(false)}
+            >
+              Continue editing
+            </Button>
+            <Button
+              type="button"
+              size="touch"
+              disabled={Boolean(exportPending)}
+              onClick={() => {
+                setIncompleteExportOpen(false);
+                setDownloadModalOpen(true);
+                trackClientEvent(ANALYTICS_EVENTS.DOWNLOAD_MODAL_OPENED, {
+                  project_id_prefix: projectId.slice(0, 8),
+                  source: "incomplete_download_anyway",
+                });
+              }}
+            >
+              Download anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <DownloadResumeModal
+        key={`${projectId}:${defaultDownloadName}:${canDownload ? "unlocked" : "locked"}`}
+        open={downloadModalOpen}
+        onOpenChange={setDownloadModalOpen}
+        projectId={projectId}
+        defaultFileName={defaultDownloadName}
+        canDownload={canDownload}
+        checkoutEnabled={checkoutEnabled}
+        showPaymentSetupDetails={showPaymentSetupDetails}
+      />
     </div>
   );
 }

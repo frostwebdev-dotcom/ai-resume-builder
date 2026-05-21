@@ -38,13 +38,19 @@ function isDownloadsTableUnavailable(err: { code?: string; message?: string } | 
   );
 }
 
-function safePdfFileName(projectTitle: string): string {
-  const base = projectTitle
+function safePdfFileName(projectTitle: string, requestedFileName?: string): string {
+  const base = (requestedFileName?.trim() || projectTitle)
     .trim()
     .replace(/[^a-z0-9]+/gi, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 72);
   return `${base || "resume"}.pdf`;
+}
+
+function requestedFileNameFromOrderMeta(meta: unknown): string | undefined {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return undefined;
+  const value = (meta as Record<string, unknown>).requested_file_name;
+  return typeof value === "string" && value.trim() ? value : undefined;
 }
 
 export type PdfPipelineResult =
@@ -69,6 +75,7 @@ export async function generateResumePdfAndSignedUrl(params: {
   projectId: string;
   projectTitle: string;
   templateId: string | null;
+  fileName?: string;
 }): Promise<PdfPipelineResult> {
   const service = createSupabaseServiceRoleClient();
 
@@ -137,7 +144,10 @@ export async function generateResumePdfAndSignedUrl(params: {
   /** Opaque object key — do not encode user/project in the path (mapping lives in `downloads`). */
   const objectId = randomUUID();
   const storagePath = `v1/${objectId}.pdf`;
-  const fileName = safePdfFileName(params.projectTitle);
+  const fileName = safePdfFileName(
+    params.projectTitle,
+    params.fileName ?? requestedFileNameFromOrderMeta(order.metadata),
+  );
 
   const { error: upErr } = await service.storage.from(BUCKET).upload(storagePath, buffer, {
     contentType: "application/pdf",
@@ -197,7 +207,7 @@ export async function generateResumePdfAndSignedUrl(params: {
 
   const { data: signed, error: signErr } = await service.storage
     .from(BUCKET)
-    .createSignedUrl(storagePath, SIGNED_URL_TTL_SEC);
+    .createSignedUrl(storagePath, SIGNED_URL_TTL_SEC, { download: fileName });
 
   if (signErr || !signed?.signedUrl) {
     console.error("[resume-pdf] sign", signErr);

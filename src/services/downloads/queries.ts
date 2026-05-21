@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { reconcileLatestPaidCheckoutForProject } from "@/services/billing/stripe-webhook";
 import { getCompletedOrderForProject } from "@/services/downloads/entitlement";
 
 export type ResumeDownloadAccess = {
@@ -16,7 +17,14 @@ export async function getResumeDownloadAccess(
 ): Promise<ResumeDownloadAccess> {
   const supabase = await createSupabaseServerClient();
 
-  const order = await getCompletedOrderForProject(supabase, userId, projectId);
+  let order = await getCompletedOrderForProject(supabase, userId, projectId);
+
+  if (!order) {
+    const reconciled = await reconcileLatestPaidCheckoutForProject({ userId, projectId });
+    if (reconciled === "completed") {
+      order = await getCompletedOrderForProject(supabase, userId, projectId);
+    }
+  }
 
   const { count } = await supabase
     .from("downloads")

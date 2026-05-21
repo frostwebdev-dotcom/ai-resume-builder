@@ -27,6 +27,7 @@ import {
   Download,
   GripVertical,
   LayoutGrid,
+  Loader2,
   Maximize2,
   Minimize2,
   MoreHorizontal,
@@ -54,6 +55,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ResumeAiScoreCard } from "@/components/resume-preview/resume-ai-score-card";
+import { GUEST_AI_PROJECT_ID } from "@/lib/ai/guest";
 import { PreviewViewport } from "@/components/resume-preview/preview-viewport";
 import { ResumePreviewRenderer } from "@/components/resume-preview/resume-preview-renderer";
 import { TemplateCatalogLivePreview } from "@/components/templates/template-catalog-live-preview";
@@ -273,6 +275,9 @@ type StudioEditorProps = {
   persistMode?: "guest" | "project";
   /** Required when `persistMode` is `"project"` — used for PDF / export CTA. */
   projectPreviewHref?: string;
+  onProjectPreviewClick?: () => void;
+  projectPreviewPending?: boolean;
+  projectPreviewPendingText?: string;
   /** Signed avatar URL for live preview (project drafts only). */
   previewAvatarUrl?: string | null;
   jobAssist?: StudioJobAssistProps;
@@ -298,11 +303,15 @@ export function GuestStudioEditor({
   loginHref,
   persistMode = "guest",
   projectPreviewHref,
+  onProjectPreviewClick,
+  projectPreviewPending = false,
+  projectPreviewPendingText,
   previewAvatarUrl = null,
   jobAssist,
 }: StudioEditorProps) {
   const state = content;
   const setState = onContentChange;
+  const aiAssistProjectId = jobAssist?.projectId ?? GUEST_AI_PROJECT_ID;
 
   const guestAutosave = useGuestWizardAutosave({
     state,
@@ -946,6 +955,7 @@ export function GuestStudioEditor({
                   setState={setState}
                   loginHref={loginHref}
                   jobAssist={jobAssist}
+                  aiAssistProjectId={aiAssistProjectId}
                   personalPillOpenRequest={personalPillOpenRequest}
                 />
               </SectionCard>
@@ -1047,27 +1057,50 @@ export function GuestStudioEditor({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <Link
-                href={exportHref}
-                className={cn(
-                  "inline-flex min-h-12 shrink-0 items-center justify-center gap-2 self-end rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1f5fca] sm:self-auto",
-                )}
-                aria-label={
-                  persistMode === "project"
-                    ? "Open Preview and export"
-                    : "Sign in to download as PDF"
-                }
-              >
+              {persistMode === "project" && onProjectPreviewClick ? (
+                <button
+                  type="button"
+                  disabled={projectPreviewPending}
+                  onClick={onProjectPreviewClick}
+                  className={cn(
+                    "inline-flex min-h-12 shrink-0 items-center justify-center gap-2 self-end rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1f5fca] disabled:cursor-wait disabled:opacity-70 sm:self-auto",
+                  )}
+                  aria-label="Pay once to download"
+                  aria-busy={projectPreviewPending}
+                >
+                  {projectPreviewPending ? (
+                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                  ) : (
+                    <Download className="size-4 shrink-0" aria-hidden />
+                  )}
+                  <span className="sm:hidden">{projectPreviewPending ? (projectPreviewPendingText ?? "Saving…") : "Pay & Download"}</span>
+                  <span className="hidden sm:inline">
+                    {projectPreviewPending ? (projectPreviewPendingText ?? "Saving…") : "Pay once to download"}
+                  </span>
+                </button>
+              ) : (
+                <Link
+                  href={exportHref}
+                  className={cn(
+                    "inline-flex min-h-12 shrink-0 items-center justify-center gap-2 self-end rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1f5fca] sm:self-auto",
+                  )}
+                  aria-label={
+                    persistMode === "project"
+                      ? "Pay once to download"
+                      : "Sign in to download as PDF"
+                  }
+                >
                 <Download className="size-4 shrink-0" aria-hidden />
                 {persistMode === "project" ? (
                   <>
-                    <span className="sm:hidden">Preview</span>
-                    <span className="hidden sm:inline">Preview & export</span>
+                    <span className="sm:hidden">Pay & Download</span>
+                    <span className="hidden sm:inline">Pay once to download</span>
                   </>
                 ) : (
                   "Download"
                 )}
-              </Link>
+                </Link>
+              )}
             </div>
           </footer>
 
@@ -1086,12 +1119,23 @@ export function GuestStudioEditor({
             ) : (
               <>
                 Draft content saves automatically to this project.{" "}
-                <Link
-                  href={exportHref}
-                  className="font-semibold text-brand underline-offset-4 hover:underline"
-                >
-                  Preview &amp; export
-                </Link>{" "}
+                {onProjectPreviewClick ? (
+                  <button
+                    type="button"
+                    disabled={projectPreviewPending}
+                    onClick={onProjectPreviewClick}
+                    className="font-semibold text-brand underline-offset-4 hover:underline disabled:cursor-wait disabled:opacity-70"
+                  >
+                    {projectPreviewPending ? (projectPreviewPendingText ?? "Saving…") : "Pay once to download"}
+                  </button>
+                ) : (
+                  <Link
+                    href={exportHref}
+                    className="font-semibold text-brand underline-offset-4 hover:underline"
+                  >
+                    Pay once to download
+                  </Link>
+                )}{" "}
                 for templates and PDFs.
               </>
             )}
@@ -2531,6 +2575,7 @@ function SectionBody({
   setState,
   loginHref,
   jobAssist,
+  aiAssistProjectId,
   personalPillOpenRequest = null,
 }: {
   section: SectionId;
@@ -2538,6 +2583,7 @@ function SectionBody({
   setState: Dispatch<SetStateAction<WizardStateV1>>;
   loginHref: string;
   jobAssist?: StudioJobAssistProps;
+  aiAssistProjectId: string;
   personalPillOpenRequest?: { id: number; keys: PersonalPillKey[] } | null;
 }) {
   switch (section) {
@@ -2551,14 +2597,34 @@ function SectionBody({
       );
     case "summary":
       return (
-        <SummaryBody state={state} setState={setState} loginHref={loginHref} jobAssist={jobAssist} />
+        <SummaryBody
+          state={state}
+          setState={setState}
+          loginHref={loginHref}
+          jobAssist={jobAssist}
+          aiAssistProjectId={aiAssistProjectId}
+        />
       );
     case "experience":
-      return <ExperienceBody state={state} setState={setState} jobAssist={jobAssist} />;
+      return (
+        <ExperienceBody
+          state={state}
+          setState={setState}
+          jobAssist={jobAssist}
+          aiAssistProjectId={aiAssistProjectId}
+        />
+      );
     case "education":
-      return <EducationBody state={state} setState={setState} jobAssist={jobAssist} />;
+      return <EducationBody state={state} setState={setState} aiAssistProjectId={aiAssistProjectId} />;
     case "skills":
-      return <SkillsBody state={state} setState={setState} jobAssist={jobAssist} />;
+      return (
+        <SkillsBody
+          state={state}
+          setState={setState}
+          jobAssist={jobAssist}
+          aiAssistProjectId={aiAssistProjectId}
+        />
+      );
     case "languages":
       return (
         <LinesBlockBody
@@ -2608,7 +2674,7 @@ function SectionBody({
     case "certifications":
       return <CertificationsBody state={state} setState={setState} />;
     case "additional":
-      return <AdditionalBody state={state} setState={setState} jobAssist={jobAssist} />;
+      return <AdditionalBody state={state} setState={setState} aiAssistProjectId={aiAssistProjectId} />;
     default:
       return null;
   }
@@ -3255,11 +3321,13 @@ function SummaryBody({
   setState,
   loginHref,
   jobAssist,
+  aiAssistProjectId,
 }: {
   state: WizardStateV1;
   setState: Setter;
   loginHref: string;
   jobAssist?: StudioJobAssistProps;
+  aiAssistProjectId: string;
 }) {
   return (
     <div className="space-y-4">
@@ -3300,15 +3368,15 @@ function SummaryBody({
             setState((s) => ({ ...s, summary: { ...s.summary, summary } }))
           }
           loginHref={loginHref}
-          signedIn={Boolean(jobAssist)}
+          signedIn
         />
         <p className="text-sm leading-relaxed text-muted-foreground">
           3–5 sentences: strengths, scope, and what you are looking for next.
         </p>
       </div>
-      {jobAssist ? (
-        <div className="space-y-4 border-t border-neutral-200 pt-4">
-          <SummaryAiPanel projectId={jobAssist.projectId} state={state} setState={setState} />
+      <div className="space-y-4 border-t border-neutral-200 pt-4">
+        <SummaryAiPanel projectId={aiAssistProjectId} state={state} setState={setState} />
+        {jobAssist ? (
           <SummaryJobTailorSection
             projectId={jobAssist.projectId}
             state={state}
@@ -3317,8 +3385,8 @@ function SummaryBody({
             tailoringCompare={jobAssist.tailoringCompare}
             setTailoringCompare={jobAssist.setTailoringCompare}
           />
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -3350,10 +3418,12 @@ function ExperienceBody({
   state,
   setState,
   jobAssist,
+  aiAssistProjectId,
 }: {
   state: WizardStateV1;
   setState: Setter;
   jobAssist?: StudioJobAssistProps;
+  aiAssistProjectId: string;
 }) {
   const entries = state.experience.entries;
   const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
@@ -3509,32 +3579,30 @@ function ExperienceBody({
                   }}
                   placeholder="Lead with impact — metric + action + outcome."
                 />
-                {jobAssist ? (
-                  <ExperienceBulletAiControls
-                    projectId={jobAssist.projectId}
-                    entryId={entry.id}
-                    company={entry.company}
-                    title={entry.title}
-                    bullet={line}
-                    highlightIndex={hi}
-                    targetRoleHint={
-                      state.personal.desiredJobPosition.trim().length >= 3
-                        ? state.personal.desiredJobPosition.trim()
-                        : state.summary.headline.trim().length >= 3
-                          ? state.summary.headline.trim()
-                          : undefined
-                    }
-                    onApplyBullet={(text: string) =>
-                      setState((s) => {
-                        const next = [...s.experience.entries];
-                        const highlights = [...next[index].highlights];
-                        highlights[hi] = text;
-                        next[index] = { ...next[index], highlights };
-                        return { ...s, experience: { entries: next } };
-                      })
-                    }
-                  />
-                ) : null}
+                <ExperienceBulletAiControls
+                  projectId={aiAssistProjectId}
+                  entryId={entry.id}
+                  company={entry.company}
+                  title={entry.title}
+                  bullet={line}
+                  highlightIndex={hi}
+                  targetRoleHint={
+                    state.personal.desiredJobPosition.trim().length >= 3
+                      ? state.personal.desiredJobPosition.trim()
+                      : state.summary.headline.trim().length >= 3
+                        ? state.summary.headline.trim()
+                        : undefined
+                  }
+                  onApplyBullet={(text: string) =>
+                    setState((s) => {
+                      const next = [...s.experience.entries];
+                      const highlights = [...next[index].highlights];
+                      highlights[hi] = text;
+                      next[index] = { ...next[index], highlights };
+                      return { ...s, experience: { entries: next } };
+                    })
+                  }
+                />
               </div>
             ))}
             <Button
@@ -3618,11 +3686,11 @@ function ExperienceBody({
 function EducationBody({
   state,
   setState,
-  jobAssist,
+  aiAssistProjectId,
 }: {
   state: WizardStateV1;
   setState: Setter;
-  jobAssist?: StudioJobAssistProps;
+  aiAssistProjectId: string;
 }) {
   const entries = state.education.entries;
   const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
@@ -3740,19 +3808,17 @@ function EducationBody({
               placeholder="Honors, thesis, coursework, GPA."
             />
           </Field>
-          {jobAssist ? (
-            <EducationEntryAiPanel
-              projectId={jobAssist.projectId}
-              entry={entry}
-              onApplyDetails={(details) => {
-                setState((s) => {
-                  const next = [...s.education.entries];
-                  next[index] = { ...next[index], details };
-                  return { ...s, education: { entries: next } };
-                });
-              }}
-            />
-          ) : null}
+          <EducationEntryAiPanel
+            projectId={aiAssistProjectId}
+            entry={entry}
+            onApplyDetails={(details) => {
+              setState((s) => {
+                const next = [...s.education.entries];
+                next[index] = { ...next[index], details };
+                return { ...s, education: { entries: next } };
+              });
+            }}
+          />
         </EntryCard>
       ))}
       <Button
@@ -3823,10 +3889,12 @@ function SkillsBody({
   state,
   setState,
   jobAssist,
+  aiAssistProjectId,
 }: {
   state: WizardStateV1;
   setState: Setter;
   jobAssist?: StudioJobAssistProps;
+  aiAssistProjectId: string;
 }) {
   return (
     <div className="space-y-4">
@@ -3850,13 +3918,13 @@ function SkillsBody({
           placeholder={"TypeScript\nReact\nProduct strategy\nDesign systems"}
         />
       </Field>
-      {jobAssist ? (
-        <div className="space-y-4 border-t border-neutral-200 pt-4">
-          <SkillsAiPanel
-            projectId={jobAssist.projectId}
-            lines={state.skills.lines}
-            onApplyLines={(lines) => setState((s) => ({ ...s, skills: { lines } }))}
-          />
+      <div className="space-y-4 border-t border-neutral-200 pt-4">
+        <SkillsAiPanel
+          projectId={aiAssistProjectId}
+          lines={state.skills.lines}
+          onApplyLines={(lines) => setState((s) => ({ ...s, skills: { lines } }))}
+        />
+        {jobAssist ? (
           <SkillsJobTailorSection
             projectId={jobAssist.projectId}
             lines={state.skills.lines}
@@ -3865,8 +3933,8 @@ function SkillsBody({
             tailoringCompare={jobAssist.tailoringCompare}
             setTailoringCompare={jobAssist.setTailoringCompare}
           />
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -4124,11 +4192,11 @@ function CertificationsBody({ state, setState }: { state: WizardStateV1; setStat
 function AdditionalBody({
   state,
   setState,
-  jobAssist,
+  aiAssistProjectId,
 }: {
   state: WizardStateV1;
   setState: Setter;
-  jobAssist?: StudioJobAssistProps;
+  aiAssistProjectId: string;
 }) {
   return (
     <div className="space-y-4">
@@ -4152,15 +4220,13 @@ function AdditionalBody({
           placeholder={"Volunteer: Code mentor at local non-profit, 2022–2024\nAwards: Dean's list …"}
         />
       </Field>
-      {jobAssist ? (
-        <div className="border-t border-neutral-200 pt-4">
-          <AdditionalAiPanel
-            projectId={jobAssist.projectId}
-            text={state.additional.notes}
-            onApply={(text) => setState((s) => ({ ...s, additional: { notes: text } }))}
-          />
-        </div>
-      ) : null}
+      <div className="border-t border-neutral-200 pt-4">
+        <AdditionalAiPanel
+          projectId={aiAssistProjectId}
+          text={state.additional.notes}
+          onApply={(text) => setState((s) => ({ ...s, additional: { notes: text } }))}
+        />
+      </div>
     </div>
   );
 }

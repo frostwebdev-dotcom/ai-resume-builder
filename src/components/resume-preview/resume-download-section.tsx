@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Download, Info, Lock, Loader2, AlertCircle } from "lucide-react";
+import { CheckCircle2, Download, Info, Lock, Loader2, AlertCircle } from "lucide-react";
 
 import { BILLING_PRODUCTS } from "@/lib/billing/catalog";
 import { PDF_UNLOCK_PROJECT_SCOPE_LINE } from "@/lib/billing/monetization-copy";
@@ -18,8 +18,18 @@ import { cn } from "@/lib/utils";
 
 type DownloadFailure = Extract<RequestDownloadResult, { ok: false }>;
 
-const CONFIG_CHECKOUT_MESSAGE =
-  "Payments are not set up on this environment yet. PDF unlock requires Stripe to be configured on the server. If you are the site owner, add your Stripe keys; otherwise contact support or use the production site.";
+const PAYMENT_SETUP_MESSAGE =
+  "Payment setup is not complete yet. Please connect Stripe live keys and webhook before accepting real payments.";
+
+const CHECKOUT_TEMPORARILY_UNAVAILABLE_MESSAGE =
+  "Checkout is temporarily unavailable. Please contact support.";
+
+const trustPoints = [
+  "Secure checkout with Stripe",
+  "One-time payment",
+  "No subscription",
+  "Download after payment",
+] as const;
 
 type Props = {
   projectId: string;
@@ -28,6 +38,8 @@ type Props = {
   hasDownloadHistory: boolean;
   /** Server-only: Stripe Checkout is available (avoids a dead “Unlock” CTA). */
   checkoutEnabled: boolean;
+  /** Admin/dev users can see setup guidance; normal users get support-focused copy. */
+  showPaymentSetupDetails: boolean;
   /** URL hint only — never used to grant access; drives retry / pending copy. */
   checkoutNotice?: "success" | "failed" | "cancelled" | "pending" | null;
 };
@@ -37,6 +49,7 @@ export function ResumeDownloadSection({
   canDownload,
   hasDownloadHistory,
   checkoutEnabled,
+  showPaymentSetupDetails,
   checkoutNotice = null,
 }: Props) {
   const [pending, start] = useTransition();
@@ -44,6 +57,10 @@ export function ResumeDownloadSection({
   const [downloadIssue, setDownloadIssue] = useState<DownloadFailure | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [checkoutConfigError, setCheckoutConfigError] = useState(false);
+  const unlockPrice = formatUsdFromCents(BILLING_PRODUCTS.resume_pdf_v1.amountCents);
+  const unavailableMessage = showPaymentSetupDetails
+    ? PAYMENT_SETUP_MESSAGE
+    : CHECKOUT_TEMPORARILY_UNAVAILABLE_MESSAGE;
 
   const goToCheckout = () => {
     setDownloadIssue(null);
@@ -84,31 +101,35 @@ export function ResumeDownloadSection({
     return (
       <section
         id="resume-export-panel"
-        className="rounded-xl border border-border/80 bg-muted/25 p-4 ring-1 ring-foreground/5 sm:p-5"
+        className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_18px_50px_-30px_rgba(15,23,42,0.45)] ring-1 ring-slate-950/5"
         aria-labelledby="pdf-locked-heading"
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex gap-3">
-            <Lock className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
-            <div>
+        <div className="border-b border-slate-200/80 bg-gradient-to-br from-slate-50 to-white p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-sm ring-1 ring-slate-950/10">
+              <Lock className="size-5" aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
               <h2 id="pdf-locked-heading" className="text-subhead text-foreground">
-                Export (PDF)
+                Download your final PDF
               </h2>
-              <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 <span className="font-medium text-foreground">
-                  Preview is free. Pay to download your final PDF.
+                  Preview is free. Pay once to unlock the final PDF for this resume project.
                 </span>{" "}
-                Unlock is {formatUsdFromCents(BILLING_PRODUCTS.resume_pdf_v1.amountCents)} once for this
-                project (Stripe). {PDF_UNLOCK_PROJECT_SCOPE_LINE}
+                {PDF_UNLOCK_PROJECT_SCOPE_LINE}
               </p>
             </div>
           </div>
+        </div>
+
+        <div className="space-y-4 p-4 sm:p-5">
           {checkoutEnabled ? (
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+            <div className="space-y-2">
               <Button
                 type="button"
                 size="touch"
-                className="w-full justify-center sm:min-w-[12rem]"
+                className="h-13 w-full justify-center rounded-xl bg-slate-950 text-base font-semibold shadow-soft hover:bg-slate-800"
                 disabled={checkoutPending}
                 onClick={goToCheckout}
               >
@@ -118,9 +139,12 @@ export function ResumeDownloadSection({
                     Redirecting…
                   </>
                 ) : (
-                  <>Unlock PDF — {formatUsdFromCents(BILLING_PRODUCTS.resume_pdf_v1.amountCents)}</>
+                  <>Unlock PDF Download — {unlockPrice}</>
                 )}
               </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                Secure one-time checkout. No subscription.
+              </p>
               {(checkoutNotice === "failed" ||
                 checkoutNotice === "cancelled" ||
                 checkoutNotice === "pending" ||
@@ -129,27 +153,40 @@ export function ResumeDownloadSection({
                   type="button"
                   variant="outline"
                   size="touch"
-                  className="w-full sm:min-w-[12rem]"
+                  className="w-full"
                   disabled={checkoutPending}
                   onClick={goToCheckout}
                 >
                   Try payment again
                 </Button>
               )}
-              <Link
-                href={ROUTES.pricing}
-                className="text-center text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:text-right"
-              >
-                Compare plans
-              </Link>
             </div>
           ) : null}
+
+          <ul className="grid gap-2" aria-label="PDF checkout trust points">
+            {trustPoints.map((point) => (
+              <li
+                key={point}
+                className="flex min-h-10 items-center gap-3 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 text-sm text-slate-700"
+              >
+                <CheckCircle2 className="size-4 shrink-0 text-emerald-600" aria-hidden />
+                <span className="font-medium">{point}</span>
+              </li>
+            ))}
+          </ul>
+
+          <PdfPreviewFidelityNote variant="compact" />
+
+          <Link
+            href={ROUTES.pricing}
+            className="block text-center text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Compare plans
+          </Link>
         </div>
 
-        <PdfPreviewFidelityNote className="mt-3" variant="compact" />
-
         {checkoutEnabled && checkoutNotice === "pending" ? (
-          <Alert variant="warning" className="mt-4">
+          <Alert variant="warning" className="mx-4 mb-4 sm:mx-5 sm:mb-5">
             <Info aria-hidden />
             <AlertTitle>Payment still confirming</AlertTitle>
             <AlertDescription>
@@ -160,11 +197,11 @@ export function ResumeDownloadSection({
         ) : null}
 
         {!checkoutEnabled ? (
-          <Alert variant="info" className="mt-4">
+          <Alert variant="info" className="mx-4 mb-4 sm:mx-5 sm:mb-5">
             <Info aria-hidden />
-            <AlertTitle>Checkout unavailable in this environment</AlertTitle>
+            <AlertTitle>Checkout unavailable</AlertTitle>
             <AlertDescription className="space-y-2">
-              <p>{CONFIG_CHECKOUT_MESSAGE}</p>
+              <p>{unavailableMessage}</p>
               <p>
                 <Link
                   href={ROUTES.contact}
@@ -177,21 +214,21 @@ export function ResumeDownloadSection({
             </AlertDescription>
           </Alert>
         ) : (
-          <p className="mt-3 text-caption text-muted-foreground">
+          <p className="px-4 pb-4 text-caption text-muted-foreground sm:px-5 sm:pb-5">
             After payment, your unlock appears here when the server confirms—refresh if needed.
           </p>
         )}
 
         {checkoutEnabled && checkoutConfigError ? (
-          <Alert variant="info" className="mt-4">
+          <Alert variant="info" className="mx-4 mb-4 sm:mx-5 sm:mb-5">
             <Info aria-hidden />
-            <AlertTitle>Payments not configured</AlertTitle>
-            <AlertDescription>{CONFIG_CHECKOUT_MESSAGE}</AlertDescription>
+            <AlertTitle>Checkout unavailable</AlertTitle>
+            <AlertDescription>{unavailableMessage}</AlertDescription>
           </Alert>
         ) : null}
 
         {checkoutEnabled && checkoutError ? (
-          <p className="mt-3 text-sm font-medium text-destructive" role="alert">
+          <p className="px-4 pb-4 text-sm font-medium text-destructive sm:px-5 sm:pb-5" role="alert">
             {checkoutError}
           </p>
         ) : null}
@@ -202,7 +239,7 @@ export function ResumeDownloadSection({
   return (
     <section
       id="resume-export-panel"
-      className="rounded-xl border border-primary/20 bg-primary/[0.04] p-4 ring-1 ring-primary/10 sm:p-5"
+      className="rounded-2xl border border-emerald-500/20 bg-emerald-50/70 p-4 ring-1 ring-emerald-500/10 sm:p-5"
       aria-labelledby="pdf-ready-heading"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -210,7 +247,7 @@ export function ResumeDownloadSection({
           <Download className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
           <div>
             <h2 id="pdf-ready-heading" className="text-subhead text-foreground">
-              Export (PDF)
+              Download your final PDF
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Your resume is ready to download.</span>{" "}

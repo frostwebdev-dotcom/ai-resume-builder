@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { tryLogAiSuggestion } from "@/lib/ai/usage-logger";
+import { GUEST_AI_PROJECT_ID, guestAiUserKey, isGuestAiProjectId } from "@/lib/ai/guest";
 import { ROUTES } from "@/lib/constants";
+import { getClientIp } from "@/lib/security/client-ip";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { assertResumeProjectOwned } from "@/services/ai/assert-project";
 import * as ResumeAi from "@/services/ai/resume-ai";
@@ -31,7 +33,18 @@ async function getSessionUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
+async function getAiUserIdForProject(projectId: string): Promise<AiResult<string>> {
+  const userId = await getSessionUserId();
+  if (userId) return { ok: true, data: userId };
+  if (isGuestAiProjectId(projectId)) {
+    const ip = await getClientIp();
+    return { ok: true, data: guestAiUserKey(ip) };
+  }
+  return { ok: false, error: "Sign-in required.", code: "AUTH" };
+}
+
 function revalidateProject(projectId: string) {
+  if (projectId === GUEST_AI_PROJECT_ID) return;
   revalidatePath(ROUTES.app.projectBuild(projectId));
   revalidatePath(ROUTES.app.project(projectId));
 }
@@ -39,13 +52,13 @@ function revalidateProject(projectId: string) {
 export async function aiGenerateSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryGenerateInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Check your inputs and try again.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiGenerateSummary(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiGenerateSummary(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -53,8 +66,6 @@ export async function aiGenerateSummaryAction(
 export async function aiTailorSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryTailorInput.safeParse(raw);
   if (!parsed.success) {
     const msg = parsed.error.flatten().fieldErrors.targetRole?.[0];
@@ -64,7 +75,9 @@ export async function aiTailorSummaryAction(
       code: "VALIDATION",
     };
   }
-  const out = await ResumeAi.aiTailorSummary(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiTailorSummary(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -72,13 +85,13 @@ export async function aiTailorSummaryAction(
 export async function aiShortenSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryTextOpInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiShortenSummary(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiShortenSummary(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -86,13 +99,13 @@ export async function aiShortenSummaryAction(
 export async function aiExpandSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryTextOpInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiExpandSummary(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiExpandSummary(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -100,13 +113,13 @@ export async function aiExpandSummaryAction(
 export async function aiGrammarSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryTextOpInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiGrammarSummary(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiGrammarSummary(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -114,13 +127,13 @@ export async function aiGrammarSummaryAction(
 export async function aiImproveSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryImproveInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiImproveSummary(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiImproveSummary(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -128,13 +141,13 @@ export async function aiImproveSummaryAction(
 export async function aiProfessionalSummaryAction(
   raw: unknown,
 ): Promise<AiResult<{ headline: string; summary: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = summaryImproveInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid summary fields.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiProfessionalSummary(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiProfessionalSummary(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -151,12 +164,13 @@ const logAiSuggestionInputSchema = z.object({
 export async function logAiSuggestionAction(
   raw: unknown,
 ): Promise<{ ok: true } | { ok: false; error: string; code?: string }> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = logAiSuggestionInputSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid payload.", code: "VALIDATION" };
   }
+  if (isGuestAiProjectId(parsed.data.projectId)) return { ok: true };
+  const userId = await getSessionUserId();
+  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const owned = await assertResumeProjectOwned(userId, parsed.data.projectId);
   if (!owned) return { ok: false, error: "Project not found.", code: "NOT_FOUND" };
   const metadata = { ...(parsed.data.metadata ?? {}), source: "resume_builder" } as Json;
@@ -172,13 +186,13 @@ export async function logAiSuggestionAction(
 export async function aiRewriteExperienceBulletsAction(
   raw: unknown,
 ): Promise<AiResult<{ bullets: string[] }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiRewriteExperienceBullets(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiRewriteExperienceBullets(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -186,13 +200,13 @@ export async function aiRewriteExperienceBulletsAction(
 export async function aiStrengthenExperienceBulletsAction(
   raw: unknown,
 ): Promise<AiResult<{ bullets: string[] }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiStrengthenExperienceBullets(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiStrengthenExperienceBullets(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -200,13 +214,13 @@ export async function aiStrengthenExperienceBulletsAction(
 export async function aiShortenExperienceBulletsAction(
   raw: unknown,
 ): Promise<AiResult<{ bullets: string[] }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiShortenExperienceBullets(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiShortenExperienceBullets(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -214,13 +228,13 @@ export async function aiShortenExperienceBulletsAction(
 export async function aiExpandExperienceBulletsAction(
   raw: unknown,
 ): Promise<AiResult<{ bullets: string[] }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = experienceBulletsInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid experience fields.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiExpandExperienceBullets(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiExpandExperienceBullets(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -228,13 +242,13 @@ export async function aiExpandExperienceBulletsAction(
 export async function aiRephraseSkillsAction(
   raw: unknown,
 ): Promise<AiResult<{ lines: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = skillsTextInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid skills text.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiRephraseSkills(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiRephraseSkills(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -242,13 +256,13 @@ export async function aiRephraseSkillsAction(
 export async function aiShortenSkillsAction(
   raw: unknown,
 ): Promise<AiResult<{ lines: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = skillsTextInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid skills text.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiShortenSkills(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiShortenSkills(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -256,13 +270,13 @@ export async function aiShortenSkillsAction(
 export async function aiGrammarAdditionalAction(
   raw: unknown,
 ): Promise<AiResult<{ text: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = additionalTextInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Invalid text.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiGrammarText(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiGrammarText(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }
@@ -270,13 +284,13 @@ export async function aiGrammarAdditionalAction(
 export async function aiPolishEducationDetailsAction(
   raw: unknown,
 ): Promise<AiResult<{ details: string }>> {
-  const userId = await getSessionUserId();
-  if (!userId) return { ok: false, error: "Sign-in required.", code: "AUTH" };
   const parsed = educationPolishInput.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, error: "Check your education fields and try again.", code: "VALIDATION" };
   }
-  const out = await ResumeAi.aiPolishEducationDetails(userId, parsed.data);
+  const aiUser = await getAiUserIdForProject(parsed.data.projectId);
+  if (!aiUser.ok) return aiUser;
+  const out = await ResumeAi.aiPolishEducationDetails(aiUser.data, parsed.data);
   if (out.ok) revalidateProject(parsed.data.projectId);
   return out;
 }

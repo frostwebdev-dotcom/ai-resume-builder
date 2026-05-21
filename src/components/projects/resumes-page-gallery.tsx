@@ -120,7 +120,7 @@ function ResumeListRow({ project }: { project: DashboardProject }) {
             <UserPlus className="size-[18px]" strokeWidth={1.75} aria-hidden />
           </Link>
           <Link
-            href={ROUTES.app.projectPreview(project.id)}
+            href={ROUTES.app.projectPreviewExport(project.id)}
             className={listIconLinkClass}
             aria-label={`Preview and export ${project.title}`}
           >

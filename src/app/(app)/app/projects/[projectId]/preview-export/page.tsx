@@ -2,22 +2,22 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PageContainer } from "@/components/layout/page-container";
-import { ProjectPreviewClient } from "@/components/resume-preview/project-preview-client";
-import { parseProjectMetadata } from "@/lib/projects/metadata";
-import { DEFAULT_RESUME_STYLE_V1 } from "@/lib/resume-preview/resume-style";
-import { ROUTES } from "@/lib/constants";
+import { PreviewExportClient } from "@/components/resume-preview/preview-export-client";
 import { getOptionalAuth, requireUser } from "@/lib/auth/guards";
-import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-preview";
-import { getProjectDetailForUser } from "@/services/projects/queries";
-import { fetchWizardStateForProject } from "@/services/resume-wizard/actions";
-import { listTemplatesForUi } from "@/services/templates/queries";
 import { isStripeCheckoutConfigured } from "@/lib/billing/checkout-config";
-import { getResumeDownloadAccess } from "@/services/downloads/queries";
+import { ROUTES } from "@/lib/constants";
+import { parseProjectMetadata } from "@/lib/projects/metadata";
+import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-preview";
+import { DEFAULT_RESUME_STYLE_V1 } from "@/lib/resume-preview/resume-style";
 import {
   createSignedAvatarUrl,
   isAvatarPathOwnedBy,
 } from "@/lib/supabase/avatar-storage";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
+import { getResumeDownloadAccess } from "@/services/downloads/queries";
+import { getProjectDetailForUser } from "@/services/projects/queries";
+import { fetchWizardStateForProject } from "@/services/resume-wizard/actions";
+import { listTemplatesForUi } from "@/services/templates/queries";
 
 export const maxDuration = 60;
 
@@ -40,21 +40,22 @@ function parseCheckoutNotice(
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { projectId } = await params;
   const ctx = await getOptionalAuth();
-  if (!ctx) return { title: "Advanced preview settings" };
+  if (!ctx) return { title: "Resume Preview & Export" };
   const detail = await getProjectDetailForUser(ctx.user.id, projectId);
-  if (!detail) return { title: "Advanced preview settings" };
+  if (!detail) return { title: "Resume Preview & Export" };
   return {
-    title: `Advanced preview settings · ${detail.project.title}`,
-    description:
-      "Advanced preview, template, and appearance controls for this resume project.",
+    title: `Resume Preview & Export · ${detail.project.title || "Resume Preview"}`,
+    description: "Review your resume, run an optional AI review, and unlock your final PDF.",
   };
 }
 
-export default async function ProjectPreviewPage({ params, searchParams }: PageProps) {
+export default async function PreviewExportPage({ params, searchParams }: PageProps) {
   const { projectId } = await params;
   const sp = await searchParams;
   const checkoutNotice = parseCheckoutNotice(sp.checkout);
-  const { user, profile } = await requireUser({ nextPath: ROUTES.app.projectPreview(projectId) });
+  const { user, profile } = await requireUser({
+    nextPath: ROUTES.app.projectPreviewExport(projectId),
+  });
 
   const [detail, wizard, templates, downloadAccess] = await Promise.all([
     getProjectDetailForUser(user.id, projectId),
@@ -67,11 +68,9 @@ export default async function ProjectPreviewPage({ params, searchParams }: PageP
     notFound();
   }
 
-  const checkoutEnabled = isStripeCheckoutConfigured();
   const meta = parseProjectMetadata(detail.project.metadata);
   const initialResumeStyle = meta.resume_style ?? DEFAULT_RESUME_STYLE_V1;
 
-  // Resolve avatar: short-lived signed URL for private bucket preview.
   let avatarSignedUrl: string | null = null;
   if (meta.avatar_path && isAvatarPathOwnedBy(meta.avatar_path, user.id, projectId)) {
     const service = createSupabaseServiceRoleClient();
@@ -84,19 +83,17 @@ export default async function ProjectPreviewPage({ params, searchParams }: PageP
 
   return (
     <section className="min-h-0 min-w-0 flex-1 overflow-x-clip py-4 sm:py-8">
-      <PageContainer className="max-w-[1400px] xl:px-6 2xl:px-8">
-        <ProjectPreviewClient
-          key={projectId}
+      <PageContainer className="max-w-[1480px] xl:px-6 2xl:px-8">
+        <PreviewExportClient
           projectId={projectId}
           projectTitle={detail.project.title}
           document={document}
           templates={templates}
           selectedTemplateId={detail.project.template_id}
           downloadAccess={downloadAccess}
-          checkoutEnabled={checkoutEnabled}
+          checkoutEnabled={isStripeCheckoutConfigured()}
           showPaymentSetupDetails={showPaymentSetupDetails}
           initialResumeStyle={initialResumeStyle}
-          initialAvatarSignedUrl={avatarSignedUrl}
           checkoutNotice={checkoutNotice}
         />
       </PageContainer>

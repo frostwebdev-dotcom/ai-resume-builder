@@ -79,6 +79,7 @@ export async function saveWizardDraftAction(
 
   revalidatePath(ROUTES.app.project(projectId));
   revalidatePath(ROUTES.app.projectBuild(projectId));
+  revalidatePath(ROUTES.app.projectPreviewExport(projectId));
   return { ok: true };
 }
 

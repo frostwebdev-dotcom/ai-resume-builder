@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { BillingProductSku } from "@/lib/billing/catalog";
+import { resumeDownloadFileNameSchema } from "@/validation/downloads";
 
 const skuSchema = z.enum([
   "resume_pdf_v1",
@@ -11,6 +12,8 @@ const skuSchema = z.enum([
 export const createCheckoutSessionSchema = z.object({
   projectId: z.string().uuid(),
   productSku: skuSchema,
+  selectedFormat: z.enum(["pdf"]).optional(),
+  fileName: resumeDownloadFileNameSchema.optional(),
 });
 
 export const pollCheckoutOrderSchema = z.object({

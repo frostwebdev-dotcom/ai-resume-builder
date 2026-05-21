@@ -47,7 +47,7 @@ export async function trySendDownloadReadyEmail(params: {
     return;
   }
 
-  const previewUrl = appAbsoluteUrl(ROUTES.app.projectPreview(params.projectId));
+  const previewUrl = appAbsoluteUrl(ROUTES.app.projectPreviewExport(params.projectId));
   const dashboardUrl = appAbsoluteUrl(ROUTES.app.root);
   const { html, text } = buildDownloadReadyEmail({
     projectTitle: params.projectTitle,

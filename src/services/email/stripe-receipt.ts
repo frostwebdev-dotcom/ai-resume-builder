@@ -84,7 +84,7 @@ export async function sendPurchaseReceiptEmailIfNeeded(params: {
   ).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
 
   const previewPath = params.projectId
-    ? ROUTES.app.projectPreview(params.projectId)
+    ? ROUTES.app.projectPreviewExport(params.projectId)
     : ROUTES.app.root;
   const previewUrl = appAbsoluteUrl(previewPath);
   const dashboardUrl = appAbsoluteUrl(ROUTES.app.root);

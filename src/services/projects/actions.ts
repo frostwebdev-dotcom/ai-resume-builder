@@ -392,6 +392,7 @@ export async function setProjectTemplateAction(
   revalidatePath(ROUTES.app.project(parsed.data.projectId));
   revalidatePath(ROUTES.app.projectBuild(parsed.data.projectId));
   revalidatePath(ROUTES.app.projectPreview(parsed.data.projectId));
+  revalidatePath(ROUTES.app.projectPreviewExport(parsed.data.projectId));
   return { ok: true };
 }
 
@@ -435,6 +436,7 @@ export async function updateResumeStyleAction(
   revalidatePath(ROUTES.app.project(parsed.data.projectId));
   revalidatePath(ROUTES.app.projectBuild(parsed.data.projectId));
   revalidatePath(ROUTES.app.projectPreview(parsed.data.projectId));
+  revalidatePath(ROUTES.app.projectPreviewExport(parsed.data.projectId));
   return { ok: true };
 }
 
@@ -534,6 +536,7 @@ export async function uploadAvatarAction(formData: FormData): Promise<AvatarActi
 
   revalidatePath(ROUTES.app.project(parsed.data.projectId));
   revalidatePath(ROUTES.app.projectPreview(parsed.data.projectId));
+  revalidatePath(ROUTES.app.projectPreviewExport(parsed.data.projectId));
   return { ok: true, avatarPath: storagePath };
 }
 
@@ -576,6 +579,7 @@ export async function removeAvatarAction(
 
   revalidatePath(ROUTES.app.project(parsed.data.projectId));
   revalidatePath(ROUTES.app.projectPreview(parsed.data.projectId));
+  revalidatePath(ROUTES.app.projectPreviewExport(parsed.data.projectId));
   return { ok: true };
 }
 

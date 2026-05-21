@@ -51,7 +51,7 @@ export function ResumeAppearancePanel({
               Appearance
             </h2>
             <p className="text-caption text-muted-foreground">
-              Colors, type, alignment, and spacing — preview updates live and match PDF export.
+              For the safest result, we recommend keeping the default style.
             </p>
           </div>
         </div>
@@ -118,7 +118,16 @@ export function ResumeAppearancePanel({
             <option value="serif">Serif (Times / Georgia)</option>
           </select>
         </div>
+      </div>
 
+      <details className="mt-5 rounded-xl border border-border/70 bg-muted/20 p-3">
+        <summary className="cursor-pointer text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/45">
+          Advanced appearance settings
+        </summary>
+        <p className="mt-2 text-caption text-muted-foreground">
+          Fine-tune spacing and alignment only when you need to solve a specific layout issue.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-2">
           <Label htmlFor="body-align">Body alignment</Label>
           <select
@@ -194,7 +203,8 @@ export function ResumeAppearancePanel({
           onChange={(n) => patch({ paragraphGapScale: n })}
           onAuto={() => patch({ paragraphGapScale: null })}
         />
-      </div>
+        </div>
+      </details>
     </section>
   );
 }

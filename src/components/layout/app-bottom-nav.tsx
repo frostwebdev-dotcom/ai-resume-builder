@@ -10,10 +10,10 @@ import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
 
 const items = [
-  { href: ROUTES.app.root, label: "Home", icon: LayoutDashboard },
+  { href: ROUTES.app.root, label: "Dashboard", icon: LayoutDashboard },
   { href: ROUTES.app.resumes, label: "Resumes", icon: FileText },
   { href: ROUTES.app.templates, label: "Templates", icon: LayoutTemplate },
-  { href: ROUTES.app.account, label: "Account", icon: UserRound },
+  { href: ROUTES.app.account, label: "Settings", icon: UserRound },
 ] as const;
 
 type AppBottomNavProps = {

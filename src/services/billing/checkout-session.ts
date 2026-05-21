@@ -24,6 +24,8 @@ export async function createStripeCheckoutSession(params: {
   projectId: string;
   projectTitle: string;
   productSku: string;
+  selectedFormat?: "pdf";
+  fileName?: string;
 }): Promise<CreateCheckoutSessionResult> {
   let stripe: Stripe;
   try {
@@ -48,7 +50,9 @@ export async function createStripeCheckoutSession(params: {
       metadata: {
         project_title: params.projectTitle,
         created_via: "checkout_session_v1",
-      } satisfies Record<string, unknown> as unknown as Json,
+        selected_format: params.selectedFormat ?? "pdf",
+        ...(params.fileName ? { requested_file_name: params.fileName } : {}),
+      } as unknown as Json,
     })
     .select("id")
     .single();
@@ -82,13 +86,15 @@ export async function createStripeCheckoutSession(params: {
             },
           },
         ],
-        success_url: `${APP_URL}${ROUTES.app.projectCheckoutReturn(params.projectId)}?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${APP_URL}${ROUTES.app.projectPreview(params.projectId)}?checkout=cancelled`,
+        success_url: `${APP_URL}${ROUTES.app.projectPaymentSuccess(params.projectId)}?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${APP_URL}${ROUTES.app.projectPaymentCancelled(params.projectId)}`,
         metadata: {
           order_id: orderId,
           user_id: params.userId,
           project_id: params.projectId,
           product_sku: product.sku,
+          selected_format: params.selectedFormat ?? "pdf",
+          ...(params.fileName ? { requested_file_name: params.fileName } : {}),
         },
         payment_intent_data: {
           metadata: {
@@ -96,6 +102,8 @@ export async function createStripeCheckoutSession(params: {
             user_id: params.userId,
             project_id: params.projectId,
             product_sku: product.sku,
+            selected_format: params.selectedFormat ?? "pdf",
+            ...(params.fileName ? { requested_file_name: params.fileName } : {}),
           },
         },
       },
@@ -130,6 +138,8 @@ export async function createStripeCheckoutSession(params: {
           created_via: "checkout_session_v1",
           checkout_created_at: new Date().toISOString(),
           stripe_checkout_session_id: session.id,
+          selected_format: params.selectedFormat ?? "pdf",
+          ...(params.fileName ? { requested_file_name: params.fileName } : {}),
         } as unknown as Json,
       })
       .eq("id", orderId)

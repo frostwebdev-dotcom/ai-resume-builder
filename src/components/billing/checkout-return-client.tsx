@@ -38,7 +38,7 @@ export function CheckoutReturnClient({
       if (attempts.current > 40) {
         window.clearInterval(id);
         setPolling(false);
-        router.replace(`${ROUTES.app.projectPreview(projectId)}?checkout=pending#resume-export-panel`);
+        router.replace(`${ROUTES.app.projectBuild(projectId)}?checkout=pending`);
         router.refresh();
         return;
       }
@@ -50,12 +50,12 @@ export function CheckoutReturnClient({
       if (r.status === "completed") {
         window.clearInterval(id);
         setPolling(false);
-        router.replace(`${ROUTES.app.projectPreview(projectId)}?checkout=success`);
+        router.replace(`${ROUTES.app.projectBuild(projectId)}?checkout=success`);
         router.refresh();
       } else if (r.status === "failed" || r.status === "refunded") {
         window.clearInterval(id);
         setPolling(false);
-        router.replace(`${ROUTES.app.projectPreview(projectId)}?checkout=failed`);
+        router.replace(`${ROUTES.app.projectBuild(projectId)}?checkout=failed`);
         router.refresh();
       }
     }, 2000);
@@ -68,14 +68,14 @@ export function CheckoutReturnClient({
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm ring-1 ring-foreground/5">
         <h1 className="text-lg font-semibold text-foreground">Missing checkout session</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Open checkout from your resume preview. This page only works right after Stripe redirects you
+          Open checkout from your resume builder. This page only works right after Stripe redirects you
           back.
         </p>
         <Link
-          href={ROUTES.app.projectPreview(projectId)}
+          href={ROUTES.app.projectBuild(projectId)}
           className={cn(buttonVariants({ size: "touch" }), "mt-6 inline-flex w-full justify-center")}
         >
-          Back to preview
+          Back to builder
         </Link>
       </div>
     );
@@ -90,10 +90,10 @@ export function CheckoutReturnClient({
           charged, contact support with your receipt.
         </p>
         <Link
-          href={ROUTES.app.projectPreview(projectId)}
+          href={ROUTES.app.projectBuild(projectId)}
           className={cn(buttonVariants({ size: "touch" }), "mt-6 inline-flex w-full justify-center")}
         >
-          Back to preview
+          Back to builder
         </Link>
       </div>
     );
@@ -107,12 +107,12 @@ export function CheckoutReturnClient({
           <div>
             <h1 className="text-lg font-semibold text-foreground">Payment did not complete</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Your order was not marked paid. You can try again from the preview page when you are ready.
+              Your order was not marked paid. You can try again from the resume builder when you are ready.
             </p>
           </div>
         </div>
         <Link
-          href={ROUTES.app.projectPreview(projectId)}
+          href={ROUTES.app.projectBuild(projectId)}
           className={cn(buttonVariants({ size: "touch" }), "mt-6 inline-flex w-full justify-center")}
         >
           Back to {projectTitle}
@@ -129,15 +129,15 @@ export function CheckoutReturnClient({
           <div>
             <h1 className="text-lg font-semibold text-foreground">Payment confirmed</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Your download is unlocked. PDF export uses the same resume content you see in preview.
+              Your PDF export is unlocked. You can download without paying again from the resume builder.
             </p>
           </div>
         </div>
         <Link
-          href={ROUTES.app.projectPreview(projectId)}
+          href={ROUTES.app.projectBuild(projectId)}
           className={cn(buttonVariants({ size: "touch" }), "mt-6 inline-flex w-full justify-center")}
         >
-          Open preview & download
+          Back to builder
         </Link>
       </div>
     );
@@ -160,8 +160,8 @@ export function CheckoutReturnClient({
               Securing your receipt with Stripe. This usually takes a few seconds.
             </p>
             <p className="mt-3 text-caption text-muted-foreground">
-              Downloads unlock only after our server receives a verified Stripe webhook — not from this
-              page alone.
+              Downloads unlock only after our server verifies Stripe payment status, either from the
+              webhook or a secure server-side Stripe check.
             </p>
           </div>
         </div>
@@ -171,22 +171,22 @@ export function CheckoutReturnClient({
 
   /* Polling timed out — still pending */
   if (initial.kind === "pending" && !polling) {
-    const pendingPreview = `${ROUTES.app.projectPreview(projectId)}?checkout=pending#resume-export-panel`;
+    const pendingBuilder = `${ROUTES.app.projectBuild(projectId)}?checkout=pending`;
     return (
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 ring-1 ring-amber-500/10">
         <h1 className="text-lg font-semibold text-foreground">Still processing</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          We could not confirm payment yet. Refresh your preview in a minute — if the charge appears on
+          We could not confirm payment yet. Refresh your builder in a minute — if the charge appears on
           your card, your download will unlock automatically.
         </p>
         <Link
-          href={pendingPreview}
+          href={pendingBuilder}
           className={cn(buttonVariants({ size: "touch" }), "mt-6 inline-flex w-full justify-center")}
         >
-          Back to preview
+          Back to builder
         </Link>
         <p className="mt-3 text-caption text-muted-foreground">
-          On the preview page you can use <span className="font-medium text-foreground">Try payment again</span>{" "}
+          In the builder you can use <span className="font-medium text-foreground">Pay once to download</span>{" "}
           if you still need to complete checkout.
         </p>
       </div>

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  Settings,
   FileText,
   LayoutDashboard,
   LayoutTemplate,
@@ -167,4 +168,5 @@ export const DASHBOARD_NAV_DESKTOP = [
   { href: ROUTES.app.root, label: "Dashboard", icon: LayoutDashboard },
   { href: ROUTES.app.resumes, label: "Resumes", icon: FileText },
   { href: ROUTES.app.templates, label: "Templates", icon: LayoutTemplate },
+  { href: ROUTES.app.account, label: "Settings", icon: Settings },
 ] as const;

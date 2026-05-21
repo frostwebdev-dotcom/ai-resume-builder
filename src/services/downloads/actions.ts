@@ -73,6 +73,7 @@ export async function requestResumeDownloadAction(
     projectId: project.id,
     projectTitle: project.title,
     templateId: project.template_id,
+    fileName: parsed.data.fileName,
   });
 
   if (!result.ok) {
@@ -93,6 +94,7 @@ export async function requestResumeDownloadAction(
 
   revalidatePath(ROUTES.app.project(project.id));
   revalidatePath(ROUTES.app.projectPreview(project.id));
+  revalidatePath(ROUTES.app.projectPreviewExport(project.id));
   revalidatePath(ROUTES.app.root);
 
   return {

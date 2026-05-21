@@ -3,14 +3,11 @@ import { NextResponse } from "next/server";
 import { apiExperienceBulletBodySchema } from "@/lib/ai/schemas";
 import { suggestExperienceBullet } from "@/lib/ai/resume-ai-service";
 
-import { readJsonBody, requireSessionUser, statusForAiCode } from "../_http";
+import { readJsonBody, requireAiActorForProject, statusForAiCode } from "../_http";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const session = await requireSessionUser();
-  if (!session.ok) return session.response;
-
   const raw = await readJsonBody(request);
   if (raw instanceof NextResponse) return raw;
 
@@ -27,7 +24,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const out = await suggestExperienceBullet(session.userId, parsed.data);
+  const actor = await requireAiActorForProject(request, parsed.data.projectId);
+  if (!actor.ok) return actor.response;
+
+  const out = await suggestExperienceBullet(actor.userId, parsed.data);
   if (!out.ok) {
     return NextResponse.json(
       { ok: false, error: out.error, code: out.code },

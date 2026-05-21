@@ -3,6 +3,12 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database } from "@/types/database";
+import type { Json } from "@/types/database";
+
+export type CompletedResumeOrder = {
+  id: string;
+  metadata: Json | null;
+};
 
 /**
  * A completed order for this project grants PDF download entitlement.
@@ -14,10 +20,10 @@ export async function getCompletedOrderForProject(
   projectId: string,
   /** When set, only this SKU counts toward entitlement (default: resume PDF unlock). */
   productSku = "resume_pdf_v1" as const,
-): Promise<{ id: string } | null> {
+): Promise<CompletedResumeOrder | null> {
   const { data, error } = await supabase
     .from("orders")
-    .select("id")
+    .select("id, metadata")
     .eq("user_id", userId)
     .eq("project_id", projectId)
     .eq("product_sku", productSku)
@@ -27,5 +33,5 @@ export async function getCompletedOrderForProject(
     .maybeSingle();
 
   if (error || !data) return null;
-  return { id: data.id };
+  return { id: data.id, metadata: data.metadata as Json | null };
 }

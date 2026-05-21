@@ -9,6 +9,7 @@ import {
 } from "@/lib/security/rate-limit-enforcement";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createStripeCheckoutSession } from "@/services/billing/checkout-session";
+import { reconcilePaidCheckoutSession } from "@/services/billing/stripe-webhook";
 import {
   createCheckoutSessionSchema,
   pollCheckoutOrderSchema,
@@ -66,11 +67,13 @@ export async function startCheckoutAction(raw: unknown): Promise<StartCheckoutRe
   trackServerEvent(ANALYTICS_EVENTS.CHECKOUT_STARTED, {
     product_sku: parsed.data.productSku,
     project_id_prefix: project.id.slice(0, 8),
+    selected_format: parsed.data.selectedFormat ?? "pdf",
   });
 
   void persistProductAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_STARTED, {
     product_sku: parsed.data.productSku,
     project_id_prefix: project.id.slice(0, 8),
+    selected_format: parsed.data.selectedFormat ?? "pdf",
   });
 
   return createStripeCheckoutSession({
@@ -78,6 +81,8 @@ export async function startCheckoutAction(raw: unknown): Promise<StartCheckoutRe
     projectId: project.id,
     projectTitle: project.title,
     productSku: parsed.data.productSku,
+    selectedFormat: parsed.data.selectedFormat ?? "pdf",
+    fileName: parsed.data.fileName,
   });
 }
 
@@ -117,6 +122,17 @@ export async function pollCheckoutOrderStatusAction(
 
   if (error || !order || order.project_id !== parsed.data.projectId) {
     return { ok: false, error: "Order not found." };
+  }
+
+  if (order.status === "pending" || order.status === "processing") {
+    const reconciled = await reconcilePaidCheckoutSession({
+      checkoutSessionId: parsed.data.checkoutSessionId,
+      userId,
+      projectId: parsed.data.projectId,
+    });
+    if (reconciled === "completed") {
+      return { ok: true, status: "completed" };
+    }
   }
 
   return { ok: true, status: order.status };

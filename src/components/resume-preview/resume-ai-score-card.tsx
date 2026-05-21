@@ -30,6 +30,7 @@ type Props = {
   /** Optional subtitle (e.g. most recent resume title on dashboard). */
   resumeTitle?: string;
   className?: string;
+  resultMode?: "full" | "summary";
 };
 
 type ApiOk = { ok: true; data: ResumeScoreOutput };
@@ -62,13 +63,19 @@ function scoreRing(score: number): string {
   return "ring-rose-500/20 bg-rose-50/80";
 }
 
-export function ResumeAiScoreCard({ projectId, variant, resumeTitle, className }: Props) {
+export function ResumeAiScoreCard({
+  projectId,
+  variant,
+  resumeTitle,
+  className,
+  resultMode = "full",
+}: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ResumeScoreOutput | null>(null);
 
   const buildHref = ROUTES.app.projectBuild(projectId);
-  const previewHref = ROUTES.app.projectPreview(projectId);
+  const previewHref = ROUTES.app.projectPreviewExport(projectId);
   const experienceHash = `${buildHref}#studio-section-experience`;
 
   const runScore = useCallback(async () => {
@@ -94,24 +101,22 @@ export function ResumeAiScoreCard({ projectId, variant, resumeTitle, className }
     }
   }, [projectId]);
 
-  const heading =
-    variant === "dashboard"
-      ? "AI resume review"
-      : variant === "studio"
-        ? "Final review — AI score"
-        : "AI resume review";
+  const heading = "AI Resume Review";
 
   const description =
     variant === "dashboard"
       ? "See strengths, gaps, and ATS-friendly formatting notes for your most recent resume."
       : variant === "preview"
-        ? "Optional review of your export-ready draft — layout and PDF options stay available even if this fails."
+        ? "Get a quick quality check before downloading. We’ll review clarity, structure, impact, and ATS-friendly formatting."
         : "Get a structured review before you export. Nothing changes until you edit your draft.";
+  const topRecommendations = result
+    ? [...result.priorityFixes, ...result.improvements, ...result.missingInformationWarnings].slice(0, 3)
+    : [];
 
   return (
     <Card
       className={cn(
-        "border-border/80 shadow-sm",
+        "border-primary/15 bg-gradient-to-br from-primary/[0.08] via-card to-card shadow-soft ring-1 ring-primary/10",
         variant === "studio" && "rounded-xl border-slate-200/90 bg-white",
         variant === "dashboard" && "border-slate-200/90 bg-white",
         className,
@@ -163,7 +168,7 @@ export function ResumeAiScoreCard({ projectId, variant, resumeTitle, className }
             ) : (
               <>
                 <Sparkles className="size-3.5" aria-hidden />
-                Get AI review
+                Review my resume
               </>
             )}
           </Button>
@@ -192,10 +197,16 @@ export function ResumeAiScoreCard({ projectId, variant, resumeTitle, className }
         ) : null}
 
         {!result && !loading && !error ? (
-          <p className="text-sm text-muted-foreground">
-            We read your saved draft on the server (no auto-edits). If the model is busy, you can still edit,
-            preview, and export — this card never blocks those actions.
-          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {["Clarity", "Impact", "ATS-friendly format"].map((item) => (
+              <div key={item} className="rounded-xl border border-border/70 bg-background/70 px-3 py-2.5">
+                <p className="text-sm font-medium text-foreground">{item}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Quick, practical feedback before you commit to the final file.
+                </p>
+              </div>
+            ))}
+          </div>
         ) : null}
 
         {loading && !result ? (
@@ -208,7 +219,69 @@ export function ResumeAiScoreCard({ projectId, variant, resumeTitle, className }
           </div>
         ) : null}
 
-        {result ? (
+        {result && resultMode === "summary" ? (
+          <>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div
+                className={cn(
+                  "flex min-w-32 flex-col items-center justify-center rounded-2xl p-5 ring-2 ring-inset",
+                  scoreRing(result.score),
+                )}
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Score
+                </p>
+                <p className={cn("text-4xl font-bold tabular-nums tracking-tight", scoreTone(result.score))}>
+                  {result.score}
+                </p>
+                <p className="text-xs text-muted-foreground">out of 100</p>
+              </div>
+              <div className="min-w-0 flex-1 space-y-3">
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  AI-assisted review only — not a guarantee employers or applicant tracking systems will
+                  accept your resume.
+                </p>
+                {topRecommendations.length > 0 ? (
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">Top recommendations</h3>
+                    <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground">
+                      {topRecommendations.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No priority recommendations returned. You can continue to export when ready.
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 border-t border-border/60 pt-4 sm:flex-row sm:flex-wrap">
+              <Link
+                href={buildHref}
+                className={cn(
+                  buttonVariants({ variant: "default", size: "default" }),
+                  "inline-flex w-full justify-center gap-2 sm:w-auto",
+                )}
+              >
+                Improve with AI
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
+              <a
+                href="#resume-export-panel"
+                className={cn(
+                  buttonVariants({ variant: "secondary", size: "default" }),
+                  "inline-flex w-full justify-center gap-2 sm:w-auto",
+                )}
+              >
+                Continue to export
+              </a>
+            </div>
+          </>
+        ) : null}
+
+        {result && resultMode === "full" ? (
           <>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch sm:gap-6">
               <div
@@ -230,6 +303,18 @@ export function ResumeAiScoreCard({ projectId, variant, resumeTitle, className }
                   AI-assisted review only — not a guarantee employers or applicant tracking systems will
                   accept your resume. Use it as a checklist before you pay to export.
                 </p>
+                {topRecommendations.length > 0 ? (
+                  <div className="rounded-xl border border-primary/15 bg-background/80 p-4">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Top recommendations
+                    </h3>
+                    <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground">
+                      {topRecommendations.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : null}
                 {result.missingInformationWarnings.length > 0 ? (
                   <Alert variant="warning">
                     <Info className="size-4" aria-hidden />
@@ -351,16 +436,6 @@ export function ResumeAiScoreCard({ projectId, variant, resumeTitle, className }
                 Improve with AI
                 <ArrowRight className="size-4" aria-hidden />
               </Link>
-              <Link
-                href={experienceHash}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "default" }),
-                  "inline-flex w-full justify-center gap-2 sm:w-auto",
-                )}
-              >
-                Review experience bullets
-                <ArrowRight className="size-4" aria-hidden />
-              </Link>
               {variant === "preview" ? (
                 <a
                   href="#resume-export-panel"
@@ -369,7 +444,7 @@ export function ResumeAiScoreCard({ projectId, variant, resumeTitle, className }
                     "inline-flex w-full justify-center gap-2 sm:w-auto",
                   )}
                 >
-                  Export options
+                  Continue to download
                 </a>
               ) : (
                 <Link
@@ -383,6 +458,16 @@ export function ResumeAiScoreCard({ projectId, variant, resumeTitle, className }
                   <ArrowRight className="size-4" aria-hidden />
                 </Link>
               )}
+              <Link
+                href={experienceHash}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "default" }),
+                  "inline-flex w-full justify-center gap-2 sm:w-auto",
+                )}
+              >
+                Review experience bullets
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
             </div>
           </>
         ) : null}
