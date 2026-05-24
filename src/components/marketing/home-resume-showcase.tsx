@@ -2,7 +2,7 @@ import { ResumePreviewMock } from "@/components/marketing/resume-preview-mock";
 import { cn } from "@/lib/utils";
 
 const SHOWCASE_CAPTION =
-  "Decorative illustration of a resume layout shown on a phone screen and a desktop browser window. Content is placeholder, not a real person’s resume.";
+  "Sample preview shown for demonstration.";
 
 /**
  * Premium-feel dual mockup: phone-first stack on small screens, side‑by‑side on large.
@@ -12,7 +12,7 @@ export function HomeResumeShowcase({ className }: { className?: string }) {
   return (
     <figure className={cn("mx-auto w-full max-w-5xl", className)}>
       <div
-        className="flex flex-col items-center gap-10 lg:flex-row lg:items-end lg:justify-center lg:gap-12"
+        className="flex flex-col items-center gap-6 lg:flex-row lg:items-end lg:justify-center lg:gap-12"
         role="group"
         aria-label="Resume preview mockups for mobile and desktop"
       >
@@ -53,7 +53,7 @@ export function HomeResumeShowcase({ className }: { className?: string }) {
           </div>
         </div>
       </div>
-      <figcaption className="mt-6 text-center text-xs leading-relaxed text-muted-foreground">
+      <figcaption className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
         {SHOWCASE_CAPTION}
       </figcaption>
     </figure>

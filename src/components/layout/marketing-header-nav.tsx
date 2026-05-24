@@ -95,7 +95,7 @@ type AuthLinksProps = {
 
 const workspaceGhostLink = cn(
   buttonVariants({ variant: "ghost", size: "sm" }),
-  "relative min-h-11 items-center whitespace-nowrap px-2 text-xs sm:min-h-0 sm:px-2.5 sm:text-sm",
+  "relative min-h-11 min-w-0 items-center px-2 text-xs sm:min-h-0 sm:px-2.5 sm:text-sm",
 );
 
 const marketingNewResumeButtonClass = cn(
@@ -122,13 +122,12 @@ function GuestCreateResumeLink({ className }: { className?: string }) {
       data-active={active || undefined}
       className={cn(
         buttonVariants({ size: "sm" }),
-        "relative min-h-11 gap-1.5 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:min-h-0",
+        "relative min-h-11 gap-1.5 bg-brand px-3 text-brand-foreground shadow-soft hover:bg-brand/90 sm:min-h-0 sm:px-3.5",
         className,
       )}
     >
-      <Plus className="size-4 shrink-0" aria-hidden />
-      <span className="sm:hidden">Create</span>
-      <span className="hidden sm:inline">Create Resume</span>
+      <Plus className="hidden size-4 shrink-0 sm:block" aria-hidden />
+      <span>Start free</span>
       <PendingBar active={active} />
     </Link>
   );
@@ -146,9 +145,9 @@ export function MarketingAuthLinks({
     const resumesActive = dashboardSidebarActive(pathname, ROUTES.app.resumes);
 
     return (
-      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1 sm:gap-1.5">
+      <div className="flex min-w-0 items-center justify-end gap-1 sm:gap-1.5">
         <nav
-          className="flex min-w-0 items-center gap-0.5 sm:gap-1"
+          className="hidden min-w-0 max-w-full items-center gap-0.5 overflow-x-auto min-[420px]:flex sm:gap-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           aria-label="Workspace"
         >
           <Link
@@ -160,7 +159,8 @@ export function MarketingAuthLinks({
               dashboardActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            Dashboard
+            <span className="sm:hidden">Home</span>
+            <span className="hidden sm:inline">Dashboard</span>
             <PendingBar active={dashboardActive} />
           </Link>
           <Link
@@ -179,7 +179,7 @@ export function MarketingAuthLinks({
 
         <NewResumeServerForm
           formClassName="inline-flex w-auto shrink-0"
-          buttonClassName={cn(marketingNewResumeButtonClass, "touch-manipulation")}
+          buttonClassName={cn(marketingNewResumeButtonClass, "px-3 touch-manipulation")}
           idleContent={
             <>
               <span className="hidden sm:inline">New resume</span>
@@ -206,11 +206,11 @@ export function MarketingAuthLinks({
         data-active={loginActive || undefined}
         className={cn(
           buttonVariants({ variant: "ghost", size: "sm" }),
-          "relative min-h-11 items-center sm:min-h-0",
+          "relative min-h-11 items-center px-2.5 text-sm sm:min-h-0 sm:px-3",
           loginActive && "text-foreground",
         )}
       >
-        Log In
+        Log in
         <PendingBar active={loginActive} />
       </Link>
       <GuestCreateResumeLink />

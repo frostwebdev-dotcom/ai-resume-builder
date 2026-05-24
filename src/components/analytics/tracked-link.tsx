@@ -12,12 +12,15 @@ type TrackedLinkProps = ComponentProps<typeof Link> & {
   cta: LandingCtaPayload["cta"];
   /** Fires once per click (navigation still proceeds). */
   trackEvent?: AnalyticsEventName;
+  /** Optional list for funnels that need a legacy event plus a more specific event. */
+  trackEvents?: AnalyticsEventName[];
 };
 
 export function TrackedLink({
   href,
   cta,
   trackEvent = ANALYTICS_EVENTS.LANDING_CTA_CLICK,
+  trackEvents,
   onClick,
   className,
   children,
@@ -31,10 +34,13 @@ export function TrackedLink({
       href={href}
       className={cn(className)}
       onClick={(e) => {
-        trackClientEvent(trackEvent, {
-          cta,
-          href: hrefStr.slice(0, 200),
-        });
+        const events = trackEvents ?? [trackEvent];
+        for (const event of events) {
+          trackClientEvent(event, {
+            cta,
+            href: hrefStr.slice(0, 200),
+          });
+        }
         onClick?.(e);
       }}
     >

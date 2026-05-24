@@ -349,6 +349,23 @@
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
   }
+  /** Reserve space for app bottom nav + fixed action bar on phones */
+  .pb-app-nav-and-actions {
+    padding-bottom: calc(10.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  @media (width >= 48rem) {
+    .pb-app-nav-and-actions-md {
+      padding-bottom: calc(10.5rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+  @media (width >= 64rem) {
+    .pb-app-nav-and-actions {
+      padding-bottom: 0;
+    }
+    .pb-app-nav-and-actions-md {
+      padding-bottom: 0;
+    }
+  }
   /** Subtle section change on Draft — motion-safe for reduced-motion users */
   .animate-draft-step {
     animation: app-draft-section 0.22s ease-out;

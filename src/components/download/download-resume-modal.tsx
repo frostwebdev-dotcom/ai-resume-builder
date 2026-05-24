@@ -165,7 +165,10 @@ export function DownloadResumeModal({
     window.location.assign(result.url);
   }
 
-  const primaryLabel = canDownload ? "Download PDF" : `Continue to secure checkout — ${price}`;
+  const primaryLabel = canDownload
+    ? "Download PDF"
+    : `Continue to secure checkout — ${price}`;
+  const primaryLabelMobile = canDownload ? "Download PDF" : `Continue — ${price}`;
   const primaryPendingLabel =
     pending === "download"
       ? "Preparing PDF..."
@@ -295,7 +298,7 @@ export function DownloadResumeModal({
           ) : null}
         </div>
 
-        <DialogFooter className="sticky bottom-0 bg-white/95 px-5 py-4 backdrop-blur sm:px-6">
+        <DialogFooter className="sticky bottom-0 bg-white/95 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] backdrop-blur sm:px-6">
           <Button
             type="button"
             variant="outline"
@@ -308,7 +311,7 @@ export function DownloadResumeModal({
           <Button
             type="button"
             size="touch"
-            className="bg-slate-950 text-white hover:bg-slate-800"
+            className="h-12 whitespace-normal bg-slate-950 text-center text-base font-semibold leading-snug text-white hover:bg-slate-800"
             disabled={pending !== null || format !== "pdf"}
             onClick={() => {
               if (canDownload) void downloadPdf();
@@ -326,7 +329,10 @@ export function DownloadResumeModal({
                 {primaryLabel}
               </>
             ) : (
-              primaryLabel
+              <>
+                <span className="sm:hidden">{primaryLabelMobile}</span>
+                <span className="hidden sm:inline">{primaryLabel}</span>
+              </>
             )}
           </Button>
         </DialogFooter>

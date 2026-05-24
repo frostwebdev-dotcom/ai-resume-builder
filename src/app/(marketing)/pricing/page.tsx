@@ -130,7 +130,7 @@ export default function PricingPage() {
                   </CardTitle>
                   <p className="mt-2 text-sm text-muted-foreground">{launchPdf.description}</p>
                   <p className="mt-6 flex flex-wrap items-baseline gap-2">
-                    <span className="text-4xl font-semibold tabular-nums tracking-tight text-foreground sm:text-5xl">
+                    <span className="text-3xl font-semibold tabular-nums tracking-tight text-foreground sm:text-4xl lg:text-5xl">
                       {RESUME_PDF_EXPORT_PRICE_USD}
                     </span>
                     <span className="text-sm text-muted-foreground">once per resume project · plus tax if applicable</span>

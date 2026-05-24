@@ -85,7 +85,7 @@ export function AppLoginPanelProvider({
           <SheetContent
             side="right"
             showCloseButton={false}
-            className="min-w-0 gap-0 overflow-hidden border-l border-zinc-200 bg-white p-0 shadow-[0_0_40px_rgba(0,0,0,0.12)] dark:border-zinc-800 dark:bg-zinc-950 data-[side=right]:w-1/3 data-[side=right]:max-w-none data-[side=right]:sm:max-w-none"
+            className="min-w-0 gap-0 overflow-hidden border-l border-zinc-200 bg-white p-0 shadow-[0_0_40px_rgba(0,0,0,0.12)] dark:border-zinc-800 dark:bg-zinc-950 data-[side=right]:w-full data-[side=right]:max-w-none sm:data-[side=right]:w-[min(28rem,92vw)] sm:data-[side=right]:max-w-sm md:data-[side=right]:w-[min(32rem,90vw)]"
           >
             <SheetDescription className="sr-only">
               Sign in or create an account: email, name, then password or a one-time code, or use Google.

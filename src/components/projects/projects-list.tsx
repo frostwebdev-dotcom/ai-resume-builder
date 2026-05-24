@@ -57,7 +57,7 @@ export function ProjectsList({ projects }: Props) {
 
   return (
     <section className="space-y-3" aria-labelledby="projects-list-heading">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div>
           <h2 id="projects-list-heading" className="text-subhead text-foreground">
             Projects
@@ -68,7 +68,7 @@ export function ProjectsList({ projects }: Props) {
         </div>
 
         {showSearch ? (
-          <div className="relative">
+          <div className="relative min-w-0 w-full sm:w-auto">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
@@ -79,7 +79,7 @@ export function ProjectsList({ projects }: Props) {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search resumes…"
               aria-label="Search resumes"
-              className="w-full min-w-[14rem] pl-9 sm:w-72"
+              className="w-full max-w-full pl-9 sm:w-72 sm:min-w-[14rem]"
             />
           </div>
         ) : null}

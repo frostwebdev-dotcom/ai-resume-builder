@@ -231,7 +231,7 @@ export function ResumeAiScoreCard({
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Score
                 </p>
-                <p className={cn("text-4xl font-bold tabular-nums tracking-tight", scoreTone(result.score))}>
+                <p className={cn("text-3xl font-bold tabular-nums tracking-tight sm:text-4xl", scoreTone(result.score))}>
                   {result.score}
                 </p>
                 <p className="text-xs text-muted-foreground">out of 100</p>
@@ -293,7 +293,7 @@ export function ResumeAiScoreCard({
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Score
                 </p>
-                <p className={cn("text-4xl font-bold tabular-nums tracking-tight", scoreTone(result.score))}>
+                <p className={cn("text-3xl font-bold tabular-nums tracking-tight sm:text-4xl", scoreTone(result.score))}>
                   {result.score}
                 </p>
                 <p className="text-xs text-muted-foreground">out of 100</p>

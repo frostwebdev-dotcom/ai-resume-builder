@@ -23,26 +23,29 @@ export async function MarketingHeader() {
         <Link
           href={ROUTES.home}
           aria-label={`${APP_NAME} — home`}
-          className="group flex min-h-10 shrink-0 items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand-ring"
+          className="group flex min-h-11 min-w-0 shrink-0 items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand-ring sm:gap-2.5"
         >
           <span className="brand-mark" aria-hidden>
             S
           </span>
-          <span className="flex flex-col leading-none">
-            <span className="text-sm font-semibold tracking-tight">
-              {APP_NAME}
+          <span className="flex min-w-0 flex-col leading-none">
+            <span className="truncate text-sm font-semibold tracking-tight">
+              <span className="sm:hidden">BuildResume</span>
+              <span className="hidden sm:inline">
+                {APP_NAME}
+              </span>
             </span>
             <span className="mt-0.5 hidden text-[0.65rem] font-medium uppercase tracking-[0.18em] text-muted-foreground sm:inline">
-              ATS-friendly · Pay on export
+              AI-assisted · ATS-friendly
             </span>
           </span>
         </Link>
 
-        <div className="min-w-0 flex-1">
+        <div className="hidden min-w-0 flex-1 md:block">
           <MarketingPrimaryNav />
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
           <MarketingAuthLinks
             isAuthed={Boolean(ctx)}
             userEmail={ctx?.user.email ?? null}

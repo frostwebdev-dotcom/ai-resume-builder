@@ -587,7 +587,8 @@ function TopBar({
               ) : (
                 <CloudUpload className="size-3.5 shrink-0" aria-hidden />
               )}
-              <span className="whitespace-nowrap">Save to account</span>
+              <span className="hidden min-[400px]:inline">Save to account</span>
+              <span className="min-[400px]:hidden">Save</span>
             </Button>
             <Link
               href={ROUTES.app.resumes}
@@ -598,7 +599,8 @@ function TopBar({
               aria-label="Open resume projects dashboard"
             >
               <LayoutDashboard className="size-3.5 shrink-0" aria-hidden />
-              <span className="whitespace-nowrap">Dashboard</span>
+              <span className="hidden min-[400px]:inline">Dashboard</span>
+              <span className="min-[400px]:hidden">Home</span>
             </Link>
           </div>
         ) : (

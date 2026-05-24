@@ -138,7 +138,7 @@ export function ProjectPreviewClient({
   const showCheckoutBanner = Boolean(checkoutNotice) && !checkoutBannerDismissed;
 
   return (
-    <div className="min-w-0 space-y-8">
+    <div className="min-w-0 space-y-8 pb-app-nav-and-actions-md md:pb-0">
       <PreviewViewedTracker projectId={projectId} />
       {showCheckoutBanner && checkoutNotice === "success" && downloadAccess.canDownload ? (
         <Alert variant="success">
@@ -255,7 +255,7 @@ export function ProjectPreviewClient({
             Back to project
           </Link>
           <p className="text-eyebrow">Advanced preview settings</p>
-          <h1 className="text-balance text-display text-foreground">{displayTitle}</h1>
+          <h1 className="line-clamp-3 text-balance break-words text-display text-foreground">{displayTitle}</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Advanced template, appearance, avatar, and preview controls. Use the focused export flow for final checkout and download.
           </p>
@@ -273,7 +273,7 @@ export function ProjectPreviewClient({
       </div>
 
       <nav
-        className="grid grid-cols-4 gap-2 md:hidden"
+        className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:hidden"
         aria-label="Preview page sections"
       >
         {mobileSectionLinks.map(({ href, label, Icon }) => (

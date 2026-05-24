@@ -6,6 +6,11 @@ export const ANALYTICS_EVENTS = {
   LANDING_CTA_CLICK: "landing_cta_click",
   /** Marketing homepage primary/secondary CTAs (`/`). */
   HOMEPAGE_CTA_CLICKED: "homepage_cta_clicked",
+  HOMEPAGE_PRIMARY_CTA_CLICKED: "homepage_primary_cta_clicked",
+  HOMEPAGE_TEMPLATES_CLICKED: "homepage_templates_clicked",
+  HOMEPAGE_PREVIEW_VIEWED: "homepage_preview_viewed",
+  HOMEPAGE_AI_EXAMPLE_VIEWED: "homepage_ai_example_viewed",
+  RESUME_STARTED_FROM_HOMEPAGE: "resume_started_from_homepage",
   SIGNUP_STARTED: "signup_started",
   SIGNUP_COMPLETED: "signup_completed",
   MAGIC_LINK_REQUESTED: "magic_link_requested",

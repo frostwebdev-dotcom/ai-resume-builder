@@ -12,7 +12,7 @@ type AdminShellProps = {
 export function AdminShell({ children }: AdminShellProps) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip bg-muted/30">
-      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
+      <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 pt-safe backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
         <PageContainer className="flex h-14 min-w-0 items-center justify-between gap-3 sm:gap-4">
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <span

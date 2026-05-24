@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         className="pointer-events-none absolute inset-0 bg-grid-subtle opacity-25 [mask-image:radial-gradient(circle_at_center,black_30%,transparent_75%)]"
         aria-hidden
       />
-      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip overflow-y-auto overscroll-y-auto">
+      <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip overflow-y-auto overscroll-y-auto pt-safe">
         {children}
       </div>
     </div>

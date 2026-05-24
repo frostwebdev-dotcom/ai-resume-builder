@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 function TemplatesGridFallback() {
   return (
-    <div className="mx-auto mt-10 grid w-full max-w-6xl grid-cols-2 gap-3 animate-pulse sm:grid-cols-3 lg:grid-cols-4">
+    <div className="mx-auto mt-10 grid w-full max-w-6xl grid-cols-1 gap-3 animate-pulse sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {Array.from({ length: 8 }, (_, i) => (
         <div key={i} className="h-[280px] rounded-xl bg-slate-200/60 sm:h-[300px]" />
       ))}

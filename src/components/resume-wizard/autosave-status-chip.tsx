@@ -241,7 +241,7 @@ export function AutosaveStatusChip({
           }
         >
           <CloudCheck className="size-3.5 shrink-0" aria-hidden />
-          <span className="min-w-0 whitespace-nowrap">
+          <span className="min-w-0 max-w-[9rem] truncate sm:max-w-none">
             {toolbar ? (
               <>
                 <span>Autosave on </span>

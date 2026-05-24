@@ -146,7 +146,7 @@ export function PreviewExportClient({
     cn("min-w-0", activeTab === tab ? "block" : "hidden", "lg:block");
 
   return (
-    <div className="min-w-0 space-y-5 pb-20 lg:pb-0">
+    <div className="min-w-0 space-y-5 pb-app-nav-and-actions lg:pb-0">
       <header className="overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50 to-slate-100 p-5 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.55)] ring-1 ring-slate-950/5 sm:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-3">
@@ -155,7 +155,7 @@ export function PreviewExportClient({
               Secure final review
             </div>
             <div className="space-y-2">
-              <h1 className="text-balance text-display text-foreground">Resume Preview &amp; Export</h1>
+              <h1 className="line-clamp-3 text-balance break-words text-display text-foreground">Resume Preview &amp; Export</h1>
               <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
                 Review your resume and unlock your final PDF when ready.
               </p>

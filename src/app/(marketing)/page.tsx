@@ -3,15 +3,21 @@ import Link from "next/link";
 import {
   AlignLeft,
   ArrowRight,
+  BadgeCheck,
+  BrainCircuit,
   Check,
   ChevronRight,
   CircleSlash2,
-  Lock,
+  FileText,
+  LayoutTemplate,
+  PenLine,
+  ShieldCheck,
   Smartphone,
   Sparkles,
   Wand2,
 } from "lucide-react";
 
+import { HomepageSectionViewTracker } from "@/components/analytics/homepage-section-view-tracker";
 import { PageContainer } from "@/components/layout/page-container";
 import { HomeJsonLd } from "@/components/marketing/home-json-ld";
 import { HomeResumeShowcase } from "@/components/marketing/home-resume-showcase";
@@ -27,13 +33,12 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
-  PAY_ONCE_PDF_PER_PROJECT_LINE,
   RESUME_PDF_EXPORT_PRICE_USD,
 } from "@/lib/billing/monetization-copy";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { APP_NAME, ROUTES } from "@/lib/constants";
 
-const PRIMARY_HEADLINE = "Create a professional ATS-friendly resume in minutes.";
+const PRIMARY_HEADLINE = "Create a professional resume that is ready to send";
 
 export const metadata: Metadata = {
   title: PRIMARY_HEADLINE,
@@ -42,30 +47,49 @@ export const metadata: Metadata = {
   openGraph: {
     title: `${APP_NAME} — ${PRIMARY_HEADLINE}`,
     description:
-      "Build and preview for free. Pay once per resume project when you export your PDF — Stripe checkout, mobile-friendly editor.",
+      "Build and preview for free. Improve your content with AI, then pay once only when you are ready to download.",
   },
 };
 
+const trustPoints = [
+  {
+    label: "No subscription",
+    icon: CircleSlash2,
+  },
+  {
+    label: "Secure checkout",
+    icon: ShieldCheck,
+  },
+  {
+    label: "Build on your phone",
+    icon: Smartphone,
+  },
+  {
+    label: "ATS-friendly formatting",
+    icon: AlignLeft,
+  },
+] as const;
+
 const howItWorksSteps = [
   {
-    title: "Build your resume",
-    body: "Start on the web editor — no account required to draft. Add roles, skills, and education in clear sections.",
+    title: "Add your experience",
+    body: "Enter your work, education, and skills in guided sections.",
+    icon: PenLine,
   },
   {
-    title: "Improve with AI",
-    body: "Optional AI assist helps you tighten summaries and bullets on saved projects. You stay in control — review every line before you apply.",
+    title: "Improve your content with AI",
+    body: "Review suggested wording before it goes into your resume.",
+    icon: BrainCircuit,
   },
   {
-    title: "Preview templates",
-    body: "Switch layouts and fine-tune typography until it feels interview-ready on desktop and phone.",
+    title: "Choose a professional template",
+    body: "Preview clean layouts designed for recruiter readability.",
+    icon: LayoutTemplate,
   },
   {
-    title: "Pay only when ready",
-    body: `Checkout is a one-time unlock for that resume project — typically ${RESUME_PDF_EXPORT_PRICE_USD} today (see Pricing).`,
-  },
-  {
-    title: "Download PDF",
-    body: "Get a print-ready file after payment confirms. Re-download when you edit — same project, no extra charge.",
+    title: "Pay once and download your PDF",
+    body: "Export only when the final version is ready.",
+    icon: FileText,
   },
 ] as const;
 
@@ -106,7 +130,96 @@ const faqTeaser = [
 const aiBefore =
   "Worked on website and fixed bugs.";
 const aiAfter =
-  "Improved website functionality by resolving UI issues, optimizing user flows, and supporting frontend enhancements across key pages.";
+  "Improved website functionality by resolving UI issues and supporting frontend enhancements across key pages.";
+
+function HeroResumePreview() {
+  return (
+    <div className="mx-auto w-full max-w-[22rem] lg:max-w-md">
+      <HomepageSectionViewTracker
+        event={ANALYTICS_EVENTS.HOMEPAGE_PREVIEW_VIEWED}
+        section="hero_resume_preview"
+      />
+      <div className="rounded-[1.75rem] border border-slate-200/90 bg-white/90 p-3 shadow-[0_24px_80px_-44px_rgba(15,23,42,0.55)] ring-1 ring-slate-950/5 backdrop-blur">
+        <div className="mb-3 flex items-center justify-between gap-3 px-1">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+              Professional ATS Template
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              A clean, recruiter-friendly layout designed for readability and professional presentation.
+            </p>
+          </div>
+          <BadgeCheck className="size-8 shrink-0 text-brand" aria-hidden />
+        </div>
+        <div
+          className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-950 shadow-sm"
+          role="img"
+          aria-label="Sample professional resume preview with placeholder content."
+        >
+          <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+            <p className="text-lg font-semibold tracking-tight">Avery Morgan</p>
+            <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+              Operations Coordinator
+            </p>
+          </div>
+          <div className="space-y-4 px-5 py-4 text-left">
+            <section>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Summary
+              </p>
+              <p className="mt-1.5 text-xs leading-relaxed text-slate-700">
+                Detail-oriented coordinator with experience improving team workflows, customer communication,
+                and day-to-day operations.
+              </p>
+            </section>
+            <section>
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Experience
+              </p>
+              <div className="mt-2 border-l-2 border-brand/30 pl-3">
+                <p className="text-sm font-semibold">Project Assistant</p>
+                <p className="text-[0.7rem] text-slate-500">Sample Company · 2021–2024</p>
+                <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-slate-700">
+                  <li>Improved weekly reporting accuracy by organizing project updates and timelines.</li>
+                  <li>Supported customer-facing teams with clear documentation and follow-up tracking.</li>
+                </ul>
+              </div>
+            </section>
+            <div className="grid grid-cols-2 gap-3">
+              <section className="rounded-xl bg-slate-50 p-3">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Skills
+                </p>
+                <p className="mt-1.5 text-xs leading-relaxed text-slate-700">
+                  Scheduling · Reporting · CRM
+                </p>
+              </section>
+              <section className="rounded-xl bg-slate-50 p-3">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Education
+                </p>
+                <p className="mt-1.5 text-xs leading-relaxed text-slate-700">B.A. Business</p>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {["ATS-friendly", "PDF-ready", "Professional layout"].map((badge) => (
+            <span
+              key={badge}
+              className="inline-flex min-h-8 items-center rounded-full border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700"
+            >
+              {badge}
+            </span>
+          ))}
+        </div>
+      </div>
+      <p className="mt-2 text-center text-[0.7rem] leading-relaxed text-muted-foreground">
+        Sample preview shown for demonstration.
+      </p>
+    </div>
+  );
+}
 
 export default function MarketingHomePage() {
   return (
@@ -116,99 +229,89 @@ export default function MarketingHomePage() {
       {/* 1. Hero */}
       <MktSection
         id="top"
-        className="relative overflow-hidden border-b border-border/60 bg-aurora pb-16 pt-12 sm:pb-24 sm:pt-20"
+        className="relative overflow-hidden border-b border-border/60 bg-aurora pb-9 pt-8 sm:pb-16 sm:pt-16 lg:pb-20"
       >
         <div
           className="pointer-events-none absolute inset-0 bg-grid-subtle opacity-40 [mask-image:radial-gradient(circle_at_center,black_30%,transparent_75%)]"
           aria-hidden
         />
         <PageContainer className="relative">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="text-eyebrow justify-center">Resume builder</p>
-            <h1 className="mt-4 text-balance text-display text-foreground">{PRIMARY_HEADLINE}</h1>
-            <p className="mx-auto mt-5 max-w-xl text-pretty text-body-muted sm:text-lg">
-              Build and preview for free. When your content and layout feel right, pay only to download
-              your final PDF — no subscription, no surprise charges.
-            </p>
-            <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:justify-center">
-              <TrackedLink
-                href={ROUTES.create}
-                cta="start_building"
-                trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
-                className={cn(
-                  buttonVariants({ size: "touch" }),
-                  "gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
-                )}
-              >
-                Start building free
-                <ArrowRight className="size-4 shrink-0" aria-hidden />
-              </TrackedLink>
-              <TrackedLink
-                href={ROUTES.templates}
-                cta="view_templates"
-                trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "touch" }),
-                  "border-border/80 bg-background/80 backdrop-blur-sm",
-                )}
-              >
-                View templates
-              </TrackedLink>
+          <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
+            <div className="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
+              <p className="text-eyebrow justify-center lg:justify-start">AI resume builder</p>
+              <h1 className="mt-4 text-balance text-display text-foreground">{PRIMARY_HEADLINE}</h1>
+              <p className="mx-auto mt-5 max-w-xl text-pretty text-body-muted sm:text-lg lg:mx-0">
+                Create and preview your resume for free. Improve your content with AI, then pay once only
+                when you are ready to download the final PDF.
+              </p>
+              <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:justify-center lg:justify-start">
+                <TrackedLink
+                  href={ROUTES.create}
+                  cta="start_free"
+                  trackEvents={[
+                    ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED,
+                    ANALYTICS_EVENTS.HOMEPAGE_PRIMARY_CTA_CLICKED,
+                    ANALYTICS_EVENTS.RESUME_STARTED_FROM_HOMEPAGE,
+                  ]}
+                  className={cn(
+                    buttonVariants({ size: "touch" }),
+                    "w-full gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:w-auto",
+                  )}
+                >
+                  Build my resume free
+                  <ArrowRight className="size-4 shrink-0" aria-hidden />
+                </TrackedLink>
+                <TrackedLink
+                  href={ROUTES.templates}
+                  cta="view_templates"
+                  trackEvents={[
+                    ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED,
+                    ANALYTICS_EVENTS.HOMEPAGE_TEMPLATES_CLICKED,
+                  ]}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "touch" }),
+                    "w-full border-border/80 bg-background/80 backdrop-blur-sm sm:w-auto",
+                  )}
+                >
+                  View templates
+                </TrackedLink>
+              </div>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                Preview free. Pay once only when you are ready to download.
+              </p>
+              <ul className="mx-auto mt-5 grid max-w-xl grid-cols-2 gap-2.5 rounded-2xl border border-border/70 bg-background/75 p-3 text-left shadow-soft backdrop-blur-sm lg:mx-0">
+                {trustPoints.map(({ label, icon: Icon }) => (
+                  <li key={label} className="flex min-h-11 items-center gap-2 rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-foreground">
+                    <Icon className="size-4 shrink-0 text-brand" aria-hidden />
+                    <span className="leading-tight">{label}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="trust-row mt-10 max-w-2xl mx-auto">
-              <li>
-                <CircleSlash2 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span>No subscription</span>
-              </li>
-              <li>
-                <Lock className="size-4 shrink-0 text-brand" aria-hidden />
-                <span>Stripe-secured checkout</span>
-              </li>
-              <li>
-                <Smartphone className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span>Mobile-friendly editor</span>
-              </li>
-              <li>
-                <AlignLeft className="size-4 shrink-0 text-success" aria-hidden />
-                <span>ATS-friendly formatting</span>
-              </li>
-            </ul>
+            <HeroResumePreview />
           </div>
         </PageContainer>
       </MktSection>
 
-      {/* 2. Product preview */}
-      <MktSection id="preview" className="border-b border-border/40 bg-muted/15">
+      {/* 2. AI before / after */}
+      <MktSection id="ai-example" className="border-b border-border/40 bg-background py-12 sm:py-16">
         <PageContainer>
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-eyebrow justify-center">What you get</p>
-            <h2 className="mt-3 text-headline text-balance">A resume that looks finished — everywhere</h2>
-            <p className="mt-3 text-body-muted">
-              Polished layout in the editor, consistent on a phone screen and a desktop preview. The
-              examples below are simplified mockups, not real data.
-            </p>
-          </div>
-          <div className="mt-12">
-            <HomeResumeShowcase />
-          </div>
-        </PageContainer>
-      </MktSection>
-
-      {/* 3. AI before / after */}
-      <MktSection id="ai-example" className="border-b border-border/40">
-        <PageContainer>
+          <HomepageSectionViewTracker
+            event={ANALYTICS_EVENTS.HOMEPAGE_AI_EXAMPLE_VIEWED}
+            section="ai_example"
+          />
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-eyebrow justify-center">
               <Wand2 className="mb-0.5 inline size-3.5 align-middle" aria-hidden />
-              {" "}Optional AI assist
+              {" "}AI-assisted resume writing
             </p>
-            <h2 className="mt-3 text-headline text-balance">Sharpen weak bullets — fast</h2>
+            <h2 className="mt-3 text-headline text-balance">Improve your resume with AI</h2>
             <p className="mt-3 text-body-muted">
-              AI suggests tighter phrasing you can accept, edit, or ignore. Always verify facts and
-              metrics; you are responsible for what you submit to employers.
+              Turn simple experience notes into professional resume language while keeping your
+              information accurate.
             </p>
           </div>
-          <div className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-2 sm:gap-6">
+          <div className="mx-auto mt-8 grid max-w-3xl gap-4 sm:grid-cols-2 sm:gap-6">
             <article
               className="rounded-xl border border-border/80 bg-card p-5 text-left shadow-soft ring-1 ring-foreground/[0.04] sm:p-6"
               aria-labelledby="ai-before-heading"
@@ -232,32 +335,60 @@ export default function MarketingHomePage() {
               </blockquote>
             </article>
           </div>
+          <p className="mx-auto mt-5 max-w-xl text-center text-sm leading-relaxed text-muted-foreground">
+            AI suggestions require your approval before being added to your resume.
+          </p>
+        </PageContainer>
+      </MktSection>
+
+      {/* 3. Professional output */}
+      <MktSection id="preview" className="border-b border-border/40 bg-muted/15 py-12 sm:py-16">
+        <PageContainer>
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-eyebrow justify-center">Professional output</p>
+            <h2 className="mt-3 text-headline text-balance">A resume that looks ready to send</h2>
+            <p className="mt-3 text-body-muted">
+              Choose a clean, ATS-friendly template and see your resume update as you build.
+              Your final PDF keeps the same professional layout.
+            </p>
+          </div>
+          <div className="mt-8 sm:mt-10">
+            <HomeResumeShowcase />
+          </div>
         </PageContainer>
       </MktSection>
 
       {/* 4. How it works */}
-      <MktSection id="how-it-works" className="bg-muted/20">
+      <MktSection id="how-it-works" className="bg-muted/20 py-12 sm:py-16">
         <PageContainer>
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-eyebrow justify-center">How it works</p>
-            <h2 className="mt-3 text-headline text-balance">From blank page to PDF in one flow</h2>
+            <h2 className="mt-3 text-headline text-balance">From first draft to final PDF</h2>
             <p className="mt-3 text-body-muted">
-              No clutter — just the steps that move you toward a resume you are proud to send.
+              A simple flow built around creating first and paying only when you are ready to download.
             </p>
           </div>
-          <ol className="mx-auto mt-12 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-5">
-            {howItWorksSteps.map((step, i) => (
-              <li
-                key={step.title}
-                className="relative flex flex-col rounded-xl border border-border/70 bg-card p-5 text-left shadow-soft ring-1 ring-foreground/[0.03] sm:p-6"
-              >
-                <span className="brand-mark !size-9 !text-sm" aria-hidden>
-                  {i + 1}
-                </span>
-                <h3 className="mt-4 text-subhead">{step.title}</h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
-              </li>
-            ))}
+          <ol className="mx-auto mt-8 grid max-w-5xl gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+            {howItWorksSteps.map((step, i) => {
+              const StepIcon = step.icon;
+              return (
+                <li
+                  key={step.title}
+                  className="relative flex gap-3 rounded-xl border border-border/70 bg-card p-4 text-left shadow-soft ring-1 ring-foreground/[0.03] sm:flex-col sm:p-5"
+                >
+                  <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-muted text-brand" aria-hidden>
+                    <StepIcon className="size-4" />
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      Step {i + 1}
+                    </p>
+                    <h3 className="mt-1 text-subhead">{step.title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
+                  </div>
+                </li>
+              );
+            })}
           </ol>
           <div className="mt-10 flex justify-center">
             <Link
@@ -302,7 +433,10 @@ export default function MarketingHomePage() {
             <TrackedLink
               href={ROUTES.templates}
               cta="view_templates"
-              trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
+              trackEvents={[
+                ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED,
+                ANALYTICS_EVENTS.HOMEPAGE_TEMPLATES_CLICKED,
+              ]}
               className={cn(buttonVariants({ variant: "outline", size: "touch" }), "gap-2")}
             >
               Browse all templates
@@ -317,28 +451,45 @@ export default function MarketingHomePage() {
         <PageContainer>
           <div className="mx-auto max-w-xl rounded-2xl border border-border/70 bg-card p-8 text-center shadow-soft sm:p-10">
             <p className="text-eyebrow justify-center">Pricing</p>
-            <h2 className="mt-3 text-headline text-balance">Simple: preview free, pay to export</h2>
-            <p className="mt-4 text-body-muted leading-relaxed">{PAY_ONCE_PDF_PER_PROJECT_LINE}</p>
+            <h2 className="mt-3 text-headline text-balance">Start free. Pay only when ready.</h2>
+            <p className="mt-4 text-body-muted leading-relaxed">
+              Preview free. Pay once only when you are ready to download.
+            </p>
             <ul className="mx-auto mt-6 max-w-md space-y-2.5 text-left text-sm text-muted-foreground">
               <li className="flex gap-2">
                 <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-                <span>No subscription — checkout only when you want the PDF file.</span>
+                <span>
+                  <strong className="font-medium text-foreground">Build and preview:</strong> Free
+                </span>
               </li>
               <li className="flex gap-2">
                 <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-                <span>One unlock covers that resume project, including re-downloads after edits.</span>
+                <span>
+                  <strong className="font-medium text-foreground">PDF download:</strong>{" "}
+                  {RESUME_PDF_EXPORT_PRICE_USD} one-time unlock per resume project
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
+                <span>
+                  <strong className="font-medium text-foreground">Subscription:</strong> None at launch
+                </span>
               </li>
             </ul>
             <TrackedLink
-              href={ROUTES.pricing}
-              cta="view_pricing"
-              trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
+              href={ROUTES.create}
+              cta="start_free"
+              trackEvents={[
+                ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED,
+                ANALYTICS_EVENTS.HOMEPAGE_PRIMARY_CTA_CLICKED,
+                ANALYTICS_EVENTS.RESUME_STARTED_FROM_HOMEPAGE,
+              ]}
               className={cn(
                 buttonVariants({ size: "touch" }),
                 "mt-8 inline-flex w-full max-w-xs gap-2 bg-brand text-brand-foreground hover:bg-brand/90 sm:w-auto",
               )}
             >
-              View pricing
+              Start building free
               <ArrowRight className="size-4 shrink-0" aria-hidden />
             </TrackedLink>
           </div>
@@ -383,29 +534,35 @@ export default function MarketingHomePage() {
               <Sparkles className="size-3.5 shrink-0" aria-hidden />
               Start in minutes
             </span>
-            <h2 className="mt-6 text-balance text-display text-foreground">Start building your resume</h2>
+            <h2 className="mt-6 text-balance text-display text-foreground">Ready to create your resume?</h2>
             <p className="mt-4 text-body-muted">
-              Open the editor on this device — free to draft and preview. Sign in when you want cloud
-              save, optional AI, and PDF export.
+              Start free and pay only when your final PDF is ready to download.
             </p>
             <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               <TrackedLink
                 href={ROUTES.create}
-                cta="start_building"
-                trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
+                cta="start_free"
+                trackEvents={[
+                  ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED,
+                  ANALYTICS_EVENTS.HOMEPAGE_PRIMARY_CTA_CLICKED,
+                  ANALYTICS_EVENTS.RESUME_STARTED_FROM_HOMEPAGE,
+                ]}
                 className={cn(
                   buttonVariants({ size: "touch" }),
-                  "gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90",
+                  "w-full gap-2 bg-brand text-brand-foreground shadow-soft hover:bg-brand/90 sm:w-auto",
                 )}
               >
-                Start building free
+                Build my resume free
                 <ArrowRight className="size-4 shrink-0" aria-hidden />
               </TrackedLink>
               <TrackedLink
                 href={ROUTES.templates}
                 cta="view_templates"
-                trackEvent={ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED}
-                className={cn(buttonVariants({ variant: "outline", size: "touch" }), "bg-background/80")}
+                trackEvents={[
+                  ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED,
+                  ANALYTICS_EVENTS.HOMEPAGE_TEMPLATES_CLICKED,
+                ]}
+                className={cn(buttonVariants({ variant: "outline", size: "touch" }), "w-full bg-background/80 sm:w-auto")}
               >
                 View templates
               </TrackedLink>

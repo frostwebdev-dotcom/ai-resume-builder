@@ -1278,7 +1278,11 @@ export function GuestStudioEditor({
         {/* Bottom preview toolbar — template strip is absolutely positioned so it does not shrink the preview column */}
         <div
           ref={toolbarRef}
-          className="sticky bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-white/95 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))] backdrop-blur-md"
+          className={cn(
+            "sticky bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-white/95 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))] backdrop-blur-md",
+            mobilePreviewOpen &&
+              "max-lg:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]",
+          )}
         >
           <div className="relative mx-auto max-w-[780px] px-2 py-2 sm:px-4">
             {templatesOpen ? (
