@@ -74,6 +74,10 @@ import type {
   WizardEditorSectionId,
   WizardStateV1,
 } from "@/lib/resume-wizard/types";
+import { createEmptyWizardState } from "@/lib/resume-wizard/defaults";
+import { hasPreviewReadyResumeContent } from "@/lib/resume-wizard/content-readiness";
+import { trackClientEvent } from "@/lib/analytics/client";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import {
   AdditionalAiPanel,
   EducationEntryAiPanel,
@@ -281,6 +285,11 @@ type StudioEditorProps = {
   /** Signed avatar URL for live preview (project drafts only). */
   previewAvatarUrl?: string | null;
   jobAssist?: StudioJobAssistProps;
+  showInitialStartScreen?: boolean;
+  showSaveBadge?: boolean;
+  showIntakeShortcuts?: boolean;
+  showPreviewAction?: boolean;
+  onDraftStarted?: (method: "scratch" | "example" | "upload") => void;
 };
 
 /**
@@ -308,6 +317,11 @@ export function GuestStudioEditor({
   projectPreviewPendingText,
   previewAvatarUrl = null,
   jobAssist,
+  showInitialStartScreen = false,
+  showSaveBadge = true,
+  showIntakeShortcuts = true,
+  showPreviewAction,
+  onDraftStarted,
 }: StudioEditorProps) {
   const state = content;
   const setState = onContentChange;
@@ -399,7 +413,8 @@ export function GuestStudioEditor({
   }, [sectionOrderResolved, state]);
 
   const firstResumeSoftIssue = useMemo(() => getFirstResumeSoftIssue(state), [state]);
-  const previewableContent = useMemo(() => hasPreviewableResumeContent(state), [state]);
+  const previewableContent = useMemo(() => hasPreviewReadyResumeContent(state), [state]);
+  const mobilePreviewActionVisible = showPreviewAction ?? previewableContent;
 
   const scrollStudioSectionIntoView = useCallback((sectionId: SectionId) => {
     setOpenSection(sectionId);
@@ -422,21 +437,42 @@ export function GuestStudioEditor({
 
   const applyExampleForTemplate = useCallback(
     (slug: TemplateSlug) => {
+      trackClientEvent(ANALYTICS_EVENTS.START_FROM_EXAMPLE_CLICKED, {
+        template: slug,
+        surface: "guest_create",
+      });
       setState(createDemoWizardStateForTemplate(slug));
       onTemplateChange(slug);
+      onDraftStarted?.("example");
       setOpenSection("personal");
       setSelectExampleTemplateOpen(false);
     },
-    [setState, onTemplateChange],
+    [setState, onTemplateChange, onDraftStarted],
   );
 
   const handleResumeImported = useCallback(
     (wizard: WizardStateV1) => {
       setState(wizard);
+      onDraftStarted?.("upload");
       setOpenSection("personal");
     },
-    [setState],
+    [setState, onDraftStarted],
   );
+
+  const handleUploadPickerOpen = useCallback(() => {
+    trackClientEvent(ANALYTICS_EVENTS.UPLOAD_RESUME_CLICKED, {
+      surface: "guest_create",
+    });
+  }, []);
+
+  const handleStartFromScratch = useCallback(() => {
+    trackClientEvent(ANALYTICS_EVENTS.START_FROM_SCRATCH_CLICKED, {
+      surface: "guest_create",
+    });
+    setState(createEmptyWizardState());
+    onDraftStarted?.("scratch");
+    setOpenSection("personal");
+  }, [onDraftStarted, setState]);
 
   const handleLinkedInIntakeShortcut = useCallback(() => {
     setOpenSection("personal");
@@ -676,14 +712,65 @@ export function GuestStudioEditor({
     };
   }, [openSection, previewDocument, previewZoomed, previewTemplateSlug]);
 
+  if (showInitialStartScreen) {
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-slate-50">
+        <div className="mx-auto flex w-full max-w-3xl flex-col px-4 py-6 pb-safe sm:px-6 sm:py-8">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm ring-1 ring-slate-950/[0.03] sm:p-7">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#2268d7]">
+              Start free
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              Create your resume
+            </h1>
+            <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600 sm:text-base">
+              Build a professional, ATS-friendly resume with AI help. Start free — no account required.
+            </p>
+          </div>
+
+          <div className="mt-5">
+            <GuestStartMethodCards
+              onStartFromScratch={handleStartFromScratch}
+              onOpenSelectExampleTemplate={() => setSelectExampleTemplateOpen(true)}
+              resumeUpload={
+                <GuestResumeUploadIntake
+                  templateSlug={templateSlug}
+                  onImported={handleResumeImported}
+                  onPickerOpen={handleUploadPickerOpen}
+                  cardClassName="flex min-h-[6.5rem] w-full items-center gap-3 rounded-2xl border px-4 py-4 text-left outline-none transition-[border-color,box-shadow,transform] duration-200"
+                />
+              }
+            />
+          </div>
+
+          <p className="mt-5 rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-pretty text-sm leading-relaxed text-slate-600 shadow-sm">
+            Your information stays private. Create an account later to save across devices and download your final PDF.
+          </p>
+        </div>
+
+        <SelectTemplateForExampleModal
+          open={selectExampleTemplateOpen}
+          onOpenChange={setSelectExampleTemplateOpen}
+          currentSlug={templateSlug}
+          onSelectTemplate={applyExampleForTemplate}
+        />
+      </div>
+    );
+  }
+
   return (
     <ResumeStudioSplitLayout
       focusMode={focusMode}
       mobilePreviewOpen={mobilePreviewOpen}
       previewAccent={previewTheme.accent}
       editor={(
-        <div className="w-full min-w-0 space-y-4 px-4 py-5 pb-28 sm:px-6 sm:py-6 lg:pb-5">
-          {persistMode === "guest" ? (
+        <div
+          className={cn(
+            "w-full min-w-0 space-y-4 px-4 py-5 sm:px-6 sm:py-6 lg:pb-5",
+            mobilePreviewActionVisible ? "pb-28" : "pb-safe",
+          )}
+        >
+          {persistMode === "guest" && showSaveBadge ? (
             <SaveBadge
               status={guestAutosave.saveStatus}
               error={guestAutosave.lastError}
@@ -692,17 +779,20 @@ export function GuestStudioEditor({
             />
           ) : null}
 
-          <IntakeShortcuts
-            onOpenSelectExampleTemplate={() => setSelectExampleTemplateOpen(true)}
-            resumeUpload={
-              <GuestResumeUploadIntake
-                templateSlug={templateSlug}
-                onImported={handleResumeImported}
-                cardClassName="flex min-h-[7.75rem] w-full flex-col items-center justify-center gap-3 rounded-xl border px-4 py-4 text-center outline-none transition-[border-color,box-shadow,transform] duration-200 sm:min-h-[8.25rem] sm:gap-3.5 sm:py-5"
-              />
-            }
-            onLinkedInImport={handleLinkedInIntakeShortcut}
-          />
+          {showIntakeShortcuts ? (
+            <IntakeShortcuts
+              onOpenSelectExampleTemplate={() => setSelectExampleTemplateOpen(true)}
+              resumeUpload={
+                <GuestResumeUploadIntake
+                  templateSlug={templateSlug}
+                  onImported={handleResumeImported}
+                  onPickerOpen={handleUploadPickerOpen}
+                  cardClassName="flex min-h-[7.75rem] w-full flex-col items-center justify-center gap-3 rounded-xl border px-4 py-4 text-center outline-none transition-[border-color,box-shadow,transform] duration-200 sm:min-h-[8.25rem] sm:gap-3.5 sm:py-5"
+                />
+              }
+              onLinkedInImport={handleLinkedInIntakeShortcut}
+            />
+          ) : null}
 
           <SelectTemplateForExampleModal
             open={selectExampleTemplateOpen}
@@ -724,7 +814,12 @@ export function GuestStudioEditor({
                 <button
                   type="button"
                   className="text-xs font-semibold text-[#2268d7] underline-offset-4 hover:underline lg:hidden"
-                  onClick={() => setMobilePreviewOpen(true)}
+                  onClick={() => {
+                    trackClientEvent(ANALYTICS_EVENTS.PREVIEW_RESUME_CLICKED, {
+                      surface: "guest_create_progress",
+                    });
+                    setMobilePreviewOpen(true);
+                  }}
                 >
                   Quick preview
                 </button>
@@ -1685,7 +1780,7 @@ export function GuestStudioEditor({
       </div>
         </>
       )}
-      mobileFab={(
+      mobileFab={mobilePreviewOpen || mobilePreviewActionVisible ? (
         <div
           className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-white/95 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] shadow-[0_-10px_40px_-12px_rgba(15,23,42,0.18)] backdrop-blur-md lg:hidden"
           role="navigation"
@@ -1731,6 +1826,9 @@ export function GuestStudioEditor({
                       scrollStudioSectionIntoView("personal");
                       return;
                     }
+                    trackClientEvent(ANALYTICS_EVENTS.PREVIEW_RESUME_CLICKED, {
+                      surface: "guest_create_mobile",
+                    });
                     setMobilePreviewOpen(true);
                   }}
                 >
@@ -1750,7 +1848,7 @@ export function GuestStudioEditor({
             </>
           )}
         </div>
-      )}
+      ) : null}
     />
   );
 }
@@ -2121,6 +2219,102 @@ function IntakeShortcuts({
             <span className="text-sm font-semibold tracking-tight text-slate-900">Import LinkedIn profile</span>
             <span className="text-pretty text-xs font-medium leading-snug text-slate-500">
               Opens Personal details with LinkedIn — paste your profile URL
+            </span>
+          </span>
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function GuestStartMethodCards({
+  onStartFromScratch,
+  onOpenSelectExampleTemplate,
+  resumeUpload,
+}: {
+  onStartFromScratch: () => void;
+  onOpenSelectExampleTemplate: () => void;
+  resumeUpload: ReactNode;
+}) {
+  const cardBase =
+    "group flex min-h-[6.5rem] w-full items-center gap-3 rounded-2xl border border-slate-200/90 bg-white px-4 py-4 text-left shadow-sm outline-none transition-[border-color,box-shadow,transform] duration-200 hover:border-[#2268d7]/35 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2 motion-safe:active:scale-[0.99] motion-reduce:active:scale-100";
+
+  return (
+    <section
+      className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-4 shadow-sm ring-1 ring-slate-950/[0.03] sm:p-5"
+      aria-labelledby="guest-start-method-heading"
+    >
+      <div>
+        <h2 id="guest-start-method-heading" className="text-xl font-semibold tracking-tight text-slate-950">
+          How would you like to start?
+        </h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+          Choose the fastest way to begin. You can edit everything later.
+        </p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-3">
+        <button type="button" onClick={onStartFromScratch} className={cardBase}>
+          <span
+            className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#2268d7]/10 text-[#2268d7] ring-1 ring-[#2268d7]/10"
+            aria-hidden
+          >
+            <Plus className="size-6" strokeWidth={1.75} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-base font-semibold tracking-tight text-slate-950">Start from scratch</span>
+              <span className="rounded-full bg-brand-muted px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-brand">
+                Recommended
+              </span>
+            </span>
+            <span className="mt-1 block text-sm leading-relaxed text-slate-600">
+              Build your resume step by step with AI help.
+            </span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5" aria-hidden />
+        </button>
+
+        <button type="button" onClick={onOpenSelectExampleTemplate} className={cardBase}>
+          <span
+            className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-900/[0.06]"
+            aria-hidden
+          >
+            <BookOpenCheck className="size-6" strokeWidth={1.75} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="text-base font-semibold tracking-tight text-slate-950">Start with an example</span>
+            <span className="mt-1 block text-sm leading-relaxed text-slate-600">
+              Choose a professional layout with sample content, then replace it with your own.
+            </span>
+          </span>
+          <ChevronRight className="size-5 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5" aria-hidden />
+        </button>
+
+        {resumeUpload}
+
+        <button
+          type="button"
+          disabled
+          className="flex min-h-[6.5rem] w-full cursor-not-allowed items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-left opacity-80"
+        >
+          <span
+            className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-slate-200/70 text-slate-500"
+            aria-hidden
+          >
+            <span className="flex size-8 items-center justify-center rounded-lg bg-slate-500 text-[0.65rem] font-bold leading-none text-white">
+              in
+            </span>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="text-base font-semibold tracking-tight text-slate-700">Import LinkedIn profile</span>
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                Coming soon
+              </span>
+            </span>
+            <span className="mt-1 block text-sm leading-relaxed text-slate-500">
+              LinkedIn import is not available yet.
             </span>
           </span>
         </button>
@@ -2559,16 +2753,6 @@ function getFirstResumeSoftIssue(s: WizardStateV1): ResumeSoftIssue | null {
     };
   }
   return null;
-}
-
-function hasPreviewableResumeContent(s: WizardStateV1): boolean {
-  return (
-    isSectionFilled("personal", s) ||
-    isSectionFilled("summary", s) ||
-    isSectionFilled("experience", s) ||
-    isSectionFilled("education", s) ||
-    isSectionFilled("skills", s)
-  );
 }
 
 /* ------------------------------ Section bodies ---------------------------- */

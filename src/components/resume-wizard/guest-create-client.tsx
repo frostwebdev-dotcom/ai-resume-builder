@@ -15,6 +15,7 @@ import {
 } from "react";
 import {
   ChevronDown,
+  Check,
   CloudUpload,
   Copy,
   Globe,
@@ -34,16 +35,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AutosaveStatusChip } from "@/components/resume-wizard/autosave-status-chip";
 import { GuestDraftLocalSaveNote } from "@/components/resume-wizard/guest-draft-local-save-note";
 import { GuestStudioEditor } from "@/components/resume-wizard/guest-studio-editor";
 import { ResumeStTracker } from "@/components/analytics/resume-st-tracker";
+import { trackClientEvent } from "@/lib/analytics/client";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import {
   clearGuestWizardDraftFromStorage,
   loadGuestWizardDraftFromStorage,
   useGuestWizardAutosave,
 } from "@/hooks/use-guest-wizard-autosave";
 import { useUnsavedWarning } from "@/hooks/use-unsaved-warning";
+import type { SaveStatus } from "@/hooks/use-wizard-autosave";
 import {
   DEFAULT_GUEST_PRESENTATION,
   clearGuestPresentationFromStorage,
@@ -53,8 +56,13 @@ import {
   type CoalescedHistory,
   type GuestStudioPresentation,
 } from "@/hooks/use-guest-studio-store";
-import { createDemoWizardState } from "@/lib/resume-wizard/demo-wizard-state";
+import { createEmptyWizardState } from "@/lib/resume-wizard/defaults";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
+import {
+  getCandidateDisplayName,
+  hasMeaningfulGuestResumeContent,
+  hasPreviewReadyResumeContent,
+} from "@/lib/resume-wizard/content-readiness";
 import { CREATE_RESUME_POST_AUTH_NEXT, ROUTES } from "@/lib/constants";
 import { importGuestDraftToProjectAction } from "@/services/projects/actions";
 import {
@@ -85,9 +93,14 @@ const GUEST_IMPORT_LOCK = "resume:guest-draft-import-lock";
  * - Clicks on template/color/etc. commit immediately as a discrete slot.
  */
 export function GuestCreateClient() {
-  const [initialContent] = useState<WizardStateV1>(
-    () => loadGuestWizardDraftFromStorage() ?? createDemoWizardState(),
-  );
+  const [initialDraft] = useState(() => {
+    const stored = loadGuestWizardDraftFromStorage();
+    return {
+      content: stored ?? createEmptyWizardState(),
+      hadStoredDraft: Boolean(stored),
+    };
+  });
+  const [initialContent] = useState<WizardStateV1>(() => initialDraft.content);
   const [initialPresentation] = useState<GuestStudioPresentation>(
     () => loadGuestPresentationFromStorage() ?? DEFAULT_GUEST_PRESENTATION,
   );
@@ -95,6 +108,9 @@ export function GuestCreateClient() {
   const [content, setContent] = useState<WizardStateV1>(initialContent);
   const [presentation, setPresentation] = useState<GuestStudioPresentation>(
     initialPresentation,
+  );
+  const [draftStarted, setDraftStarted] = useState(
+    () => initialDraft.hadStoredDraft || hasMeaningfulGuestResumeContent(initialContent),
   );
 
   const history: CoalescedHistory<Snapshot> = useCoalescedHistory<Snapshot>();
@@ -198,12 +214,41 @@ export function GuestCreateClient() {
 
   const [accountSyncError, setAccountSyncError] = useState<string | null>(null);
   const [isAccountImporting, setIsAccountImporting] = useState(false);
+  const pageViewTrackedRef = useRef(false);
+  const hasMeaningfulContent = useMemo(
+    () => hasMeaningfulGuestResumeContent(content),
+    [content],
+  );
+  const previewReady = useMemo(() => hasPreviewReadyResumeContent(content), [content]);
+  const candidateName = useMemo(() => getCandidateDisplayName(content), [content]);
+  const headerTitle = !draftStarted
+    ? "Create your resume"
+    : candidateName
+      ? `${candidateName} Resume`
+      : "Resume Draft";
+  const shouldShowDraftChrome = draftStarted || hasMeaningfulContent;
+
+  const markDraftStarted = useCallback((method: string) => {
+    setDraftStarted(true);
+    trackClientEvent(ANALYTICS_EVENTS.GUEST_DRAFT_CREATED, {
+      method,
+      surface: "guest_create",
+    });
+  }, []);
+
+  useEffect(() => {
+    if (pageViewTrackedRef.current) return;
+    pageViewTrackedRef.current = true;
+    trackClientEvent(ANALYTICS_EVENTS.GUEST_CREATE_PAGE_VIEWED, {
+      state: shouldShowDraftChrome ? "draft" : "empty",
+    });
+  }, [shouldShowDraftChrome]);
 
   useGuestPresentationAutosave(presentation, !isAccountImporting);
 
   const { saveStatus, lastError, retry, flushSave, isDirty } = useGuestWizardAutosave({
     state: content,
-    enabled: !isAccountImporting,
+    enabled: shouldShowDraftChrome && !isAccountImporting,
   });
 
   useUnsavedWarning(isDirty && !isAccountImporting, "You have unsaved resume changes. Leave this page?");
@@ -340,7 +385,7 @@ export function GuestCreateClient() {
     setContent(structuredClone(content));
     setPresentation((p) => ({
       ...p,
-      title: p.title?.trim() ? `Copy of ${p.title}` : "Copy of Untitled resume",
+      title: p.title?.trim() && p.title.trim() !== "Untitled resume" ? `Copy of ${p.title}` : "Copy of Resume Draft",
     }));
   }, [content, history, snapshotNow]);
 
@@ -349,6 +394,8 @@ export function GuestCreateClient() {
       <ResumeStTracker surface="guest_create" />
       <TopBar
         title={presentation.title}
+        displayTitle={headerTitle}
+        draftStarted={shouldShowDraftChrome}
         titleInputRef={titleInputRef}
         onTitleCommit={(next) => updatePresentation((p) => ({ ...p, title: next }))}
         onShare={handleShareResume}
@@ -361,17 +408,14 @@ export function GuestCreateClient() {
         signedIn={browserHasSession}
         saveToAccountPending={isAccountImporting}
         onSaveDraftToAccount={() => void performImportToAccount()}
-        autosave={
-          <AutosaveStatusChip
-            context="guestDevice"
+        autosave={shouldShowDraftChrome ? (
+          <GuestDeviceSavePill
             status={saveStatus}
             lastError={lastError}
             onRetry={retry}
             isDirty={isDirty}
-            surface="dark"
-            layout="toolbar"
           />
-        }
+        ) : null}
       />
       {isAccountImporting ? (
         <Alert className="shrink-0 rounded-none border-x-0 border-t-0 border-sky-200 bg-sky-50/95 text-sky-950 sm:rounded-none">
@@ -402,7 +446,7 @@ export function GuestCreateClient() {
           </AlertDescription>
         </Alert>
       ) : null}
-      {!isAccountImporting && !accountSyncError ? (
+      {!isAccountImporting && !accountSyncError && hasMeaningfulContent ? (
         <GuestDraftLocalSaveNote signedIn={browserHasSession} loginHref={loginHref} />
       ) : null}
       <div className="flex min-h-0 flex-1 flex-col">
@@ -414,6 +458,11 @@ export function GuestCreateClient() {
           resumeStyle={presentation.style}
           onResumeStyleChange={setResumeStyle}
           loginHref={loginHref}
+          showInitialStartScreen={!shouldShowDraftChrome}
+          showSaveBadge={false}
+          showIntakeShortcuts={false}
+          showPreviewAction={previewReady}
+          onDraftStarted={markDraftStarted}
         />
       </div>
     </div>
@@ -423,8 +472,49 @@ export function GuestCreateClient() {
 const resumeMenuItemClass =
   "cursor-pointer gap-3 rounded-sm px-2 py-2.5 text-slate-700 focus-visible:bg-[#2268d7] focus-visible:text-white data-[highlighted]:bg-[#2268d7] data-[highlighted]:text-white [&_svg]:opacity-80 [&_svg]:data-[highlighted]:opacity-100 [&_svg]:data-[highlighted]:text-white";
 
+function GuestDeviceSavePill({
+  status,
+  lastError,
+  onRetry,
+  isDirty,
+}: {
+  status: SaveStatus;
+  lastError: string | null;
+  onRetry: () => void;
+  isDirty: boolean;
+}) {
+  const base =
+    "inline-flex min-h-8 items-center gap-1.5 rounded-full px-2.5 text-[0.72rem] font-semibold ring-1";
+
+  if (status === "error") {
+    return (
+      <button
+        type="button"
+        onClick={onRetry}
+        className={cn(base, "bg-red-500/10 text-red-100 ring-red-300/25")}
+        title={lastError ?? "Local save failed"}
+      >
+        Save failed
+      </button>
+    );
+  }
+
+  if (status === "saving" || isDirty) {
+    return <span className={cn(base, "bg-white/10 text-slate-200 ring-white/15")}>Saving...</span>;
+  }
+
+  return (
+    <span className={cn(base, "bg-emerald-500/12 text-emerald-100 ring-emerald-300/25")}>
+      <Check className="size-3" aria-hidden />
+      Saved on this device
+    </span>
+  );
+}
+
 function TopBar({
   title,
+  displayTitle,
+  draftStarted,
   titleInputRef,
   onTitleCommit,
   onShare,
@@ -440,6 +530,8 @@ function TopBar({
   autosave,
 }: {
   title: string;
+  displayTitle: string;
+  draftStarted: boolean;
   titleInputRef: RefObject<HTMLInputElement | null>;
   onTitleCommit: (next: string) => void;
   onShare: () => void | Promise<void>;
@@ -452,20 +544,16 @@ function TopBar({
   signedIn: boolean;
   saveToAccountPending: boolean;
   onSaveDraftToAccount: () => void;
-  autosave: ReactNode;
+  autosave: ReactNode | null;
 }) {
   // The title input is uncontrolled (defaultValue + remount on external change)
   // so typing stays buttery without a sync-from-props effect.
   return (
     <header className="shrink-0 border-b border-black/30 bg-[#17191d] pt-[env(safe-area-inset-top,0px)] text-white">
-      {/*
-        Equal `1fr | auto | 1fr` columns so the title block stays in the true horizontal
-        center of the header. Autosave sits to the right of Home in the left column; both can wrap on very narrow widths.
-      */}
       <div className="grid min-h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 gap-y-2 py-1.5 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:min-h-14 sm:gap-y-0 sm:py-0 sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))]">
         <div className="flex min-w-0 flex-wrap content-center items-center justify-self-start gap-x-1.5 gap-y-1 sm:gap-x-2">
           <Link
-            href={ROUTES.app.root}
+            href={ROUTES.home}
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
               "h-8 shrink-0 gap-1.5 rounded-full px-3 text-xs text-slate-200 hover:bg-white/10 hover:text-white",
@@ -478,15 +566,14 @@ function TopBar({
           {autosave}
         </div>
 
-        <div className="relative z-10 flex min-w-0 max-w-[min(22rem,calc(100dvw_-_15rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))] justify-self-center sm:max-w-[min(32rem,calc(100dvw_-_20rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))]">
-          {/* Minimal “underline” title + sync icon — matches compact doc-editor chrome */}
-          <div className="flex w-full min-w-0 items-end gap-2.5 sm:gap-3">
+        <div className="relative z-10 flex min-w-0 max-w-[min(14rem,calc(100dvw_-_11rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))] justify-self-center sm:max-w-[min(32rem,calc(100dvw_-_20rem_-_env(safe-area-inset-left,0px)_-_env(safe-area-inset-right,0px)))]">
+          {draftStarted ? (
             <input
               ref={titleInputRef}
-              key={`title-${title}`}
-              defaultValue={title}
+              key={`title-${displayTitle}`}
+              defaultValue={displayTitle}
               onBlur={(e) => {
-                const v = e.currentTarget.value.trim() || "Untitled resume";
+                const v = e.currentTarget.value.trim() || "Resume Draft";
                 if (v !== title) onTitleCommit(v);
               }}
               onKeyDown={(e) => {
@@ -494,13 +581,29 @@ function TopBar({
               }}
               aria-label="Resume title"
               maxLength={80}
-              placeholder="Untitled resume"
+              placeholder="Resume Draft"
               className="min-w-0 flex-1 rounded-none border-0 border-b-2 border-[#3b82f6] bg-transparent px-0.5 pb-0.5 text-center text-xs font-normal text-slate-100 caret-white placeholder:text-slate-500 outline-none transition-colors selection:bg-sky-500/35 focus-visible:border-sky-300 sm:text-sm"
             />
-          </div>
+          ) : (
+            <h1 className="truncate text-center text-sm font-semibold tracking-tight text-white">
+              {displayTitle}
+            </h1>
+          )}
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center justify-end justify-self-end gap-x-1 gap-y-1.5 sm:gap-x-2">
+        {!draftStarted ? (
+          <Link
+            href={loginHref}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "h-9 rounded-full px-3 text-sm text-slate-100 hover:bg-white/10 hover:text-white",
+            )}
+          >
+            Log in
+          </Link>
+        ) : (
+          <>
         <button
           type="button"
           onClick={onUndo}
@@ -576,7 +679,12 @@ function TopBar({
               type="button"
               size="sm"
               disabled={saveToAccountPending}
-              onClick={onSaveDraftToAccount}
+              onClick={() => {
+                trackClientEvent(ANALYTICS_EVENTS.SAVE_TO_ACCOUNT_CLICKED, {
+                  surface: "guest_create_header",
+                });
+                onSaveDraftToAccount();
+              }}
               className={cn(
                 "h-8 shrink-0 gap-1.5 rounded-full border-0 bg-emerald-600 px-2.5 text-xs font-semibold text-white hover:bg-emerald-700 sm:px-3",
               )}
@@ -607,14 +715,16 @@ function TopBar({
           <Link
             href={loginHref}
             className={cn(
-              buttonVariants({ size: "sm" }),
-              "h-8 gap-1.5 rounded-full bg-[#2268d7] px-3 text-xs font-semibold hover:bg-[#1f5fca]",
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "h-8 gap-1.5 rounded-full px-3 text-xs font-semibold text-slate-200 hover:bg-white/10 hover:text-white",
             )}
-            aria-label="Sign in for free to save your resume to your account and export a PDF when ready"
+            aria-label="Log in"
           >
             <UserPlus className="size-3.5" aria-hidden />
-            Save to account
+            Log in
           </Link>
+        )}
+          </>
         )}
         </div>
       </div>

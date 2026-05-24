@@ -3,9 +3,9 @@ import { Suspense } from "react";
 import { GuestCreateDynamic } from "@/components/resume-wizard/guest-create-dynamic";
 
 export const metadata = {
-  title: "Resume draft",
+  title: "Create your resume",
   description:
-    "Draft your resume on this device with a live preview. Sign in when you are ready to save a project in your account, then preview and export a PDF.",
+    "Start a professional, ATS-friendly resume for free. Choose how to begin, build on this device, and sign in later to save across devices.",
 };
 
 function CreateResumeFallback() {
@@ -25,7 +25,7 @@ export default function CreateResumePage() {
   return (
     <section className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-slate-50 p-0">
       <h1 className="sr-only">
-        Resume draft — edit on this device, preview as you go; sign in to save a project and export
+        Create your resume — start free on this device; sign in later to save a project and export
       </h1>
       {/*
         Server `Suspense` boundary for the client tree that uses `useSearchParams` (guest builder).

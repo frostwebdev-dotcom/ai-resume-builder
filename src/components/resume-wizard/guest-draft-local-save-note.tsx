@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Cloud, Info } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Cloud, Info, X } from "lucide-react";
 
 import { pageGutterXClass } from "@/components/layout/page-container";
+import { trackClientEvent } from "@/lib/analytics/client";
+import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { RESUME_PDF_EXPORT_PRICE_USD } from "@/lib/billing/monetization-copy";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -20,6 +23,15 @@ type Props = {
  * Compact trust banner on `/create`: clarifies where the draft lives and when to sign in.
  */
 export function GuestDraftLocalSaveNote({ className, signedIn = false, loginHref }: Props) {
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (signedIn || dismissed) return;
+    trackClientEvent(ANALYTICS_EVENTS.SAVE_TO_ACCOUNT_PROMPT_VIEWED, {
+      surface: "guest_create",
+    });
+  }, [dismissed, signedIn]);
+
   if (signedIn) {
     return (
       <aside
@@ -56,6 +68,8 @@ export function GuestDraftLocalSaveNote({ className, signedIn = false, loginHref
     );
   }
 
+  if (dismissed) return null;
+
   return (
     <aside
       className={cn(
@@ -65,20 +79,37 @@ export function GuestDraftLocalSaveNote({ className, signedIn = false, loginHref
       )}
       aria-label="How your draft is saved"
     >
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 min-[420px]:flex-row min-[420px]:items-center min-[420px]:justify-between min-[420px]:gap-3">
-        <div className="flex min-w-0 items-start gap-2">
-          <Cloud className="mt-0.5 size-3.5 shrink-0 text-slate-400" aria-hidden />
-          <p className="text-left text-[0.8125rem] leading-snug text-balance text-slate-600">
-            <strong className="font-medium text-slate-800">Saves on this device.</strong> Your resume stays in this
-            browser until you sign in — then we copy it to your account so nothing is stuck only on one phone.
-          </p>
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm min-[430px]:flex-row min-[430px]:items-center sm:px-4">
+        <div className="flex min-w-0 flex-1 items-start gap-2.5">
+          <Cloud className="mt-0.5 size-4 shrink-0 text-[#2268d7]" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold leading-tight text-slate-900">Saved on this device</p>
+            <p className="mt-1 text-pretty text-xs leading-relaxed text-slate-600">
+              Create a free account to securely access this resume on any device.
+            </p>
+          </div>
         </div>
+        <div className="flex min-w-0 items-center gap-2">
         <Link
           href={loginHref}
-          className="inline-flex shrink-0 items-center justify-center rounded-full bg-[#2268d7] px-3 py-1.5 text-center text-[0.8125rem] font-semibold text-white hover:bg-[#1f5fca] min-[420px]:px-4"
+          onClick={() =>
+            trackClientEvent(ANALYTICS_EVENTS.SAVE_TO_ACCOUNT_CLICKED, {
+              surface: "guest_create_prompt",
+            })
+          }
+          className="inline-flex min-h-11 min-w-0 flex-1 items-center justify-center rounded-full bg-[#2268d7] px-3 text-center text-[0.8125rem] font-semibold text-white hover:bg-[#1f5fca] min-[430px]:flex-none min-[430px]:px-4"
         >
           Save to account — free
         </Link>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Dismiss save to account prompt"
+        >
+          <X className="size-4" aria-hidden />
+        </button>
+        </div>
       </div>
     </aside>
   );

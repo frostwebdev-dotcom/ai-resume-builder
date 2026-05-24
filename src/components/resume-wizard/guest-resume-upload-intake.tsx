@@ -85,6 +85,7 @@ type Props = {
   templateSlug: TemplateSlug;
   onImported: (wizard: WizardStateV1) => void;
   cardClassName: string;
+  onPickerOpen?: () => void;
 };
 
 type Selected = { file: File; mime: AcceptedMime };
@@ -93,6 +94,7 @@ export function GuestResumeUploadIntake({
   templateSlug,
   onImported,
   cardClassName,
+  onPickerOpen,
 }: Props) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -219,6 +221,7 @@ export function GuestResumeUploadIntake({
       />
       <label
         htmlFor={inputId}
+        onClick={onPickerOpen}
         className={cn(
           cardClassName,
           "group cursor-pointer border-slate-200/90 bg-white shadow-sm",
@@ -245,7 +248,7 @@ export function GuestResumeUploadIntake({
             Upload existing resume
           </span>
           <span className="text-pretty text-xs font-medium leading-snug text-slate-500">
-            PDF or Word (.docx) — we extract text and structure it with AI
+            Upload a PDF or Word document and organize your content with AI.
           </span>
         </span>
       </label>
