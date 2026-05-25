@@ -50,7 +50,7 @@ export function GuestDraftLocalSaveNote({ className, signedIn = false, loginHref
               resume project and open <strong className="font-medium text-slate-800">Draft</strong> with autosave to
               your account (same studio editor). PDF export is{" "}
               <span className="font-medium text-slate-800">{RESUME_PDF_EXPORT_PRICE_USD} once per project</span> from
-              Preview &amp; export (see{" "}
+              the builder download action (see{" "}
               <Link
                 href={ROUTES.pricing}
                 className="font-medium text-[#2268d7] underline-offset-2 hover:underline"

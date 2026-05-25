@@ -108,12 +108,12 @@ export default function ContactPage() {
             <p className="text-sm text-muted-foreground">
               Prefer to start right away?{" "}
               <Link
-                href={ROUTES.auth.login}
+                href={ROUTES.create}
                 className="font-medium text-brand underline-offset-4 hover:underline"
               >
-                Create a free account
+                Start a free resume
               </Link>{" "}
-              and explore the editor.
+              before creating an account.
             </p>
 
             <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-soft sm:p-6">
@@ -144,7 +144,7 @@ export default function ContactPage() {
                   </>
                 ) : (
                   <>
-                    The secure form on the left creates a traceable thread for billing and technical issues.
+                    The secure form above creates a traceable thread for billing and technical issues.
                     Add a public support address below when you are ready — it will appear here automatically.
                   </>
                 )}

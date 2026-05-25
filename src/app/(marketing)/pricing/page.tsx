@@ -43,7 +43,7 @@ const pricingFaq = [
   },
   {
     q: "When do I pay?",
-    a: `Only when you choose to export. Inside a saved resume project, open Preview & export and start checkout when you want the downloadable PDF. Until then, editing and on-screen preview stay free.`,
+    a: `Only when you choose to export. Inside a saved resume project, use the download action in the builder when you want the final PDF. Until then, editing and on-screen preview stay free.`,
   },
   {
     q: "Is it a subscription?",

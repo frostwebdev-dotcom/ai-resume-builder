@@ -89,9 +89,9 @@ export function ProjectsList({ projects }: Props) {
         <div
           role="tablist"
           aria-label="Filter projects"
-          className="flex flex-wrap items-center gap-1"
+          className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:px-0"
         >
-          <Filter className="mr-1 size-3.5 text-muted-foreground" aria-hidden />
+          <Filter className="mr-1 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
           {FILTERS.map((f) => {
             const active = f.id === filter;
             return (
@@ -102,7 +102,7 @@ export function ProjectsList({ projects }: Props) {
                 aria-selected={active}
                 onClick={() => setFilter(f.id)}
                 className={cn(
-                  "rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
+                  "min-h-9 shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors",
                   active
                     ? "bg-brand text-brand-foreground ring-1 ring-brand"
                     : "bg-muted/60 text-muted-foreground ring-1 ring-border hover:text-foreground",

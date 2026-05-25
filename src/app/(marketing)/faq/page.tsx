@@ -28,7 +28,7 @@ const faqs: { q: string; a: ReactNode }[] = [
   },
   {
     q: "I started without an account — where is my draft saved?",
-    a: "While you are signed out, your draft autosaves in this browser only. After you sign in, create a resume project on your dashboard, then open Draft—you get the same studio editor as the public builder, with autosave to your account. PDF export (paid once per project) is under Preview & export on that project. Clearing this site's stored data or using another browser removes only that local draft—not work you already saved to your account.",
+    a: "While you are signed out, your draft autosaves in this browser only. After you sign in, create a resume project on your dashboard, then open Draft—you get the same studio editor as the public builder, with autosave to your account. PDF export unlocks directly inside the builder for that project. Clearing this site's stored data or using another browser removes only that local draft—not work you already saved to your account.",
   },
   {
     q: "Will this work with applicant tracking systems (ATS)?",
@@ -108,7 +108,7 @@ export default function FaqPage() {
 
         <div className="mt-10 flex justify-center">
           <Link
-            href={ROUTES.auth.login}
+            href={ROUTES.create}
             className={cn(
               buttonVariants({ size: "touch" }),
               "bg-brand text-brand-foreground hover:bg-brand/90",

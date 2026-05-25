@@ -80,9 +80,9 @@ export function ResponsiveDialog({
             <SheetDescription className="sr-only">Sheet content</SheetDescription>
           )}
         </SheetHeader>
-        <div className="max-h-[60vh] overflow-y-auto px-4 py-4">{children}</div>
+        <div className="max-h-[60vh] overflow-y-auto overscroll-contain px-4 py-4">{children}</div>
         {footer ? (
-          <SheetFooter className="border-t border-border bg-muted/30 px-4 py-4">
+          <SheetFooter className="border-t border-border bg-muted/30 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] [&>*]:w-full">
             {footer}
           </SheetFooter>
         ) : null}

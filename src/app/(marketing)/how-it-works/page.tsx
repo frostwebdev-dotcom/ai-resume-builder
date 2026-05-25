@@ -29,7 +29,7 @@ const steps = [
   },
   {
     title: "Pay to export",
-    body: `When the content feels right, unlock a print-ready PDF from Preview & export—${RESUME_PDF_EXPORT_PRICE_USD} once per resume project at checkout today (Stripe may add tax). No subscription at launch; optional bundles will be labeled when available.`,
+    body: `When the content feels right, unlock a print-ready PDF from the builder—${RESUME_PDF_EXPORT_PRICE_USD} once per resume project at checkout today (Stripe may add tax). No subscription at launch; optional bundles will be labeled when available.`,
   },
 ] as const;
 
@@ -77,7 +77,7 @@ export default function HowItWorksPage() {
 
         <div className="mx-auto mt-14 flex max-w-3xl flex-col items-stretch justify-center gap-3 sm:flex-row sm:justify-start">
           <Link
-            href={ROUTES.auth.login}
+            href={ROUTES.create}
             className={cn(
               buttonVariants({ size: "touch" }),
               "bg-brand text-brand-foreground hover:bg-brand/90",

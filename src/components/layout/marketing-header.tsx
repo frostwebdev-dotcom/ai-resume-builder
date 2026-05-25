@@ -53,6 +53,11 @@ export async function MarketingHeader() {
           />
         </div>
       </div>
+      <div className="border-t border-border/50 bg-background/90 md:hidden">
+        <div className={cn("mx-auto max-w-6xl", pageGutterXClass)}>
+          <MarketingPrimaryNav compact />
+        </div>
+      </div>
     </header>
   );
 }

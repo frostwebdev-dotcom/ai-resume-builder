@@ -338,13 +338,13 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
                 ? `Preview your ${APP_NAME} workspace. Build a polished resume in minutes — sign in to save projects across devices and export PDFs.`
                 : "Continue your resumes, pick a template, preview your layout, and export when you are ready — that is where we are investing for launch."}
             </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="mt-4 flex flex-col items-stretch gap-2 min-[430px]:flex-row min-[430px]:flex-wrap sm:gap-3">
               {isGuest ? (
                 <Link
                   href={ROUTES.create}
                   className={cn(
                     buttonVariants({ size: "touch" }),
-                    "rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8]",
+                    "w-full rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white hover:bg-[#1a56b8] min-[430px]:w-auto",
                   )}
                 >
                   <Plus className="size-4" aria-hidden />
@@ -359,7 +359,7 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
                 href={ROUTES.app.templates}
                 className={cn(
                   buttonVariants({ variant: "outline", size: "touch" }),
-                  "rounded-full border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50",
+                  "w-full rounded-full border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 min-[430px]:w-auto",
                 )}
               >
                 <LayoutTemplate className="size-4" aria-hidden />
@@ -371,7 +371,7 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
                   onClick={() => openLogin(ROUTES.app.root)}
                   variant="ghost"
                   size="touch"
-                  className="rounded-full px-4 text-sm font-semibold text-[#2268d7] hover:bg-sky-100/50 hover:text-[#1a56b8]"
+                  className="w-full rounded-full px-4 text-sm font-semibold text-[#2268d7] hover:bg-sky-100/50 hover:text-[#1a56b8] min-[430px]:w-auto"
                 >
                   Sign in to sync
                   <ArrowRight className="size-4" aria-hidden />
@@ -426,7 +426,7 @@ export function DashboardHome({ projects, firstName, isGuest }: Props) {
       {/* Recent resumes */}
       <section
         aria-labelledby="recent-resumes-heading"
-        className="min-w-0 overflow-x-clip rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6"
+        className="min-w-0 overflow-x-clip rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-6"
       >
         <div className="mb-4 flex min-w-0 items-center justify-between gap-3">
           <div className="min-w-0">

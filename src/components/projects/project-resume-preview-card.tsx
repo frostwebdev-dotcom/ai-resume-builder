@@ -137,7 +137,7 @@ export function ProjectResumePreviewCard({
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
                   className={cn(
-                    "inline-flex size-8 items-center justify-center rounded-full border-0 bg-white text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.12)] outline-none transition-[transform,box-shadow,background-color] duration-150",
+                    "inline-flex size-10 items-center justify-center rounded-full border-0 bg-white text-slate-600 shadow-[0_2px_8px_rgba(15,23,42,0.12)] outline-none transition-[transform,box-shadow,background-color] duration-150 sm:size-8",
                     "hover:bg-white hover:text-slate-800 hover:shadow-[0_3px_10px_rgba(15,23,42,0.14)] active:scale-[0.97]",
                     "focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                   )}

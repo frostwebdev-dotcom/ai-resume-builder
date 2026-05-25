@@ -1509,6 +1509,46 @@ function TemplateCatalogCard({
     <div className="relative">
       <TemplateCardHoverChrome>{cardBody}</TemplateCardHoverChrome>
       <TemplateZoomPreviewButton onPreview={onPreview} templateName={theme.name} />
+      <div className="relative z-[45] border-x border-b border-slate-200/70 bg-white px-3 py-3 shadow-[0_6px_18px_-16px_rgba(15,23,42,0.45)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-slate-950">{theme.name}</p>
+            <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-slate-600">{theme.bestFor}</p>
+          </div>
+          <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-600/15">
+            ATS
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+          {signedInApp ? (
+            <button
+              type="submit"
+              className="inline-flex min-h-10 items-center justify-center rounded-full bg-[#0f766e] px-3 text-xs font-bold text-white shadow-sm"
+            >
+              Use this template
+            </button>
+          ) : (
+            <Link
+              href={createHref}
+              className="inline-flex min-h-10 items-center justify-center rounded-full bg-[#0f766e] px-3 text-xs font-bold text-white shadow-sm"
+            >
+              Use this template
+            </Link>
+          )}
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onPreview();
+            }}
+            className="inline-flex min-h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700"
+          >
+            Preview
+          </button>
+        </div>
+      </div>
     </div>
   );
 

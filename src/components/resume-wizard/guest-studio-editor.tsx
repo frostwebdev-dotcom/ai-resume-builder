@@ -94,6 +94,7 @@ import {
 } from "@/components/resume-wizard/job-tailor-sections";
 import { ProfileDescriptionEditor } from "@/components/resume-wizard/profile-description-editor";
 import { ResumeStudioSplitLayout } from "@/components/resume-wizard/resume-studio-split-layout";
+import { StickyBottomBar } from "@/components/layout/sticky-bottom-bar";
 import { GuestResumeUploadIntake } from "@/components/resume-wizard/guest-resume-upload-intake";
 import { SelectTemplateForExampleModal } from "@/components/resume-wizard/select-template-for-example-modal";
 import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
@@ -778,8 +779,8 @@ export function GuestStudioEditor({
   if (showInitialStartScreen) {
     return (
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain bg-slate-50">
-        <div className="mx-auto flex w-full max-w-3xl flex-col px-4 py-6 pb-safe sm:px-6 sm:py-8">
-          <div className="rounded-3xl border border-slate-200/90 bg-white p-5 shadow-sm ring-1 ring-slate-950/[0.03] sm:p-7">
+        <div className="mx-auto flex w-full max-w-3xl flex-col px-3 py-4 pb-safe min-[380px]:px-4 sm:px-6 sm:py-8">
+          <div className="rounded-3xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-950/[0.03] min-[380px]:p-5 sm:p-7">
             <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#2268d7]">
               Start free
             </p>
@@ -791,7 +792,7 @@ export function GuestStudioEditor({
             </p>
           </div>
 
-          <div className="mt-5">
+          <div className="mt-4 sm:mt-5">
             <GuestStartMethodCards
               onStartFromScratch={handleStartFromScratch}
               onOpenSelectExampleTemplate={() => setSelectExampleTemplateOpen(true)}
@@ -800,13 +801,13 @@ export function GuestStudioEditor({
                   templateSlug={templateSlug}
                   onImported={handleResumeImported}
                   onPickerOpen={handleUploadPickerOpen}
-                  cardClassName="flex min-h-[6.5rem] w-full items-center gap-3 rounded-2xl border px-4 py-4 text-left outline-none transition-[border-color,box-shadow,transform] duration-200"
+                  cardClassName="flex min-h-[5.75rem] w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left outline-none transition-[border-color,box-shadow,transform] duration-200 min-[380px]:min-h-[6.25rem] min-[380px]:px-4 min-[380px]:py-4"
                 />
               }
             />
           </div>
 
-          <p className="mt-5 rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-pretty text-sm leading-relaxed text-slate-600 shadow-sm">
+          <p className="mt-4 rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-pretty text-sm leading-relaxed text-slate-600 shadow-sm sm:mt-5">
             Your information stays private. Create an account later to save across devices and download your final PDF.
           </p>
         </div>
@@ -1920,8 +1921,9 @@ export function GuestStudioEditor({
         </>
       )}
       mobileFab={mobilePreviewOpen || mobilePreviewActionVisible || mobileDownloadActionVisible ? (
-        <div
-          className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-white/95 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] shadow-[0_-10px_40px_-12px_rgba(15,23,42,0.18)] backdrop-blur-md lg:hidden"
+        <StickyBottomBar
+          className="border-slate-200/90 bg-white/95 shadow-[0_-10px_40px_-12px_rgba(15,23,42,0.18)] lg:hidden"
+          innerClassName="max-w-none px-3 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))] pt-2"
           role="navigation"
           aria-label="Resume editor mobile actions"
         >
@@ -2061,7 +2063,7 @@ export function GuestStudioEditor({
               ) : null}
             </>
           )}
-        </div>
+        </StickyBottomBar>
       ) : null}
     />
   );
@@ -2496,11 +2498,11 @@ function GuestStartMethodCards({
   resumeUpload: ReactNode;
 }) {
   const cardBase =
-    "group flex min-h-[6.5rem] w-full items-center gap-3 rounded-2xl border border-slate-200/90 bg-white px-4 py-4 text-left shadow-sm outline-none transition-[border-color,box-shadow,transform] duration-200 hover:border-[#2268d7]/35 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2 motion-safe:active:scale-[0.99] motion-reduce:active:scale-100";
+    "group flex min-h-[5.75rem] w-full items-center gap-3 rounded-2xl border border-slate-200/90 bg-white px-3 py-3 text-left shadow-sm outline-none transition-[border-color,box-shadow,transform] duration-200 hover:border-[#2268d7]/35 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2 motion-safe:active:scale-[0.99] motion-reduce:active:scale-100 min-[380px]:min-h-[6.25rem] min-[380px]:px-4 min-[380px]:py-4";
 
   return (
     <section
-      className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-4 shadow-sm ring-1 ring-slate-950/[0.03] sm:p-5"
+      className="rounded-3xl border border-slate-200/90 bg-gradient-to-b from-white to-slate-50/80 p-3 shadow-sm ring-1 ring-slate-950/[0.03] min-[380px]:p-4 sm:p-5"
       aria-labelledby="guest-start-method-heading"
     >
       <div>
@@ -2555,7 +2557,7 @@ function GuestStartMethodCards({
         <button
           type="button"
           disabled
-          className="flex min-h-[6.5rem] w-full cursor-not-allowed items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-left opacity-80"
+            className="flex min-h-[5.75rem] w-full cursor-not-allowed items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-left opacity-80 min-[380px]:min-h-[6.25rem] min-[380px]:px-4 min-[380px]:py-4"
         >
           <span
             className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-slate-200/70 text-slate-500"

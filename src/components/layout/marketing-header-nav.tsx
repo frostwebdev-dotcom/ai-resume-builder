@@ -44,17 +44,18 @@ function PendingBar({ active }: { active: boolean }) {
   );
 }
 
-export function MarketingPrimaryNav() {
+export function MarketingPrimaryNav({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname();
 
   return (
     <nav
-      className="flex min-w-0 items-center justify-center"
+      className={cn("flex min-w-0 items-center", compact ? "justify-start" : "justify-center")}
       aria-label="Primary"
     >
       <ul
         className={cn(
-          "flex items-center gap-0.5 overflow-x-auto sm:gap-1",
+          "flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-1",
+          compact && "w-full justify-between py-1",
           // hide scrollbar on overflow without breaking touch scroll
           "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         )}
@@ -70,6 +71,7 @@ export function MarketingPrimaryNav() {
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "sm" }),
                   "relative min-h-11 items-center whitespace-nowrap px-2.5 transition-colors sm:min-h-0 sm:px-3",
+                  compact && "min-w-max flex-1 justify-center text-xs",
                   active
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground",

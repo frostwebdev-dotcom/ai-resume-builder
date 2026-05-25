@@ -311,6 +311,7 @@ export function DownloadResumeModal({
             type="button"
             variant="outline"
             size="touch"
+            className="w-full sm:w-auto"
             disabled={pending !== null}
             onClick={() => onOpenChange(false)}
           >
@@ -319,7 +320,7 @@ export function DownloadResumeModal({
           <Button
             type="button"
             size="touch"
-            className="h-12 whitespace-normal bg-slate-950 text-center text-base font-semibold leading-snug text-white hover:bg-slate-800"
+            className="h-12 w-full whitespace-normal bg-slate-950 text-center text-base font-semibold leading-snug text-white hover:bg-slate-800 sm:w-auto"
             disabled={pending !== null || format !== "pdf"}
             onClick={() => {
               if (canDownload) void downloadPdf();
