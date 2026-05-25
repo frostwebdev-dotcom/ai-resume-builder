@@ -56,8 +56,6 @@ import {
   getCandidateDisplayName,
   hasMeaningfulGuestResumeContent,
 } from "@/lib/resume-wizard/content-readiness";
-import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
-import type { JobTargetClientView } from "@/lib/job-target/client-types";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import { TEMPLATE_IDS, type TemplateSlug } from "@/lib/resume-preview/template-ids";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
@@ -118,7 +116,6 @@ export type ProjectStudioShellProps = {
   projectId: string;
   projectTitle: string;
   initialWizard: WizardStateV1;
-  initialJobTarget: JobTargetClientView | null;
   templateSlug: TemplateSlug;
   initialResumeStyle: ResumeStyleV1;
   avatarSignedUrl: string | null;
@@ -136,7 +133,6 @@ export function ProjectStudioShell({
   projectId,
   projectTitle,
   initialWizard,
-  initialJobTarget,
   templateSlug: serverTemplateSlug,
   initialResumeStyle,
   avatarSignedUrl,
@@ -157,38 +153,9 @@ export function ProjectStudioShell({
   const [titlePending, startTitleTransition] = useTransition();
   const [duplicatePending, startDuplicateTransition] = useTransition();
 
-  const [tailoringCompare, setTailoringCompare] = useState<TailoringCompareV1 | null>(
-    initialJobTarget?.tailoringCompare ?? null,
-  );
-  const [jobTailorReview, setJobTailorReview] = useState<JobTailorReviewV1 | null>(
-    initialJobTarget?.jobTailorReview ?? null,
-  );
-  const [jobTargetTitle, setJobTargetTitle] = useState<string | null>(initialJobTarget?.title ?? null);
-  const [jobTargetCompany, setJobTargetCompany] = useState<string | null>(
-    initialJobTarget?.company ?? null,
-  );
-  const [jobTargetJobDescription, setJobTargetJobDescription] = useState<string | null>(
-    initialJobTarget?.jobDescription ?? null,
-  );
-
   useLayoutEffect(() => {
     contentRef.current = content;
   }, [content]);
-
-  useEffect(() => {
-    setTailoringCompare(initialJobTarget?.tailoringCompare ?? null);
-    setJobTailorReview(initialJobTarget?.jobTailorReview ?? null);
-    setJobTargetTitle(initialJobTarget?.title ?? null);
-    setJobTargetCompany(initialJobTarget?.company ?? null);
-    setJobTargetJobDescription(initialJobTarget?.jobDescription ?? null);
-  }, [
-    projectId,
-    initialJobTarget?.tailoringCompare,
-    initialJobTarget?.jobTailorReview,
-    initialJobTarget?.title,
-    initialJobTarget?.company,
-    initialJobTarget?.jobDescription,
-  ]);
 
   useEffect(() => {
     setTemplateSlug(serverTemplateSlug);
@@ -264,8 +231,6 @@ export function ProjectStudioShell({
   const [missingExportItems, setMissingExportItems] = useState<string[]>([]);
 
   useUnsavedWarning(isDirty);
-
-  const hasSavedJobTarget = (jobTargetJobDescription?.trim().length ?? 0) > 0;
 
   const updateContentWithHistory = useCallback(
     (updater: SetStateAction<WizardStateV1>) => {
@@ -704,28 +669,8 @@ export function ProjectStudioShell({
           showPreviewAction={hasMeaningfulContent}
           showDownloadAction={downloadReady || canDownload}
           previewAvatarUrl={avatarSignedUrl}
-          jobAssist={{
-            projectId,
-            hasSavedJobTarget,
-            jobTailorReview,
-            tailoringCompare,
-            setTailoringCompare,
-            setJobTailorReview,
-            jobTargetTitle,
-            jobTargetCompany,
-            jobTargetJobDescription,
-            onJobTargetSaved: (payload) => {
-              setJobTargetTitle(payload.title);
-              setJobTargetCompany(payload.company);
-              setJobTargetJobDescription(payload.jobDescription);
-              setTailoringCompare(null);
-              setJobTailorReview(null);
-            },
-            onTailoringPipelineComplete: (data) => {
-              setTailoringCompare(data.tailoringCompare);
-              setJobTailorReview(data.jobTailorReview);
-            },
-          }}
+          aiProjectId={projectId}
+          showAiScoreCard
         />
       </div>
 

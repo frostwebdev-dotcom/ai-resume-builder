@@ -15,10 +15,6 @@ import {
 } from "@/lib/supabase/avatar-storage";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { getProjectDetailForUser } from "@/services/projects/queries";
-import {
-  fetchJobTargetForProject,
-  toJobTargetClientView,
-} from "@/services/job-target/queries";
 import { getResumeDownloadAccess } from "@/services/downloads/queries";
 import { fetchWizardStateForProject } from "@/services/resume-wizard/actions";
 
@@ -46,18 +42,15 @@ export default async function ProjectBuildPage({ params, searchParams }: PagePro
   const checkoutStatus = Array.isArray(query.checkout) ? query.checkout[0] : query.checkout;
   const { user, profile } = await requireUser({ nextPath: ROUTES.app.projectBuild(projectId) });
 
-  const [detail, wizard, jobTargetRow, downloadAccess] = await Promise.all([
+  const [detail, wizard, downloadAccess] = await Promise.all([
     getProjectDetailForUser(user.id, projectId),
     fetchWizardStateForProject(user.id, projectId),
-    fetchJobTargetForProject(user.id, projectId),
     getResumeDownloadAccess(user.id, projectId),
   ]);
 
   if (!detail || !wizard) {
     notFound();
   }
-
-  const initialJobTarget = toJobTargetClientView(jobTargetRow);
 
   // Resolve everything the live preview needs up front so the client paint
   // matches what the Preview page would render (template + style + avatar).
@@ -84,7 +77,6 @@ export default async function ProjectBuildPage({ params, searchParams }: PagePro
         projectId={projectId}
         projectTitle={detail.project.title}
         initialWizard={wizard}
-        initialJobTarget={initialJobTarget}
         templateSlug={templateSlug}
         initialResumeStyle={initialResumeStyle}
         avatarSignedUrl={avatarSignedUrl}

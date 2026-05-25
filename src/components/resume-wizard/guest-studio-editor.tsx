@@ -286,6 +286,8 @@ type StudioEditorProps = {
   /** Signed avatar URL for live preview (project drafts only). */
   previewAvatarUrl?: string | null;
   jobAssist?: StudioJobAssistProps;
+  aiProjectId?: string;
+  showAiScoreCard?: boolean;
   showInitialStartScreen?: boolean;
   showSaveBadge?: boolean;
   showIntakeShortcuts?: boolean;
@@ -320,6 +322,8 @@ export function GuestStudioEditor({
   projectCanDownload = false,
   previewAvatarUrl = null,
   jobAssist,
+  aiProjectId,
+  showAiScoreCard = false,
   showInitialStartScreen = false,
   showSaveBadge = true,
   showIntakeShortcuts = true,
@@ -329,7 +333,7 @@ export function GuestStudioEditor({
 }: StudioEditorProps) {
   const state = content;
   const setState = onContentChange;
-  const aiAssistProjectId = jobAssist?.projectId ?? GUEST_AI_PROJECT_ID;
+  const aiAssistProjectId = jobAssist?.projectId ?? aiProjectId ?? GUEST_AI_PROJECT_ID;
 
   const guestAutosave = useGuestWizardAutosave({
     state,
@@ -1085,9 +1089,9 @@ export function GuestStudioEditor({
             })}
           </nav>
 
-          {persistMode === "project" && jobAssist?.projectId ? (
+          {persistMode === "project" && showAiScoreCard ? (
             <div className="mt-6" id="studio-final-ai-review">
-              <ResumeAiScoreCard projectId={jobAssist.projectId} variant="studio" />
+              <ResumeAiScoreCard projectId={aiAssistProjectId} variant="studio" />
             </div>
           ) : null}
 
