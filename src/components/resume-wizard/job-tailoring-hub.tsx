@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   projectId: string;
-  projectPreviewHref: string;
+  onPreviewClick?: () => void;
   hasSavedJobTarget: boolean;
   jobTargetTitle: string | null;
   jobTargetCompany: string | null;
@@ -37,7 +37,7 @@ type Props = {
 
 export function JobTailoringHub({
   projectId,
-  projectPreviewHref,
+  onPreviewClick,
   hasSavedJobTarget,
   jobTargetTitle,
   jobTargetCompany,
@@ -163,16 +163,17 @@ export function JobTailoringHub({
             </>
           )}
         </Button>
-        <Link
-          href={projectPreviewHref}
-          className={cn(
-            buttonVariants({ variant: "outline", size: "touch" }),
-            "inline-flex w-full items-center justify-center gap-2 sm:w-auto",
-          )}
+        <Button
+          type="button"
+          variant="outline"
+          size="touch"
+          className="w-full gap-2 sm:w-auto"
+          onClick={onPreviewClick}
+          disabled={!onPreviewClick}
         >
-          Preview tailored resume
+          View live preview
           <ExternalLink className="size-4 opacity-70" aria-hidden />
-        </Link>
+        </Button>
       </div>
 
       {runsHint ? <p className="text-xs text-muted-foreground">{runsHint}</p> : null}

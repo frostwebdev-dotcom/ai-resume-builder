@@ -282,6 +282,7 @@ type StudioEditorProps = {
   onProjectPreviewClick?: () => void;
   projectPreviewPending?: boolean;
   projectPreviewPendingText?: string;
+  projectCanDownload?: boolean;
   /** Signed avatar URL for live preview (project drafts only). */
   previewAvatarUrl?: string | null;
   jobAssist?: StudioJobAssistProps;
@@ -289,6 +290,7 @@ type StudioEditorProps = {
   showSaveBadge?: boolean;
   showIntakeShortcuts?: boolean;
   showPreviewAction?: boolean;
+  showDownloadAction?: boolean;
   onDraftStarted?: (method: "scratch" | "example" | "upload") => void;
 };
 
@@ -315,12 +317,14 @@ export function GuestStudioEditor({
   onProjectPreviewClick,
   projectPreviewPending = false,
   projectPreviewPendingText,
+  projectCanDownload = false,
   previewAvatarUrl = null,
   jobAssist,
   showInitialStartScreen = false,
   showSaveBadge = true,
   showIntakeShortcuts = true,
   showPreviewAction,
+  showDownloadAction = false,
   onDraftStarted,
 }: StudioEditorProps) {
   const state = content;
@@ -415,6 +419,8 @@ export function GuestStudioEditor({
   const firstResumeSoftIssue = useMemo(() => getFirstResumeSoftIssue(state), [state]);
   const previewableContent = useMemo(() => hasPreviewReadyResumeContent(state), [state]);
   const mobilePreviewActionVisible = showPreviewAction ?? previewableContent;
+  const mobileDownloadActionVisible =
+    persistMode === "project" && Boolean(onProjectPreviewClick) && showDownloadAction;
 
   const scrollStudioSectionIntoView = useCallback((sectionId: SectionId) => {
     setOpenSection(sectionId);
@@ -767,9 +773,24 @@ export function GuestStudioEditor({
         <div
           className={cn(
             "w-full min-w-0 space-y-4 px-4 py-5 sm:px-6 sm:py-6 lg:pb-5",
-            mobilePreviewActionVisible ? "pb-28" : "pb-safe",
+            mobilePreviewActionVisible || mobileDownloadActionVisible ? "pb-28" : "pb-safe",
           )}
         >
+          {persistMode === "project" ? (
+            <MobileModeSwitch
+              active="build"
+              previewEnabled={mobilePreviewActionVisible}
+              onBuild={() => setMobilePreviewOpen(false)}
+              onPreview={() => {
+                if (!mobilePreviewActionVisible) return;
+                trackClientEvent(ANALYTICS_EVENTS.MOBILE_PREVIEW_CLICKED, {
+                  surface: "builder_mode_switch",
+                });
+                setMobilePreviewOpen(true);
+              }}
+            />
+          ) : null}
+
           {persistMode === "guest" && showSaveBadge ? (
             <SaveBadge
               status={guestAutosave.saveStatus}
@@ -845,7 +866,12 @@ export function GuestStudioEditor({
           {persistMode === "project" && jobAssist ? (
             <JobTailoringHub
               projectId={jobAssist.projectId}
-              projectPreviewHref={projectPreviewHref ?? "#"}
+              onPreviewClick={() => {
+                trackClientEvent(ANALYTICS_EVENTS.MOBILE_PREVIEW_CLICKED, {
+                  surface: "job_tailoring_hub",
+                });
+                setMobilePreviewOpen(true);
+              }}
               hasSavedJobTarget={jobAssist.hasSavedJobTarget}
               jobTargetTitle={jobAssist.jobTargetTitle}
               jobTargetCompany={jobAssist.jobTargetCompany}
@@ -1152,48 +1178,16 @@ export function GuestStudioEditor({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              {persistMode === "project" && onProjectPreviewClick ? (
-                <button
-                  type="button"
-                  disabled={projectPreviewPending}
-                  onClick={onProjectPreviewClick}
-                  className={cn(
-                    "inline-flex min-h-12 shrink-0 items-center justify-center gap-2 self-end rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1f5fca] disabled:cursor-wait disabled:opacity-70 sm:self-auto",
-                  )}
-                  aria-label="Pay once to download"
-                  aria-busy={projectPreviewPending}
-                >
-                  {projectPreviewPending ? (
-                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-                  ) : (
-                    <Download className="size-4 shrink-0" aria-hidden />
-                  )}
-                  <span className="sm:hidden">{projectPreviewPending ? (projectPreviewPendingText ?? "Saving…") : "Pay & Download"}</span>
-                  <span className="hidden sm:inline">
-                    {projectPreviewPending ? (projectPreviewPendingText ?? "Saving…") : "Pay once to download"}
-                  </span>
-                </button>
-              ) : (
+              {persistMode === "project" ? null : (
                 <Link
                   href={exportHref}
                   className={cn(
                     "inline-flex min-h-12 shrink-0 items-center justify-center gap-2 self-end rounded-full bg-[#2268d7] px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1f5fca] sm:self-auto",
                   )}
-                  aria-label={
-                    persistMode === "project"
-                      ? "Pay once to download"
-                      : "Sign in to download as PDF"
-                  }
+                  aria-label="Sign in to download as PDF"
                 >
-                <Download className="size-4 shrink-0" aria-hidden />
-                {persistMode === "project" ? (
-                  <>
-                    <span className="sm:hidden">Pay & Download</span>
-                    <span className="hidden sm:inline">Pay once to download</span>
-                  </>
-                ) : (
-                  "Download"
-                )}
+                  <Download className="size-4 shrink-0" aria-hidden />
+                  Download
                 </Link>
               )}
             </div>
@@ -1213,25 +1207,7 @@ export function GuestStudioEditor({
               </>
             ) : (
               <>
-                Draft content saves automatically to this project.{" "}
-                {onProjectPreviewClick ? (
-                  <button
-                    type="button"
-                    disabled={projectPreviewPending}
-                    onClick={onProjectPreviewClick}
-                    className="font-semibold text-brand underline-offset-4 hover:underline disabled:cursor-wait disabled:opacity-70"
-                  >
-                    {projectPreviewPending ? (projectPreviewPendingText ?? "Saving…") : "Pay once to download"}
-                  </button>
-                ) : (
-                  <Link
-                    href={exportHref}
-                    className="font-semibold text-brand underline-offset-4 hover:underline"
-                  >
-                    Pay once to download
-                  </Link>
-                )}{" "}
-                for templates and PDFs.
+                Draft content saves automatically to this project. Use the live preview while you edit.
               </>
             )}
           </p>
@@ -1240,6 +1216,15 @@ export function GuestStudioEditor({
       preview={(
         <>
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-3 py-4 sm:px-5 sm:py-5">
+          {persistMode === "project" ? (
+            <MobileModeSwitch
+              active="preview"
+              previewEnabled={mobilePreviewActionVisible}
+              onBuild={() => setMobilePreviewOpen(false)}
+              onPreview={() => setMobilePreviewOpen(true)}
+            />
+          ) : null}
+
           {/* Floating controls — not part of the template; keeps the canvas = one real sheet */}
           <div className="pointer-events-none absolute right-4 top-4 z-50 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 sm:right-6 sm:top-5">
             <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-1.5 rounded-full border border-border/70 bg-white/95 px-2.5 py-1 text-[0.7rem] font-medium text-muted-foreground shadow-md backdrop-blur-sm dark:bg-zinc-900/95 dark:text-zinc-200">
@@ -1780,27 +1765,56 @@ export function GuestStudioEditor({
       </div>
         </>
       )}
-      mobileFab={mobilePreviewOpen || mobilePreviewActionVisible ? (
+      mobileFab={mobilePreviewOpen || mobilePreviewActionVisible || mobileDownloadActionVisible ? (
         <div
           className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-white/95 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] shadow-[0_-10px_40px_-12px_rgba(15,23,42,0.18)] backdrop-blur-md lg:hidden"
           role="navigation"
           aria-label="Resume editor mobile actions"
         >
           {mobilePreviewOpen ? (
-            <Button
-              type="button"
-              variant="default"
-              size="touch"
-              className="w-full gap-2 bg-slate-900 text-white hover:bg-slate-800"
-              onClick={() => setMobilePreviewOpen(false)}
-            >
-              <ChevronLeft className="size-4 shrink-0" aria-hidden />
-              Back to editing
-            </Button>
+            <div className="mx-auto flex w-full max-w-lg items-stretch gap-2">
+              <Button
+                type="button"
+                variant={mobileDownloadActionVisible ? "outline" : "default"}
+                size="touch"
+                className={cn(
+                  "min-w-0 gap-2",
+                  mobileDownloadActionVisible
+                    ? "flex-1 bg-white"
+                    : "w-full bg-slate-900 text-white hover:bg-slate-800",
+                )}
+                onClick={() => setMobilePreviewOpen(false)}
+              >
+                <ChevronLeft className="size-4 shrink-0" aria-hidden />
+                Back to editing
+              </Button>
+              {mobileDownloadActionVisible && onProjectPreviewClick ? (
+                <Button
+                  type="button"
+                  size="touch"
+                  disabled={projectPreviewPending}
+                  className="min-w-0 flex-1 whitespace-normal bg-[#2268d7] text-center text-white hover:bg-[#1f5fca]"
+                  onClick={onProjectPreviewClick}
+                >
+                  {projectPreviewPending ? (
+                    <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                  ) : (
+                    <Download className="size-4 shrink-0" aria-hidden />
+                  )}
+                  <span className="leading-tight">
+                    {projectPreviewPending
+                      ? (projectPreviewPendingText ?? "Preparing PDF...")
+                      : projectCanDownload
+                        ? "Download PDF"
+                        : "Pay once to download"}
+                  </span>
+                </Button>
+              ) : null}
+            </div>
           ) : (
             <>
               <div className="mx-auto flex w-full max-w-lg items-stretch gap-2">
-                {firstResumeSoftIssue ? (
+                {persistMode !== "project" && firstResumeSoftIssue ? (
                   <Button
                     type="button"
                     variant="outline"
@@ -1811,36 +1825,62 @@ export function GuestStudioEditor({
                     Fix next
                   </Button>
                 ) : null}
-                <Button
-                  type="button"
-                  variant="default"
-                  size="touch"
-                  className={cn(
-                    "min-w-0 flex-1 gap-2",
-                    previewableContent
-                      ? "bg-[#2268d7] text-white hover:bg-[#1f5fca]"
-                      : "bg-slate-200 text-slate-600 hover:bg-slate-300",
-                  )}
-                  onClick={() => {
-                    if (!previewableContent) {
-                      scrollStudioSectionIntoView("personal");
-                      return;
-                    }
-                    trackClientEvent(ANALYTICS_EVENTS.PREVIEW_RESUME_CLICKED, {
-                      surface: "guest_create_mobile",
-                    });
-                    setMobilePreviewOpen(true);
-                  }}
-                >
-                  <SquareSplitHorizontal className="size-4 shrink-0" aria-hidden />
-                  {previewableContent ? "Preview resume" : "Start in Personal details"}
-                </Button>
+                {mobilePreviewActionVisible ? (
+                  <Button
+                    type="button"
+                    variant={mobileDownloadActionVisible ? "outline" : "default"}
+                    size="touch"
+                    className={cn(
+                      "min-w-0 flex-1 gap-2",
+                      mobileDownloadActionVisible
+                        ? "bg-white"
+                        : "bg-[#2268d7] text-white hover:bg-[#1f5fca]",
+                    )}
+                    onClick={() => {
+                      trackClientEvent(
+                        persistMode === "project"
+                          ? ANALYTICS_EVENTS.MOBILE_PREVIEW_CLICKED
+                          : ANALYTICS_EVENTS.PREVIEW_RESUME_CLICKED,
+                        {
+                          surface:
+                            persistMode === "project" ? "project_build_mobile" : "guest_create_mobile",
+                        },
+                      );
+                      setMobilePreviewOpen(true);
+                    }}
+                  >
+                    <SquareSplitHorizontal className="size-4 shrink-0" aria-hidden />
+                    Preview resume
+                  </Button>
+                ) : null}
+                {mobileDownloadActionVisible && onProjectPreviewClick ? (
+                  <Button
+                    type="button"
+                    size="touch"
+                    disabled={projectPreviewPending}
+                    className="min-w-0 flex-1 whitespace-normal bg-[#2268d7] text-center text-white hover:bg-[#1f5fca]"
+                    onClick={onProjectPreviewClick}
+                  >
+                    {projectPreviewPending ? (
+                      <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+                    ) : (
+                      <Download className="size-4 shrink-0" aria-hidden />
+                    )}
+                    <span className="leading-tight">
+                      {projectPreviewPending
+                        ? (projectPreviewPendingText ?? "Preparing PDF...")
+                        : projectCanDownload
+                          ? "Download PDF"
+                          : "Pay once to download"}
+                    </span>
+                  </Button>
+                ) : null}
               </div>
-              {firstResumeSoftIssue && !mobilePreviewOpen ? (
+              {persistMode !== "project" && firstResumeSoftIssue && !mobilePreviewOpen ? (
                 <p className="mx-auto mt-2 max-w-lg text-pretty text-center text-xs leading-snug text-muted-foreground">
                   {firstResumeSoftIssue.message}
                 </p>
-              ) : !previewableContent ? (
+              ) : persistMode !== "project" && !previewableContent ? (
                 <p className="mx-auto mt-2 max-w-lg text-pretty text-center text-xs leading-snug text-muted-foreground">
                   Add a name, profile, or work history — then open a full-page preview here.
                 </p>
@@ -1991,6 +2031,51 @@ function SaveBadge({
   }
   return (
     <div className={cn(base, "bg-brand-muted text-brand ring-brand/15")}>Local draft</div>
+  );
+}
+
+function MobileModeSwitch({
+  active,
+  previewEnabled,
+  onBuild,
+  onPreview,
+}: {
+  active: "build" | "preview";
+  previewEnabled: boolean;
+  onBuild: () => void;
+  onPreview: () => void;
+}) {
+  return (
+    <div className="mb-3 grid grid-cols-2 rounded-full border border-slate-200 bg-slate-100 p-1 shadow-sm lg:hidden">
+      <button
+        type="button"
+        onClick={onBuild}
+        aria-pressed={active === "build"}
+        className={cn(
+          "min-h-10 rounded-full px-3 text-sm font-semibold transition-colors",
+          active === "build"
+            ? "bg-white text-slate-950 shadow-sm"
+            : "text-slate-600 hover:text-slate-950",
+        )}
+      >
+        Build
+      </button>
+      <button
+        type="button"
+        onClick={onPreview}
+        disabled={!previewEnabled}
+        aria-pressed={active === "preview"}
+        className={cn(
+          "min-h-10 rounded-full px-3 text-sm font-semibold transition-colors",
+          active === "preview"
+            ? "bg-white text-slate-950 shadow-sm"
+            : "text-slate-600 hover:text-slate-950",
+          !previewEnabled && "cursor-not-allowed opacity-45 hover:text-slate-600",
+        )}
+      >
+        Preview
+      </button>
+    </div>
   );
 }
 

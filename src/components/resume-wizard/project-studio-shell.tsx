@@ -52,6 +52,10 @@ import { trackClientEvent } from "@/lib/analytics/client";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import {
+  getCandidateDisplayName,
+  hasMeaningfulGuestResumeContent,
+} from "@/lib/resume-wizard/content-readiness";
 import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
 import type { JobTargetClientView } from "@/lib/job-target/client-types";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
@@ -73,12 +77,13 @@ function hasMeaningfulText(value: string | null | undefined): boolean {
   return Boolean(normalized && normalized !== "untitled resume");
 }
 
-function getExportMissingItems(state: WizardStateV1, projectTitle: string): string[] {
+function getExportMissingItems(state: WizardStateV1): string[] {
   const p = state.personal;
   const hasNameOrTitle =
     hasMeaningfulText(p.fullName) ||
     hasMeaningfulText([p.givenName, p.middleName, p.familyName].filter(Boolean).join(" ")) ||
-    hasMeaningfulText(projectTitle);
+    hasMeaningfulText(p.desiredJobPosition) ||
+    hasMeaningfulText(state.summary.headline);
   const hasContact =
     hasMeaningfulText(p.email) ||
     hasMeaningfulText(p.phone) ||
@@ -101,7 +106,7 @@ function getExportMissingItems(state: WizardStateV1, projectTitle: string): stri
   const hasSkills = hasMeaningfulText(state.skills.lines);
 
   const missing: string[] = [];
-  if (!hasNameOrTitle) missing.push("Candidate name or resume title");
+  if (!hasNameOrTitle) missing.push("Candidate name or professional title");
   if (!hasContact) missing.push("At least one contact method");
   if (!(hasExperience || hasEducation || hasSkills || hasProjects)) {
     missing.push("Experience, education, skills, or projects");
@@ -199,7 +204,7 @@ export function ProjectStudioShell({
 
   const commitTitle = useCallback(
     (next: string) => {
-      const trimmed = next.trim() || "Untitled resume";
+      const trimmed = next.trim() || "Resume Draft";
       if (trimmed === projectTitle) {
         setTitleDraft(trimmed);
         return;
@@ -309,7 +314,6 @@ export function ProjectStudioShell({
     return () => window.removeEventListener("keydown", onKey);
   }, [handleUndoContent, handleRedoContent]);
 
-  const focusedExportHref = ROUTES.app.projectPreviewExport(projectId);
   const loginHref = `${ROUTES.auth.login}?next=${encodeURIComponent(ROUTES.app.projectBuild(projectId))}`;
 
   const styleSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -362,23 +366,30 @@ export function ProjectStudioShell({
     [projectId, router, templateSlug],
   );
 
-  const candidateName = [
-    content.personal.givenName,
-    content.personal.middleName,
-    content.personal.familyName,
-  ]
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .join(" ") || content.personal.fullName.trim();
+  const candidateName = getCandidateDisplayName(content);
+  const targetRole = content.personal.desiredJobPosition.trim() || content.summary.headline.trim();
+  const displayTitle = candidateName
+    ? `${candidateName} Resume`
+    : targetRole
+      ? `${targetRole} Resume`
+      : "Resume Draft";
+  const hasMeaningfulContent = hasMeaningfulGuestResumeContent(content);
+  const exportMissingItems = getExportMissingItems(content);
+  const downloadReady = exportMissingItems.length === 0;
   const defaultDownloadName = candidateName
     ? `${candidateName} Resume`
-    : titleDraft.trim() || projectTitle.trim() || "Resume";
+    : targetRole
+      ? `${targetRole} Resume`
+      : titleDraft.trim() && titleDraft.trim().toLowerCase() !== "untitled resume"
+        ? titleDraft.trim()
+        : "Resume Draft";
 
   const handlePreviewExportClick = useCallback(async () => {
     if (exportPending) return;
     setExportError(null);
     trackClientEvent(ANALYTICS_EVENTS.PAY_ONCE_DOWNLOAD_CLICKED, {
       project_id_prefix: projectId.slice(0, 8),
+      paid: canDownload,
     });
     setExportPending("saving");
     const latest = contentRef.current;
@@ -390,10 +401,14 @@ export function ProjectStudioShell({
       return;
     }
 
-    const missing = getExportMissingItems(latest, titleDraft || projectTitle);
-    if (missing.length > 0) {
+    const missing = getExportMissingItems(latest);
+    if (!canDownload && missing.length > 0) {
       setMissingExportItems(missing);
       trackClientEvent(ANALYTICS_EVENTS.EXPORT_VALIDATION_FAILED, {
+        project_id_prefix: projectId.slice(0, 8),
+        missing_count: missing.length,
+      });
+      trackClientEvent(ANALYTICS_EVENTS.EXPORT_VALIDATION_WARNING_SHOWN, {
         project_id_prefix: projectId.slice(0, 8),
         missing_count: missing.length,
       });
@@ -406,11 +421,11 @@ export function ProjectStudioShell({
       project_id_prefix: projectId.slice(0, 8),
       source: "builder_cta",
     });
-  }, [exportPending, projectId, projectTitle, titleDraft]);
+  }, [canDownload, exportPending, projectId]);
 
   const ctaBusyLabel =
     exportPending === "saving"
-      ? "Saving resume..."
+      ? "Preparing PDF..."
       : exportPending === "preparing"
         ? "Preparing PDF..."
         : exportPending === "checkout"
@@ -425,8 +440,8 @@ export function ProjectStudioShell({
           Mirrors the guest `/create` top bar: 1fr | auto | 1fr columns so the title block stays
           centered, autosave sits beside the back link, and right-side actions stay aligned.
         */}
-        <div className="grid min-h-12 w-full grid-cols-[1fr_minmax(0,auto)_1fr] items-center gap-x-2 gap-y-2 py-1.5 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:min-h-14 sm:gap-y-0 sm:py-0 sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))]">
-          <div className="flex min-w-0 flex-wrap content-center items-center justify-self-start gap-x-1.5 gap-y-1 sm:gap-x-2">
+        <div className="grid min-h-12 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-2 py-1.5 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] sm:min-h-14 sm:gap-y-0 sm:py-0 sm:pl-[max(1rem,env(safe-area-inset-left,0px))] sm:pr-[max(1rem,env(safe-area-inset-right,0px))] lg:grid-cols-[1fr_minmax(0,auto)_1fr]">
+          <div className="flex min-w-0 content-center items-center justify-self-start gap-x-1.5 gap-y-1 sm:gap-x-2">
             <Link
               href={ROUTES.app.project(projectId)}
               className={cn(
@@ -436,8 +451,10 @@ export function ProjectStudioShell({
               aria-label="Back to project"
             >
               <span className="text-base leading-none">←</span>
-              Project
+              <span className="sm:hidden">Back</span>
+              <span className="hidden sm:inline">Project</span>
             </Link>
+            <span className="hidden lg:inline-flex">
             <AutosaveStatusChip
               context="project"
               status={saveStatus}
@@ -447,21 +464,24 @@ export function ProjectStudioShell({
               surface="dark"
               layout="toolbar"
             />
+            </span>
           </div>
 
-          <div className="relative z-10 flex min-w-0 max-w-[min(18rem,calc(100dvw-11rem-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)))] justify-self-center sm:max-w-[min(32rem,calc(100dvw-20rem-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)))]">
+          <div className="relative z-10 flex min-w-0 justify-self-stretch lg:max-w-[min(32rem,calc(100dvw-20rem-env(safe-area-inset-left,0px)-env(safe-area-inset-right,0px)))] lg:justify-self-center">
             <div className="flex w-full min-w-0 items-end gap-2.5 sm:gap-3">
               <input
                 ref={titleInputRef}
-                key={`title-${projectTitle}`}
-                defaultValue={titleDraft}
+                key={`title-${displayTitle}`}
+                defaultValue={displayTitle}
                 onBlur={(e) => {
-                  commitTitle(e.currentTarget.value);
+                  const next = e.currentTarget.value.trim();
+                  if (!next || next === displayTitle) return;
+                  commitTitle(next);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                   else if (e.key === "Escape") {
-                    e.currentTarget.value = projectTitle;
+                    e.currentTarget.value = displayTitle;
                     (e.target as HTMLInputElement).blur();
                   }
                 }}
@@ -469,14 +489,27 @@ export function ProjectStudioShell({
                 aria-label="Resume project title"
                 aria-describedby={titleError ? "project-title-error" : undefined}
                 maxLength={120}
-                placeholder="Untitled resume"
+                placeholder="Resume Draft"
                 id="project-draft-title"
-                className="min-w-0 flex-1 rounded-none border-0 border-b-2 border-[#3b82f6] bg-transparent px-0.5 pb-0.5 text-center text-xs font-normal text-slate-100 caret-white placeholder:text-slate-500 outline-none transition-colors selection:bg-sky-500/35 focus-visible:border-sky-300 disabled:opacity-70 sm:text-sm"
+                className="min-w-0 flex-1 rounded-none border-0 border-b-2 border-[#3b82f6] bg-transparent px-0.5 pb-0.5 text-left text-xs font-normal text-slate-100 caret-white placeholder:text-slate-500 outline-none transition-colors selection:bg-sky-500/35 focus-visible:border-sky-300 disabled:opacity-70 sm:text-center sm:text-sm"
               />
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-wrap items-center justify-end justify-self-end gap-x-1 gap-y-1.5 sm:gap-x-2">
+          <div className="flex min-w-0 items-center justify-end justify-self-end gap-x-1 gap-y-1.5 sm:gap-x-2">
+            <span className="lg:hidden">
+              <AutosaveStatusChip
+                context="project"
+                status={saveStatus}
+                lastError={lastError}
+                onRetry={retry}
+                isDirty={isDirty}
+                surface="dark"
+                layout="toolbar"
+                iconOnly
+              />
+            </span>
+            <div className="hidden items-center gap-x-1 gap-y-1.5 lg:flex">
             <button
               type="button"
               onClick={handleUndoContent}
@@ -552,15 +585,19 @@ export function ProjectStudioShell({
               </DropdownMenuContent>
             </DropdownMenu>
 
+            <span className="hidden max-w-[11rem] text-right text-[0.68rem] font-medium leading-tight text-slate-300 xl:inline">
+              Preview free · Secure checkout
+            </span>
+
             <button
               type="button"
               disabled={Boolean(exportPending)}
               onClick={() => void handlePreviewExportClick()}
               className={cn(
                 buttonVariants({ size: "sm" }),
-                "h-10 min-h-10 max-w-full shrink gap-1.5 truncate rounded-full bg-[#2268d7] px-2.5 text-xs font-semibold hover:bg-[#1f5fca] disabled:cursor-wait disabled:opacity-75 sm:h-8 sm:min-h-0 sm:max-w-none sm:px-3",
+                "h-10 min-h-10 max-w-full shrink gap-1.5 truncate rounded-full bg-[#2268d7] px-3 text-xs font-semibold hover:bg-[#1f5fca] disabled:cursor-wait disabled:opacity-75 sm:h-8 sm:min-h-0 sm:max-w-none sm:px-3",
               )}
-              aria-label="Pay once to download"
+              aria-label={canDownload ? "Download PDF" : "Pay once to download"}
               aria-busy={Boolean(exportPending)}
             >
               {exportPending ? (
@@ -568,9 +605,11 @@ export function ProjectStudioShell({
               ) : (
                 <Download className="size-3.5 shrink-0" aria-hidden />
               )}
-              <span className="truncate sm:hidden">{ctaBusyLabel ?? "Pay & Download"}</span>
-              <span className="hidden truncate sm:inline">{ctaBusyLabel ?? "Pay once to download"}</span>
+              <span className="truncate">
+                {ctaBusyLabel ?? (canDownload ? "Download PDF" : "Pay once to download")}
+              </span>
             </button>
+            </div>
           </div>
         </div>
       </header>
@@ -604,7 +643,7 @@ export function ProjectStudioShell({
             }
             description={
               checkoutStatus === "success"
-                ? "Use Pay once to download again and the modal will offer Download PDF without another payment."
+                ? "Use Download PDF to prepare a secure file without another payment."
                 : checkoutStatus === "pending"
                   ? "Stripe is still confirming the payment. Refresh in a moment before trying again."
                   : checkoutStatus === "cancelled"
@@ -658,10 +697,12 @@ export function ProjectStudioShell({
           onResumeStyleChange={handleResumeStyleChange}
           loginHref={loginHref}
           persistMode="project"
-          projectPreviewHref={focusedExportHref}
           onProjectPreviewClick={() => void handlePreviewExportClick()}
           projectPreviewPending={Boolean(exportPending)}
           projectPreviewPendingText={ctaBusyLabel ?? undefined}
+          projectCanDownload={canDownload}
+          showPreviewAction={hasMeaningfulContent}
+          showDownloadAction={downloadReady || canDownload}
           previewAvatarUrl={avatarSignedUrl}
           jobAssist={{
             projectId,
@@ -694,14 +735,14 @@ export function ProjectStudioShell({
             <div className="mb-1 flex size-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700 ring-1 ring-amber-600/15">
               <AlertTriangle className="size-5" aria-hidden />
             </div>
-            <DialogTitle>Your resume needs a little more information</DialogTitle>
+            <DialogTitle>Your resume may be incomplete</DialogTitle>
             <DialogDescription>
-              Please add the required details before downloading your final PDF.
+              Before downloading, we recommend adding the following information:
             </DialogDescription>
           </DialogHeader>
           {missingExportItems.length > 0 ? (
             <div className="rounded-xl border border-amber-500/20 bg-amber-50/80 p-3">
-              <p className="text-sm font-semibold text-amber-950">Missing details</p>
+              <p className="text-sm font-semibold text-amber-950">Recommended additions</p>
               <ul className="mt-2 space-y-1.5 text-sm text-amber-950/85">
                 {missingExportItems.map((item) => (
                   <li key={item} className="flex gap-2">

@@ -104,6 +104,10 @@ export function DownloadResumeModal({
   async function downloadPdf() {
     setError(null);
     setPending("download");
+    trackClientEvent(ANALYTICS_EVENTS.PAID_PDF_DOWNLOAD_CLICKED, {
+      project_id_prefix: projectId.slice(0, 8),
+      format,
+    });
     trackClientEvent(ANALYTICS_EVENTS.PDF_DOWNLOAD_STARTED, {
       project_id_prefix: projectId.slice(0, 8),
       format,
@@ -120,6 +124,10 @@ export function DownloadResumeModal({
     }
 
     trackClientEvent(ANALYTICS_EVENTS.PDF_DOWNLOAD_COMPLETED, {
+      project_id_prefix: projectId.slice(0, 8),
+      format,
+    });
+    trackClientEvent(ANALYTICS_EVENTS.PAID_PDF_DOWNLOAD_COMPLETED, {
       project_id_prefix: projectId.slice(0, 8),
       format,
     });
