@@ -54,6 +54,7 @@ import { ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import {
   getCandidateDisplayName,
+  getResumeReadiness,
   hasMeaningfulGuestResumeContent,
 } from "@/lib/resume-wizard/content-readiness";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
@@ -69,48 +70,6 @@ import { saveWizardDraftAction } from "@/services/resume-wizard/actions";
 
 const projectMenuItemClass =
   "cursor-pointer gap-3 rounded-sm px-2 py-2.5 text-slate-700 focus-visible:bg-[#2268d7] focus-visible:text-white data-[highlighted]:bg-[#2268d7] data-[highlighted]:text-white [&_svg]:opacity-80 [&_svg]:data-[highlighted]:opacity-100 [&_svg]:data-[highlighted]:text-white";
-
-function hasMeaningfulText(value: string | null | undefined): boolean {
-  const normalized = value?.trim().toLowerCase() ?? "";
-  return Boolean(normalized && normalized !== "untitled resume");
-}
-
-function getExportMissingItems(state: WizardStateV1): string[] {
-  const p = state.personal;
-  const hasNameOrTitle =
-    hasMeaningfulText(p.fullName) ||
-    hasMeaningfulText([p.givenName, p.middleName, p.familyName].filter(Boolean).join(" ")) ||
-    hasMeaningfulText(p.desiredJobPosition) ||
-    hasMeaningfulText(state.summary.headline);
-  const hasContact =
-    hasMeaningfulText(p.email) ||
-    hasMeaningfulText(p.phone) ||
-    hasMeaningfulText(p.location) ||
-    hasMeaningfulText(p.city) ||
-    hasMeaningfulText(p.linkedIn) ||
-    hasMeaningfulText(p.website);
-  const hasExperience = state.experience.entries.some(
-    (e) =>
-      hasMeaningfulText(e.title) ||
-      hasMeaningfulText(e.company) ||
-      e.highlights.some(hasMeaningfulText),
-  );
-  const hasEducation = state.education.entries.some(
-    (e) => hasMeaningfulText(e.school) || hasMeaningfulText(e.degree) || hasMeaningfulText(e.field),
-  );
-  const hasProjects = state.projects.entries.some(
-    (pjt) => hasMeaningfulText(pjt.name) || hasMeaningfulText(pjt.description),
-  );
-  const hasSkills = hasMeaningfulText(state.skills.lines);
-
-  const missing: string[] = [];
-  if (!hasNameOrTitle) missing.push("Candidate name or professional title");
-  if (!hasContact) missing.push("At least one contact method");
-  if (!(hasExperience || hasEducation || hasSkills || hasProjects)) {
-    missing.push("Experience, education, skills, or projects");
-  }
-  return missing;
-}
 
 export type ProjectStudioShellProps = {
   projectId: string;
@@ -339,8 +298,8 @@ export function ProjectStudioShell({
       ? `${targetRole} Resume`
       : "Resume Draft";
   const hasMeaningfulContent = hasMeaningfulGuestResumeContent(content);
-  const exportMissingItems = getExportMissingItems(content);
-  const downloadReady = exportMissingItems.length === 0;
+  const resumeReadiness = getResumeReadiness(content);
+  const downloadReady = resumeReadiness.isExportReady;
   const defaultDownloadName = candidateName
     ? `${candidateName} Resume`
     : targetRole
@@ -356,6 +315,12 @@ export function ProjectStudioShell({
       project_id_prefix: projectId.slice(0, 8),
       paid: canDownload,
     });
+    if (canDownload) {
+      trackClientEvent(ANALYTICS_EVENTS.DOWNLOAD_PDF_CLICKED, {
+        project_id_prefix: projectId.slice(0, 8),
+        surface: "builder_cta",
+      });
+    }
     setExportPending("saving");
     const latest = contentRef.current;
     const result = await saveWizardDraftAction(projectId, latest);
@@ -366,7 +331,7 @@ export function ProjectStudioShell({
       return;
     }
 
-    const missing = getExportMissingItems(latest);
+    const missing = getResumeReadiness(latest).missingItems;
     if (!canDownload && missing.length > 0) {
       setMissingExportItems(missing);
       trackClientEvent(ANALYTICS_EVENTS.EXPORT_VALIDATION_FAILED, {
@@ -462,7 +427,7 @@ export function ProjectStudioShell({
           </div>
 
           <div className="flex min-w-0 items-center justify-end justify-self-end gap-x-1 gap-y-1.5 sm:gap-x-2">
-            <span className="lg:hidden">
+            <span className="min-[390px]:hidden lg:hidden">
               <AutosaveStatusChip
                 context="project"
                 status={saveStatus}
@@ -472,6 +437,17 @@ export function ProjectStudioShell({
                 surface="dark"
                 layout="toolbar"
                 iconOnly
+              />
+            </span>
+            <span className="hidden min-[390px]:inline-flex lg:hidden">
+              <AutosaveStatusChip
+                context="project"
+                status={saveStatus}
+                lastError={lastError}
+                onRetry={retry}
+                isDirty={isDirty}
+                surface="dark"
+                layout="toolbar"
               />
             </span>
             <div className="hidden items-center gap-x-1 gap-y-1.5 lg:flex">

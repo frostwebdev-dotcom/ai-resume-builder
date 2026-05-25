@@ -36,7 +36,6 @@ import {
   SquareSplitHorizontal,
   Tag,
   Trash2,
-  ZoomOut,
 } from "lucide-react";
 
 import { Field } from "@/components/ui/field";
@@ -75,7 +74,10 @@ import type {
   WizardStateV1,
 } from "@/lib/resume-wizard/types";
 import { createEmptyWizardState } from "@/lib/resume-wizard/defaults";
-import { hasPreviewReadyResumeContent } from "@/lib/resume-wizard/content-readiness";
+import {
+  getResumeReadiness,
+  hasPreviewReadyResumeContent,
+} from "@/lib/resume-wizard/content-readiness";
 import { trackClientEvent } from "@/lib/analytics/client";
 import { ANALYTICS_EVENTS } from "@/lib/analytics/events";
 import {
@@ -233,6 +235,12 @@ const COLOR_SWATCHES = [
   "#7c3aed",
   "#db2777",
   "#334155",
+];
+
+const MOBILE_PREVIEW_TEMPLATE_SLUGS: TemplateSlug[] = [
+  "professional-ats",
+  "modern-professional",
+  "technical-clean",
 ];
 
 /** Soft inputs used in the accordion header and section bodies. */
@@ -420,11 +428,35 @@ export function GuestStudioEditor({
     return { started, complete, total: sectionOrderResolved.length };
   }, [sectionOrderResolved, state]);
 
+  // Mobile-only: editor is shown by default; preview is reachable via a toggle
+  // so the entire screen never needs to scroll beyond the viewport.
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+
   const firstResumeSoftIssue = useMemo(() => getFirstResumeSoftIssue(state), [state]);
   const previewableContent = useMemo(() => hasPreviewReadyResumeContent(state), [state]);
+  const resumeReadiness = useMemo(() => getResumeReadiness(state), [state]);
+  const readinessItems = [
+    ...resumeReadiness.missingItems,
+    ...resumeReadiness.recommendedItems,
+  ];
   const mobilePreviewActionVisible = showPreviewAction ?? previewableContent;
   const mobileDownloadActionVisible =
-    persistMode === "project" && Boolean(onProjectPreviewClick) && showDownloadAction;
+    persistMode === "project" &&
+    Boolean(onProjectPreviewClick) &&
+    (projectCanDownload || (showDownloadAction && resumeReadiness.isExportReady));
+  const showMobileReadinessCard =
+    persistMode === "project" && mobilePreviewOpen && !projectCanDownload && !resumeReadiness.isExportReady;
+  const readinessWarningTrackedRef = useRef(false);
+
+  useEffect(() => {
+    if (!showMobileReadinessCard || readinessWarningTrackedRef.current) return;
+    readinessWarningTrackedRef.current = true;
+    trackClientEvent(ANALYTICS_EVENTS.RESUME_READINESS_WARNING_SHOWN, {
+      surface: "project_build_mobile_preview",
+      missing_count: resumeReadiness.missingItems.length,
+      recommended_count: resumeReadiness.recommendedItems.length,
+    });
+  }, [resumeReadiness.missingItems.length, resumeReadiness.recommendedItems.length, showMobileReadinessCard]);
 
   const scrollStudioSectionIntoView = useCallback((sectionId: SectionId) => {
     setOpenSection(sectionId);
@@ -437,6 +469,25 @@ export function GuestStudioEditor({
           behavior: reduceMotion ? "auto" : "smooth",
           block: "start",
         });
+      });
+    });
+  }, []);
+
+  const handleImproveWithAiFromPreview = useCallback(() => {
+    trackClientEvent(ANALYTICS_EVENTS.IMPROVE_WITH_AI_FROM_PREVIEW_CLICKED, {
+      surface: "project_build_mobile_preview",
+    });
+    setMobilePreviewOpen(false);
+    window.requestAnimationFrame(() => {
+      const review = document.getElementById("studio-final-ai-review");
+      if (review) {
+        review.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      setOpenSection("summary");
+      document.getElementById("studio-section-summary")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
       });
     });
   }, []);
@@ -535,22 +586,20 @@ export function GuestStudioEditor({
     [setState],
   );
 
-  // Mobile-only: editor is shown by default; preview is reachable via a toggle
-  // so the entire screen never needs to scroll beyond the viewport.
-  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
-
   // Bottom preview toolbar state.
   const [fontOpen, setFontOpen] = useState(false);
   const [sizeOpen, setSizeOpen] = useState(false);
   const [spacingOpen, setSpacingOpen] = useState(false);
   const [colorOpen, setColorOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [advancedStyleOpen, setAdvancedStyleOpen] = useState(false);
   /** While hovering a template in the strip, preview uses this slug without committing. */
   const [templateHoverSlug, setTemplateHoverSlug] = useState<TemplateSlug | null>(null);
   const [focusMode, setFocusMode] = useState(false);
 
-  /** Zoomed (1:1 + scroll) on first open; user can shrink to fit from the preview chip. */
-  const [previewZoomed, setPreviewZoomed] = useState(true);
+  /** Mobile preview zoom: fit for final review, 75/100 for closer inspection. */
+  const [previewZoomMode, setPreviewZoomMode] = useState<"fit" | "75" | "100">("fit");
+  const previewZoomed = previewZoomMode !== "fit";
   const [fitScale, setFitScale] = useState(1);
   /** Unscaled content size — used to clip + center the scaled preview in fit mode. */
   const [fitContentSize, setFitContentSize] = useState({ w: 0, h: 0 });
@@ -575,6 +624,10 @@ export function GuestStudioEditor({
   const previewTemplateSlug = templateHoverSlug ?? templateSlug;
   const previewTheme = getTemplateTheme(previewTemplateSlug);
   const templateName = previewTheme.name;
+  const previewTemplateChoices =
+    persistMode === "project"
+      ? MOBILE_PREVIEW_TEMPLATE_SLUGS
+      : sortTemplateSlugsPhotoCapableFirst([...TEMPLATE_SLUG_ORDER]);
 
   // Close any open popover when clicking elsewhere.
   const toolbarRef = useRef<HTMLDivElement | null>(null);
@@ -662,8 +715,8 @@ export function GuestStudioEditor({
   }
 
   useLayoutEffect(() => {
-    if (previewZoomed) {
-      setFitScale(1);
+    if (previewZoomMode !== "fit") {
+      setFitScale(previewZoomMode === "75" ? 0.75 : 1);
       return;
     }
     const container = previewFitBodyRef.current;
@@ -690,7 +743,7 @@ export function GuestStudioEditor({
     ro.observe(container);
     ro.observe(content);
     return () => ro.disconnect();
-  }, [previewZoomed, previewDocument, templateSlug, resumeStyle, templateHoverSlug]);
+  }, [previewZoomMode, previewDocument, templateSlug, resumeStyle, templateHoverSlug]);
 
   /** Scroll the preview so the block for the open studio section stays in view. */
   useLayoutEffect(() => {
@@ -784,9 +837,17 @@ export function GuestStudioEditor({
             <MobileModeSwitch
               active="build"
               previewEnabled={mobilePreviewActionVisible}
-              onBuild={() => setMobilePreviewOpen(false)}
+              onBuild={() => {
+                trackClientEvent(ANALYTICS_EVENTS.MOBILE_BUILD_TAB_SELECTED, {
+                  surface: "project_build_mobile",
+                });
+                setMobilePreviewOpen(false);
+              }}
               onPreview={() => {
                 if (!mobilePreviewActionVisible) return;
+                trackClientEvent(ANALYTICS_EVENTS.MOBILE_PREVIEW_TAB_SELECTED, {
+                  surface: "project_build_mobile",
+                });
                 trackClientEvent(ANALYTICS_EVENTS.MOBILE_PREVIEW_CLICKED, {
                   surface: "builder_mode_switch",
                 });
@@ -1224,30 +1285,80 @@ export function GuestStudioEditor({
             <MobileModeSwitch
               active="preview"
               previewEnabled={mobilePreviewActionVisible}
-              onBuild={() => setMobilePreviewOpen(false)}
-              onPreview={() => setMobilePreviewOpen(true)}
+              onBuild={() => {
+                trackClientEvent(ANALYTICS_EVENTS.MOBILE_BUILD_TAB_SELECTED, {
+                  surface: "project_build_mobile",
+                });
+                setMobilePreviewOpen(false);
+              }}
+              onPreview={() => {
+                trackClientEvent(ANALYTICS_EVENTS.MOBILE_PREVIEW_TAB_SELECTED, {
+                  surface: "project_build_mobile",
+                });
+                setMobilePreviewOpen(true);
+              }}
             />
           ) : null}
 
-          {/* Floating controls — not part of the template; keeps the canvas = one real sheet */}
-          <div className="pointer-events-none absolute right-4 top-4 z-50 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 sm:right-6 sm:top-5">
-            <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-1.5 rounded-full border border-border/70 bg-white/95 px-2.5 py-1 text-[0.7rem] font-medium text-muted-foreground shadow-md backdrop-blur-sm dark:bg-zinc-900/95 dark:text-zinc-200">
-              {previewZoomed ? (
-                <button
+          {showMobileReadinessCard ? (
+            <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50/95 p-3 text-amber-950 shadow-sm lg:hidden">
+              <p className="text-sm font-semibold">Your resume needs a little more work</p>
+              <p className="mt-1 text-xs leading-relaxed text-amber-950/80">
+                Add or improve the sections below before downloading a professional final PDF.
+              </p>
+              {readinessItems.length > 0 ? (
+                <ul className="mt-2 space-y-1 text-xs leading-relaxed text-amber-950/85">
+                  {readinessItems.slice(0, 4).map((item) => (
+                    <li key={item} className="flex gap-2">
+                      <span aria-hidden>•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button
                   type="button"
-                  onClick={() => setPreviewZoomed(false)}
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-foreground hover:bg-muted/80"
-                  aria-label="Shrink preview to fit panel"
+                  size="sm"
+                  className="h-10 bg-slate-900 text-white hover:bg-slate-800"
+                  onClick={() => setMobilePreviewOpen(false)}
                 >
-                  <ZoomOut className="size-3.5 shrink-0" aria-hidden />
-                  <span className="hidden sm:inline">Fit to panel</span>
-                  <span className="sm:hidden">Fit</span>
+                  Continue editing
+                </Button>
+                {showAiScoreCard ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-10 bg-white"
+                    onClick={handleImproveWithAiFromPreview}
+                  >
+                    Improve with AI
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Floating controls — not part of the template; keeps the canvas = one real sheet */}
+          <div className="pointer-events-none absolute right-4 top-[4.75rem] z-50 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 sm:right-6 lg:top-5">
+            <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-border/70 bg-white/95 p-1 text-[0.7rem] font-medium text-muted-foreground shadow-md backdrop-blur-sm dark:bg-zinc-900/95 dark:text-zinc-200">
+              {(["fit", "75", "100"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setPreviewZoomMode(mode)}
+                  className={cn(
+                    "min-h-8 rounded-full px-2.5 text-xs font-semibold transition-colors",
+                    previewZoomMode === mode
+                      ? "bg-slate-900 text-white"
+                      : "text-slate-700 hover:bg-slate-100",
+                  )}
+                  aria-pressed={previewZoomMode === mode}
+                >
+                  {mode === "fit" ? "Fit" : `${mode}%`}
                 </button>
-              ) : (
-                <span className="hidden px-1 text-[0.65rem] uppercase tracking-wide text-muted-foreground sm:inline">
-                  Click sheet to zoom
-                </span>
-              )}
+              ))}
               {focusMode ? (
                 <button
                   type="button"
@@ -1282,13 +1393,13 @@ export function GuestStudioEditor({
                 ) {
                   return;
                 }
-                setPreviewZoomed(true);
+                setPreviewZoomMode("100");
               }}
               onKeyDown={(e) => {
                 if (previewZoomed) return;
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  setPreviewZoomed(true);
+                  setPreviewZoomMode("100");
                 }
               }}
               role={previewZoomed ? undefined : "button"}
@@ -1296,13 +1407,20 @@ export function GuestStudioEditor({
               aria-label={previewZoomed ? undefined : "Zoom preview — click to enlarge and scroll"}
             >
               {previewZoomed ? (
-                <div ref={previewMeasureRef} className="inline-block min-w-0 max-w-full py-2 sm:px-1">
+                <div
+                  ref={previewMeasureRef}
+                  className="inline-block min-w-0 max-w-full origin-top-left py-2 sm:px-1"
+                  style={{
+                    transform: previewZoomMode === "75" ? "scale(0.75)" : undefined,
+                    transformOrigin: "top left",
+                  }}
+                >
                   <PreviewViewport presentation="document" clipCanvas={false}>
                     <ResumePreviewRenderer
                       document={previewDocument}
                       templateSlug={previewTemplateSlug}
                       resumeStyle={resumeStyle}
-                      studioFocusSection={openSection}
+                      studioFocusSection={mobilePreviewOpen ? null : openSection}
                     />
                   </PreviewViewport>
                 </div>
@@ -1329,7 +1447,7 @@ export function GuestStudioEditor({
                             document={previewDocument}
                             templateSlug={previewTemplateSlug}
                             resumeStyle={resumeStyle}
-                            studioFocusSection={openSection}
+                            studioFocusSection={mobilePreviewOpen ? null : openSection}
                           />
                         </PreviewViewport>
                       </div>
@@ -1348,7 +1466,7 @@ export function GuestStudioEditor({
                           document={previewDocument}
                           templateSlug={previewTemplateSlug}
                           resumeStyle={resumeStyle}
-                          studioFocusSection={openSection}
+                          studioFocusSection={mobilePreviewOpen ? null : openSection}
                         />
                       </PreviewViewport>
                     </div>
@@ -1365,7 +1483,7 @@ export function GuestStudioEditor({
           className={cn(
             "sticky bottom-0 left-0 right-0 z-30 border-t border-border/70 bg-white/95 pb-[max(0.25rem,env(safe-area-inset-bottom,0px))] backdrop-blur-md",
             mobilePreviewOpen &&
-              "max-lg:bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))]",
+              "max-lg:bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]",
           )}
         >
           <div className="relative mx-auto max-w-[780px] px-2 py-2 sm:px-4">
@@ -1416,7 +1534,7 @@ export function GuestStudioEditor({
                       )}
                     >
                       <div className="flex w-max min-w-full flex-nowrap justify-center gap-3 px-11 sm:gap-4 sm:px-12">
-                    {sortTemplateSlugsPhotoCapableFirst([...TEMPLATE_SLUG_ORDER]).map((slug) => {
+                    {previewTemplateChoices.map((slug) => {
                       const theme = getTemplateTheme(slug);
                       const selected = slug === templateSlug;
                       const hovered = templateHoverSlug === slug;
@@ -1459,6 +1577,9 @@ export function GuestStudioEditor({
                           <span className="max-w-[6rem] text-center text-xs font-semibold leading-tight whitespace-normal break-words text-slate-800 sm:max-w-[5.5rem]">
                             {theme.name}
                           </span>
+                          <span className="max-w-[6.5rem] text-center text-[0.65rem] leading-tight text-muted-foreground sm:hidden">
+                            {slug === "professional-ats" ? "ATS-friendly" : theme.bestFor.split(",")[0]}
+                          </span>
                         </button>
                       );
                     })}
@@ -1484,12 +1605,17 @@ export function GuestStudioEditor({
               </div>
             ) : null}
 
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             {/* Templates */}
             <ToolbarButton
               variant="templates"
               active={templatesOpen}
               onClick={() => {
+                if (!templatesOpen) {
+                  trackClientEvent(ANALYTICS_EVENTS.CHANGE_TEMPLATE_CLICKED, {
+                    surface: "project_build_mobile_preview",
+                  });
+                }
                 setTemplatesOpen((open) => {
                   const next = !open;
                   if (!next) setTemplateHoverSlug(null);
@@ -1503,7 +1629,13 @@ export function GuestStudioEditor({
               ariaLabel="Pick a template"
             >
               <LayoutGrid className="size-4 shrink-0" aria-hidden />
-              <span className="hidden sm:inline">Templates</span>
+              <span className="min-w-0 truncate">
+                <span className="text-muted-foreground">Template: </span>
+                {templateName}
+              </span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[0.68rem] font-semibold text-slate-700">
+                Change
+              </span>
               {templatesOpen ? (
                 <ChevronUp className="size-3.5 shrink-0" aria-hidden />
               ) : (
@@ -1511,7 +1643,25 @@ export function GuestStudioEditor({
               )}
             </ToolbarButton>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-between gap-2 lg:hidden">
+              <button
+                type="button"
+                onClick={() => setAdvancedStyleOpen((open) => !open)}
+                className="inline-flex min-h-10 flex-1 items-center justify-center rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700"
+                aria-expanded={advancedStyleOpen}
+              >
+                Advanced style options
+              </button>
+              <span className="text-[0.68rem] text-muted-foreground">{previewZoomMode === "fit" ? "Fit" : `${previewZoomMode}%`}</span>
+            </div>
+
+            {advancedStyleOpen ? (
+              <p className="text-pretty rounded-xl bg-slate-50 px-3 py-2 text-xs leading-relaxed text-muted-foreground lg:hidden">
+                For the safest professional result, we recommend keeping the default template style.
+              </p>
+            ) : null}
+
+            <div className={cn("items-center gap-1", advancedStyleOpen ? "flex" : "hidden lg:flex")}>
               {/* Font family */}
               <ToolbarButton
                 active={fontOpen}
@@ -1776,23 +1926,42 @@ export function GuestStudioEditor({
           aria-label="Resume editor mobile actions"
         >
           {mobilePreviewOpen ? (
-            <div className="mx-auto flex w-full max-w-lg items-stretch gap-2">
-              <Button
-                type="button"
-                variant={mobileDownloadActionVisible ? "outline" : "default"}
-                size="touch"
-                className={cn(
-                  "min-w-0 gap-2",
-                  mobileDownloadActionVisible
-                    ? "flex-1 bg-white"
-                    : "w-full bg-slate-900 text-white hover:bg-slate-800",
-                )}
-                onClick={() => setMobilePreviewOpen(false)}
-              >
-                <ChevronLeft className="size-4 shrink-0" aria-hidden />
-                Back to editing
-              </Button>
-              {mobileDownloadActionVisible && onProjectPreviewClick ? (
+            <div className="mx-auto w-full max-w-lg space-y-2">
+              <p className="text-center text-xs font-medium text-muted-foreground">
+                {projectCanDownload
+                  ? "PDF export unlocked"
+                  : resumeReadiness.isExportReady
+                    ? "Preview free · Pay once to download your PDF"
+                    : "Finish the key sections before downloading a final PDF"}
+              </p>
+              <div className="flex items-stretch gap-2">
+                <Button
+                  type="button"
+                  variant={mobileDownloadActionVisible ? "outline" : "default"}
+                  size="touch"
+                  className={cn(
+                    "min-w-0 gap-2",
+                    mobileDownloadActionVisible
+                      ? "flex-1 bg-white"
+                      : "flex-1 bg-slate-900 text-white hover:bg-slate-800",
+                  )}
+                  onClick={() => setMobilePreviewOpen(false)}
+                >
+                  <ChevronLeft className="size-4 shrink-0" aria-hidden />
+                  {mobileDownloadActionVisible ? "Edit" : "Continue editing"}
+                </Button>
+                {!mobileDownloadActionVisible && showAiScoreCard ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="touch"
+                    className="min-w-0 flex-1 bg-white"
+                    onClick={handleImproveWithAiFromPreview}
+                  >
+                    Improve with AI
+                  </Button>
+                ) : null}
+                {mobileDownloadActionVisible && onProjectPreviewClick ? (
                 <Button
                   type="button"
                   size="touch"
@@ -1813,7 +1982,8 @@ export function GuestStudioEditor({
                         : "Pay once to download"}
                   </span>
                 </Button>
-              ) : null}
+                ) : null}
+              </div>
             </div>
           ) : (
             <>

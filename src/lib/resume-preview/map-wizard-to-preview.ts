@@ -30,13 +30,7 @@ function composedFullName(p: WizardStateV1["personal"]): string {
 }
 
 function composedLocationLine(p: WizardStateV1["personal"]): string {
-  const parts = [
-    p.address.trim(),
-    [p.postCode.trim(), p.city.trim()].filter(Boolean).join(" "),
-  ]
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (parts.length) return parts.join(" · ");
+  if (p.city.trim()) return p.city.trim();
   return p.location.trim();
 }
 
@@ -129,39 +123,8 @@ export function mapWizardToPreviewDocument(
   const additional = wizard.additional.notes.trim() || null;
 
   const personalOptionalLines: ResumePreviewDocument["personalOptionalLines"] = [];
-  if (p.dateOfBirth.trim()) {
-    personalOptionalLines.push({
-      label: "Date of birth",
-      value: p.dateOfBirth.trim(),
-    });
-  }
-  if (p.placeOfBirth.trim()) {
-    personalOptionalLines.push({
-      label: "Place of birth",
-      value: p.placeOfBirth.trim(),
-    });
-  }
-  if (p.driversLicense.trim()) {
-    personalOptionalLines.push({
-      label: "Driver's license",
-      value: p.driversLicense.trim(),
-    });
-  }
-  if (p.gender.trim()) {
-    personalOptionalLines.push({ label: "Gender", value: p.gender.trim() });
-  }
-  if (p.nationality.trim()) {
-    personalOptionalLines.push({
-      label: "Nationality",
-      value: p.nationality.trim(),
-    });
-  }
-  if (p.civilStatus.trim()) {
-    personalOptionalLines.push({
-      label: "Civil status",
-      value: p.civilStatus.trim(),
-    });
-  }
+  // Keep the default resume header professional: sensitive regional fields
+  // stay out of preview/PDF until a dedicated regional format setting exists.
   for (const row of p.customFields) {
     const name = row.label.trim() || "Field name";
     const val = row.value.trim();
