@@ -64,6 +64,10 @@ import { mapWizardToPreviewDocument } from "@/lib/resume-preview/map-wizard-to-p
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import { TEMPLATE_SLUG_ORDER, type TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getTemplateTheme, sortTemplateSlugsPhotoCapableFirst } from "@/lib/resume-preview/template-theme";
+import {
+  prepareResumePhoto,
+  RESUME_PHOTO_INPUT_ACCEPT,
+} from "@/lib/images/prepare-resume-photo";
 import { isProfileDescriptionEmpty } from "@/lib/profile-description-html";
 import { createDemoWizardStateForTemplate } from "@/lib/resume-wizard/demo-wizard-state";
 import { ensureEntryId } from "@/lib/resume-wizard/ids";
@@ -3143,6 +3147,8 @@ function PersonalBody({
   const p = state.personal;
   const [openPills, setOpenPills] = useState<Set<PersonalPillKey>>(() => new Set());
   const [renamingCustomFieldId, setRenamingCustomFieldId] = useState<string | null>(null);
+  const [photoPending, setPhotoPending] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const linkedInShortcutFocusRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -3297,16 +3303,24 @@ function PersonalBody({
     });
   };
 
-  const onPhotoPick = (file: File | undefined) => {
-    if (!file || !file.type.startsWith("image/")) return;
-    if (file.size > 1.5 * 1024 * 1024) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result;
-      if (typeof dataUrl !== "string") return;
-      setState((s) => ({ ...s, personal: { ...s.personal, photoDataUrl: dataUrl } }));
-    };
-    reader.readAsDataURL(file);
+  const onPhotoPick = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoPending(true);
+    setPhotoError(null);
+    try {
+      const prepared = await prepareResumePhoto(file, {
+        maxBytes: 1_200_000,
+        maxDimension: 900,
+      });
+      setState((s) => ({
+        ...s,
+        personal: { ...s.personal, photoDataUrl: prepared.dataUrl },
+      }));
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : "Could not use that photo.");
+    } finally {
+      setPhotoPending(false);
+    }
   };
 
   function Pill({
@@ -3523,11 +3537,19 @@ function PersonalBody({
           <label className="relative flex size-[120px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-neutral-200 bg-neutral-100 transition-colors hover:border-neutral-300 hover:bg-neutral-50">
             <input
               type="file"
-              accept="image/*"
+              accept={RESUME_PHOTO_INPUT_ACCEPT}
               className="sr-only"
-              onChange={(e) => onPhotoPick(e.target.files?.[0])}
+              onChange={(e) => {
+                void onPhotoPick(e.target.files?.[0]);
+                e.currentTarget.value = "";
+              }}
             />
-            {p.photoDataUrl ? (
+            {photoPending ? (
+              <span className="flex flex-col items-center gap-2 text-xs font-medium text-neutral-500">
+                <Loader2 className="size-6 animate-spin" aria-hidden />
+                Preparing
+              </span>
+            ) : p.photoDataUrl ? (
               <img src={p.photoDataUrl} alt="" className="size-full object-cover" />
             ) : (
               <>
@@ -3536,6 +3558,14 @@ function PersonalBody({
               </>
             )}
           </label>
+          <p className="max-w-[120px] text-[0.68rem] leading-snug text-neutral-500">
+            Choose from Photos or take a new picture.
+          </p>
+          {photoError ? (
+            <p className="max-w-[160px] text-xs leading-snug text-destructive" role="alert">
+              {photoError}
+            </p>
+          ) : null}
         </div>
 
         <div className="min-w-0 flex-1 space-y-4">

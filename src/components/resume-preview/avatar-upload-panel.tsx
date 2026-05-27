@@ -6,9 +6,12 @@ import { AlertTriangle, ImagePlus, Loader2, Trash2, UserRound } from "lucide-rea
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
-  AVATAR_ALLOWED_MIME,
   AVATAR_MAX_BYTES,
 } from "@/lib/avatars/constants";
+import {
+  prepareResumePhoto,
+  RESUME_PHOTO_INPUT_ACCEPT,
+} from "@/lib/images/prepare-resume-photo";
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import { getTemplateTheme, templateSupportsAvatar } from "@/lib/resume-preview/template-theme";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
@@ -29,9 +32,6 @@ type Props = {
   onAvatarChange: (next: { signedUrl: string | null }) => void;
 };
 
-const ALLOWED_MIME_LIST = Array.from(AVATAR_ALLOWED_MIME).join(", ");
-const MAX_MB = Math.round((AVATAR_MAX_BYTES / 1024 / 1024) * 10) / 10;
-
 /**
  * Avatar upload + display + removal, visible only on templates whose layout
  * family supports a photo. Also surfaces the per-project `includeAvatar`
@@ -49,8 +49,10 @@ export function AvatarUploadPanel({
   const theme = getTemplateTheme(templateSlug);
   const supports = templateSupportsAvatar(theme);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const [pending, start] = useTransition();
+  const [serverPending, start] = useTransition();
+  const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pending = serverPending || preparing;
 
   if (!supports) return null;
 
@@ -67,23 +69,29 @@ export function AvatarUploadPanel({
     fileRef.current?.click();
   };
 
-  const onFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
     event.target.value = "";
     if (!file) return;
-    if (!AVATAR_ALLOWED_MIME.has(file.type)) {
-      setError("Use a JPEG, PNG, or WebP image.");
-      return;
-    }
-    if (file.size > AVATAR_MAX_BYTES) {
-      setError(`Image too large. Max ${MAX_MB} MB.`);
-      return;
-    }
     setError(null);
+
+    let prepared: Awaited<ReturnType<typeof prepareResumePhoto>>;
+    setPreparing(true);
+    try {
+      prepared = await prepareResumePhoto(file, {
+        maxBytes: AVATAR_MAX_BYTES,
+        maxDimension: 1200,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not use that photo.");
+      setPreparing(false);
+      return;
+    }
+    setPreparing(false);
 
     const fd = new FormData();
     fd.append("projectId", projectId);
-    fd.append("file", file);
+    fd.append("file", prepared.file);
 
     start(async () => {
       const res: AvatarActionResult = await uploadAvatarAction(fd);
@@ -94,7 +102,7 @@ export function AvatarUploadPanel({
       // Signed URL is refreshed on the server via revalidatePath; we pass the
       // same file back to the parent so the preview <img> switches immediately
       // without a round-trip. The server URL hydrates on next navigation.
-      const localUrl = URL.createObjectURL(file);
+      const localUrl = URL.createObjectURL(prepared.file);
       onAvatarChange({ signedUrl: localUrl });
     });
   };
@@ -149,13 +157,13 @@ export function AvatarUploadPanel({
         </div>
         <div className="min-w-0 flex-1 space-y-2">
           <p className="text-sm text-muted-foreground">
-            JPEG, PNG, or WebP · up to {MAX_MB} MB · square photos look best.
+            Choose from your photo library or take a new picture. We resize it automatically.
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <input
               ref={fileRef}
               type="file"
-              accept={ALLOWED_MIME_LIST}
+              accept={RESUME_PHOTO_INPUT_ACCEPT}
               onChange={onFileSelected}
               className="sr-only"
               aria-hidden
@@ -172,7 +180,7 @@ export function AvatarUploadPanel({
               ) : (
                 <ImagePlus className="size-4" aria-hidden />
               )}
-              {avatarSignedUrl ? "Replace photo" : "Upload photo"}
+              {preparing ? "Preparing photo..." : avatarSignedUrl ? "Replace photo" : "Upload photo"}
             </Button>
             {avatarSignedUrl ? (
               <Button
