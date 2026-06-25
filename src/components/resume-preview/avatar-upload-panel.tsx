@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { AlertTriangle, ImagePlus, Loader2, Trash2, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,14 @@ export function AvatarUploadPanel({
   const theme = getTemplateTheme(templateSlug);
   const supports = templateSupportsAvatar(theme);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const localBlobUrlRef = useRef<string | null>(null);
   const [serverPending, start] = useTransition();
+
+  useEffect(() => {
+    return () => {
+      if (localBlobUrlRef.current) URL.revokeObjectURL(localBlobUrlRef.current);
+    };
+  }, []);
   const [preparing, setPreparing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pending = serverPending || preparing;
@@ -102,7 +109,9 @@ export function AvatarUploadPanel({
       // Signed URL is refreshed on the server via revalidatePath; we pass the
       // same file back to the parent so the preview <img> switches immediately
       // without a round-trip. The server URL hydrates on next navigation.
+      if (localBlobUrlRef.current) URL.revokeObjectURL(localBlobUrlRef.current);
       const localUrl = URL.createObjectURL(prepared.file);
+      localBlobUrlRef.current = localUrl;
       onAvatarChange({ signedUrl: localUrl });
     });
   };
