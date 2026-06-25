@@ -14,6 +14,11 @@ import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-
 import type { ResumeStyleV1 } from "@/lib/resume-preview/resume-style";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import { getPdfLayout, type PdfLayout } from "@/lib/resume-pdf/pdfkit/layouts";
+import {
+  writeBodyText,
+  writeBulletItem,
+  writeTitleRow,
+} from "@/lib/resume-pdf/pdfkit/pdf-text-layout";
 import { renderSidebarPdf } from "@/lib/resume-pdf/pdfkit/render-sidebar-pdf";
 
 type Pdf = InstanceType<typeof PDFDocument>;
@@ -128,25 +133,23 @@ function writeParagraph(doc: Pdf, layout: PdfLayout, text: string): void {
 }
 
 function writeBullets(doc: Pdf, layout: PdfLayout, items: string[]): void {
+  const w = contentWidth(doc, layout);
   for (const item of items) {
     if (!item.trim()) continue;
     ensureSpace(doc, layout, layout.bodySize + 8);
-    const indent = layout.bulletIndent;
-    const xBullet = layout.pageMargin + 2;
-    const xText = layout.pageMargin + indent;
-    const textWidth = contentWidth(doc, layout) - indent;
-    const startY = doc.y;
-
-    doc.font(layout.fonts.bold).fontSize(layout.bodySize).fillColor(layout.accent);
-    doc.text("•", xBullet, startY, { width: indent, lineGap: 2 });
-
-    doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
-    doc.text(item.trim(), xText, startY, {
-      width: textWidth,
-      align: layout.bodyAlign,
-      lineGap: layout.bodyLineGap,
+    doc.y = writeBulletItem(doc, {
+      x: layout.pageMargin,
+      width: w,
+      startY: doc.y,
+      text: item,
+      fonts: layout.fonts,
+      bodySize: layout.bodySize,
+      bulletIndent: layout.bulletIndent,
+      accent: layout.accent,
+      bodyColor: BODY_COLOR,
+      bodyAlign: layout.bodyAlign,
+      bodyLineGap: layout.bodyLineGap,
     });
-    doc.moveDown(0.15);
   }
 }
 
@@ -484,37 +487,39 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
           ensureSpace(doc, layout, layout.bodySize * 2 + 6);
 
           const w = contentWidth(doc, layout);
-          const startY = doc.y;
           const line = [ed.degreeLine, ed.school].filter(Boolean).join(" — ");
           const dateText = ed.dateRange?.trim() ?? "";
-          const dateWidth = dateText ? 140 : 0;
-          const titleWidth = w - (dateText ? dateWidth + 8 : 0);
 
-          doc
-            .font(layout.fonts.bold)
-            .fontSize(layout.bodySize + 0.5)
-            .fillColor(NAME_COLOR)
-            .text(line, layout.pageMargin, startY, { width: titleWidth });
-
-          if (dateText) {
-            doc
-              .font(layout.fonts.regular)
-              .fontSize(layout.smallSize)
-              .fillColor(META_COLOR)
-              .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
-                width: dateWidth,
-                align: "right",
-              });
-          }
-
-          doc.y = Math.max(doc.y, startY + layout.bodySize + 2);
+          doc.y = writeTitleRow(doc, {
+            x: layout.pageMargin,
+            width: w,
+            startY: doc.y,
+            title: line,
+            titleFont: layout.fonts.bold,
+            titleSize: layout.bodySize + 0.5,
+            titleColor: NAME_COLOR,
+            dateText,
+            dateWidth: 140,
+            dateFont: layout.fonts.regular,
+            dateSize: layout.smallSize,
+            dateColor: META_COLOR,
+          });
 
           if (ed.details?.trim()) {
-            doc.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
-            doc.text(ed.details.trim(), layout.pageMargin, doc.y, { width: w });
-            doc.moveDown(0.2);
+            doc.y = writeBodyText(doc, {
+              x: layout.pageMargin,
+              width: w,
+              startY: doc.y,
+              text: ed.details,
+              font: layout.fonts.regular,
+              fontSize: layout.bodySize,
+              color: BODY_COLOR,
+              align: layout.bodyAlign,
+              lineGap: layout.bodyLineGap,
+              gapAfter: layout.bodySize * 0.2,
+            });
           }
-          doc.moveDown(0.15);
+          doc.y += layout.entryGap * 0.15;
         }
         break;
       }
@@ -530,38 +535,37 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
           ensureSpace(doc, layout, layout.bodySize * 3 + 10);
 
           const w = contentWidth(doc, layout);
-          const startY = doc.y;
-
           const titleLine = [ex.title || "Role", ex.company ? `— ${ex.company}` : ""]
             .filter(Boolean)
             .join(" ");
-
-          doc.font(layout.fonts.bold).fontSize(layout.bodySize + 0.5).fillColor(NAME_COLOR);
           const dateText = ex.dateRange?.trim() ?? "";
-          const dateWidth = dateText ? 150 : 0;
-          const titleWidth = w - (dateText ? dateWidth + 8 : 0);
-          doc.text(titleLine, layout.pageMargin, startY, { width: titleWidth });
 
-          if (dateText) {
-            doc
-              .font(layout.fonts.regular)
-              .fontSize(layout.smallSize)
-              .fillColor(META_COLOR)
-              .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
-                width: dateWidth,
-                align: "right",
-              });
-          }
-
-          doc.y = Math.max(doc.y, startY + layout.bodySize + 2);
+          doc.y = writeTitleRow(doc, {
+            x: layout.pageMargin,
+            width: w,
+            startY: doc.y,
+            title: titleLine,
+            titleFont: layout.fonts.bold,
+            titleSize: layout.bodySize + 0.5,
+            titleColor: NAME_COLOR,
+            dateText,
+            dateWidth: 150,
+            dateFont: layout.fonts.regular,
+            dateSize: layout.smallSize,
+            dateColor: META_COLOR,
+          });
 
           if (ex.location?.trim()) {
-            doc
-              .font(layout.fonts.italic)
-              .fontSize(layout.smallSize)
-              .fillColor(FAINT_COLOR)
-              .text(ex.location, layout.pageMargin, doc.y, { width: w });
-            doc.moveDown(0.15);
+            doc.y = writeBodyText(doc, {
+              x: layout.pageMargin,
+              width: w,
+              startY: doc.y,
+              text: ex.location,
+              font: layout.fonts.italic,
+              fontSize: layout.smallSize,
+              color: FAINT_COLOR,
+              gapAfter: layout.bodySize * 0.15,
+            });
           }
 
           if (ex.highlights.length) {
@@ -599,26 +603,22 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
           ensureSpace(doc, layout, 18);
           const left = [c.name, c.issuer].filter(Boolean).join(" — ");
           const w = contentWidth(doc, layout);
-          const startY = doc.y;
           const dateText = c.dateLine?.trim() ?? "";
-          const dateWidth = dateText ? 130 : 0;
-          const titleWidth = w - (dateText ? dateWidth + 8 : 0);
-          doc
-            .font(layout.fonts.regular)
-            .fontSize(layout.bodySize)
-            .fillColor(BODY_COLOR)
-            .text(left, layout.pageMargin, startY, { width: titleWidth });
-          if (dateText) {
-            doc
-              .font(layout.fonts.regular)
-              .fontSize(layout.smallSize)
-              .fillColor(META_COLOR)
-              .text(dateText, layout.pageMargin + w - dateWidth, startY + 1, {
-                width: dateWidth,
-                align: "right",
-              });
-          }
-          doc.y = Math.max(doc.y, startY + layout.bodySize + 1);
+          doc.y = writeTitleRow(doc, {
+            x: layout.pageMargin,
+            width: w,
+            startY: doc.y,
+            title: left,
+            titleFont: layout.fonts.regular,
+            titleSize: layout.bodySize,
+            titleColor: BODY_COLOR,
+            dateText,
+            dateWidth: 130,
+            dateFont: layout.fonts.regular,
+            dateSize: layout.smallSize,
+            dateColor: META_COLOR,
+            gapAfter: 1,
+          });
         }
         doc.moveDown(0.2);
         break;
@@ -654,21 +654,31 @@ function renderBody(doc: Pdf, layout: PdfLayout, docData: ResumePreviewDocument)
           }
 
           if (p.description?.trim()) {
-            doc
-              .font(layout.fonts.regular)
-              .fontSize(layout.bodySize)
-              .fillColor(BODY_COLOR)
-              .text(p.description.trim(), layout.pageMargin, doc.y, { width: w });
-            doc.moveDown(0.15);
+            doc.y = writeBodyText(doc, {
+              x: layout.pageMargin,
+              width: w,
+              startY: doc.y,
+              text: p.description,
+              font: layout.fonts.regular,
+              fontSize: layout.bodySize,
+              color: BODY_COLOR,
+              align: layout.bodyAlign,
+              lineGap: layout.bodyLineGap,
+              gapAfter: layout.bodySize * 0.15,
+            });
           }
 
           if (p.technologies?.trim()) {
-            doc
-              .font(layout.fonts.italic)
-              .fontSize(layout.smallSize)
-              .fillColor(FAINT_COLOR)
-              .text(`Stack: ${p.technologies.trim()}`, layout.pageMargin, doc.y, { width: w });
-            doc.moveDown(0.2);
+            doc.y = writeBodyText(doc, {
+              x: layout.pageMargin,
+              width: w,
+              startY: doc.y,
+              text: `Stack: ${p.technologies.trim()}`,
+              font: layout.fonts.italic,
+              fontSize: layout.smallSize,
+              color: FAINT_COLOR,
+              gapAfter: layout.bodySize * 0.2,
+            });
           }
           doc.moveDown(layout.entryGap / (layout.bodySize * 2));
         }

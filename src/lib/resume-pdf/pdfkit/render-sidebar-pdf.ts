@@ -7,6 +7,11 @@ import {
 import type { ResumePreviewBodyBlockId, ResumePreviewDocument } from "@/lib/resume-preview/model";
 import { DEFAULT_GUEST_STUDIO_SECTION_ORDER } from "@/lib/resume-wizard/section-order";
 import type { PdfLayout } from "@/lib/resume-pdf/pdfkit/layouts";
+import {
+  writeBodyText,
+  writeBulletItem,
+  writeTitleRow,
+} from "@/lib/resume-pdf/pdfkit/pdf-text-layout";
 
 type Pdf = InstanceType<typeof PDFDocument>;
 
@@ -347,19 +352,19 @@ function mainBullets(pdf: Pdf, layout: PdfLayout, state: MainState, items: strin
   for (const item of items) {
     if (!item.trim()) continue;
     ensureMainSpace(pdf, state, layout.bodySize + 8);
-    const indent = layout.bulletIndent;
-    const xBullet = state.left + 2;
-    const xText = state.left + indent;
-    const startY = pdf.y;
-    pdf.font(layout.fonts.bold).fontSize(layout.bodySize).fillColor(layout.accent);
-    pdf.text("•", xBullet, startY, { width: indent, lineGap: 2 });
-    pdf.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
-    pdf.text(item.trim(), xText, startY, {
-      width: state.width - indent,
-      align: layout.bodyAlign,
-      lineGap: layout.bodyLineGap,
+    pdf.y = writeBulletItem(pdf, {
+      x: state.left,
+      width: state.width,
+      startY: pdf.y,
+      text: item,
+      fonts: layout.fonts,
+      bodySize: layout.bodySize,
+      bulletIndent: layout.bulletIndent,
+      accent: layout.accent,
+      bodyColor: BODY_COLOR,
+      bodyAlign: layout.bodyAlign,
+      bodyLineGap: layout.bodyLineGap,
     });
-    pdf.moveDown(0.15);
   }
 }
 
@@ -402,37 +407,39 @@ function drawMain(
           if (!ed.school && ed.degreeLine === "Education" && !ed.dateRange) continue;
           ensureMainSpace(pdf, state, layout.bodySize * 2 + 6);
 
-          const startY = pdf.y;
           const line = [ed.degreeLine, ed.school].filter(Boolean).join(" — ");
           const dateText = ed.dateRange?.trim() ?? "";
-          const dateWidth = dateText ? 120 : 0;
-          const titleWidth = state.width - (dateText ? dateWidth + 8 : 0);
 
-          pdf
-            .font(layout.fonts.bold)
-            .fontSize(layout.bodySize + 0.5)
-            .fillColor(NAME_COLOR)
-            .text(line, state.left, startY, { width: titleWidth });
-
-          if (dateText) {
-            pdf
-              .font(layout.fonts.regular)
-              .fontSize(layout.smallSize)
-              .fillColor(META_COLOR)
-              .text(dateText, state.left + state.width - dateWidth, startY + 1, {
-                width: dateWidth,
-                align: "right",
-              });
-          }
-
-          pdf.y = Math.max(pdf.y, startY + layout.bodySize + 2);
+          pdf.y = writeTitleRow(pdf, {
+            x: state.left,
+            width: state.width,
+            startY: pdf.y,
+            title: line,
+            titleFont: layout.fonts.bold,
+            titleSize: layout.bodySize + 0.5,
+            titleColor: NAME_COLOR,
+            dateText,
+            dateWidth: 120,
+            dateFont: layout.fonts.regular,
+            dateSize: layout.smallSize,
+            dateColor: META_COLOR,
+          });
 
           if (ed.details?.trim()) {
-            pdf.font(layout.fonts.regular).fontSize(layout.bodySize).fillColor(BODY_COLOR);
-            pdf.text(ed.details.trim(), state.left, pdf.y, { width: state.width });
-            pdf.moveDown(0.2);
+            pdf.y = writeBodyText(pdf, {
+              x: state.left,
+              width: state.width,
+              startY: pdf.y,
+              text: ed.details,
+              font: layout.fonts.regular,
+              fontSize: layout.bodySize,
+              color: BODY_COLOR,
+              align: layout.bodyAlign,
+              lineGap: layout.bodyLineGap,
+              gapAfter: layout.bodySize * 0.2,
+            });
           }
-          pdf.moveDown(0.15);
+          pdf.y += layout.entryGap * 0.15;
         }
         break;
       }
@@ -447,41 +454,37 @@ function drawMain(
           if (!ex.title && !ex.company && ex.highlights.length === 0) continue;
           ensureMainSpace(pdf, state, layout.bodySize * 3 + 10);
 
-          const startY = pdf.y;
           const titleLine = [ex.title || "Role", ex.company ? `— ${ex.company}` : ""]
             .filter(Boolean)
             .join(" ");
-
           const dateText = ex.dateRange?.trim() ?? "";
-          const dateWidth = dateText ? 130 : 0;
-          const titleWidth = state.width - (dateText ? dateWidth + 8 : 0);
 
-          pdf
-            .font(layout.fonts.bold)
-            .fontSize(layout.bodySize + 0.5)
-            .fillColor(NAME_COLOR)
-            .text(titleLine, state.left, startY, { width: titleWidth });
-
-          if (dateText) {
-            pdf
-              .font(layout.fonts.regular)
-              .fontSize(layout.smallSize)
-              .fillColor(META_COLOR)
-              .text(dateText, state.left + state.width - dateWidth, startY + 1, {
-                width: dateWidth,
-                align: "right",
-              });
-          }
-
-          pdf.y = Math.max(pdf.y, startY + layout.bodySize + 2);
+          pdf.y = writeTitleRow(pdf, {
+            x: state.left,
+            width: state.width,
+            startY: pdf.y,
+            title: titleLine,
+            titleFont: layout.fonts.bold,
+            titleSize: layout.bodySize + 0.5,
+            titleColor: NAME_COLOR,
+            dateText,
+            dateWidth: 130,
+            dateFont: layout.fonts.regular,
+            dateSize: layout.smallSize,
+            dateColor: META_COLOR,
+          });
 
           if (ex.location?.trim()) {
-            pdf
-              .font(layout.fonts.italic)
-              .fontSize(layout.smallSize)
-              .fillColor(FAINT_COLOR)
-              .text(ex.location, state.left, pdf.y, { width: state.width });
-            pdf.moveDown(0.15);
+            pdf.y = writeBodyText(pdf, {
+              x: state.left,
+              width: state.width,
+              startY: pdf.y,
+              text: ex.location,
+              font: layout.fonts.italic,
+              fontSize: layout.smallSize,
+              color: FAINT_COLOR,
+              gapAfter: layout.bodySize * 0.15,
+            });
           }
 
           if (ex.highlights.length) {
@@ -518,20 +521,30 @@ function drawMain(
           pdf.moveDown(0.1);
 
           if (p.description?.trim()) {
-            pdf
-              .font(layout.fonts.regular)
-              .fontSize(layout.bodySize)
-              .fillColor(BODY_COLOR)
-              .text(p.description.trim(), state.left, pdf.y, { width: state.width });
-            pdf.moveDown(0.15);
+            pdf.y = writeBodyText(pdf, {
+              x: state.left,
+              width: state.width,
+              startY: pdf.y,
+              text: p.description,
+              font: layout.fonts.regular,
+              fontSize: layout.bodySize,
+              color: BODY_COLOR,
+              align: layout.bodyAlign,
+              lineGap: layout.bodyLineGap,
+              gapAfter: layout.bodySize * 0.15,
+            });
           }
           if (p.technologies?.trim()) {
-            pdf
-              .font(layout.fonts.italic)
-              .fontSize(layout.smallSize)
-              .fillColor(FAINT_COLOR)
-              .text(`Stack: ${p.technologies.trim()}`, state.left, pdf.y, { width: state.width });
-            pdf.moveDown(0.2);
+            pdf.y = writeBodyText(pdf, {
+              x: state.left,
+              width: state.width,
+              startY: pdf.y,
+              text: `Stack: ${p.technologies.trim()}`,
+              font: layout.fonts.italic,
+              fontSize: layout.smallSize,
+              color: FAINT_COLOR,
+              gapAfter: layout.bodySize * 0.2,
+            });
           }
           pdf.moveDown(layout.entryGap / (layout.bodySize * 2));
         }
