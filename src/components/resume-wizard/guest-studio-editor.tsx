@@ -3893,6 +3893,19 @@ function useDimInactiveEntryStack<T extends { id: string }>(entries: readonly T[
   return { activeEntryId, setActiveEntryId, stackRef };
 }
 
+function emptyExperienceEntry() {
+  return {
+    id: ensureEntryId(undefined),
+    company: "",
+    title: "",
+    location: "",
+    startDate: "",
+    endDate: "",
+    current: false,
+    highlights: [""],
+  };
+}
+
 function ExperienceBody({
   state,
   setState,
@@ -3906,20 +3919,52 @@ function ExperienceBody({
 }) {
   const entries = state.experience.entries;
   const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
+  const addAnotherJob = () => {
+    setActiveEntryId(null);
+    setState((s) => ({
+      ...s,
+      experience: {
+        entries: [...s.experience.entries, emptyExperienceEntry()],
+      },
+    }));
+  };
   return (
     <div ref={stackRef} className="space-y-3">
+      <div className="sticky top-0 z-[2] -mx-1 space-y-2 bg-neutral-50/95 px-1 py-2 backdrop-blur-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium text-slate-800">
+            {entries.length === 1
+              ? "1 job so far — add each past employer separately"
+              : `${entries.length} jobs listed`}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="touch"
+            className="shrink-0 border-[#2d9f6d]/40 bg-white font-semibold text-slate-900 hover:bg-emerald-50"
+            onClick={addAnotherJob}
+          >
+            <Plus className="size-4" aria-hidden />
+            Add another job
+          </Button>
+        </div>
+        <p className="text-[0.7rem] leading-snug text-muted-foreground">
+          List 3–4 roles when you can. “Add highlight” only adds a bullet under the current job.
+        </p>
+      </div>
       {!isSectionFilled("experience", state) ? (
         <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
           <p className="text-sm font-semibold text-slate-900">Work history is the core of most resumes</p>
           <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground">
-            Start with your latest role. Short bullets with results read best on phones and on paper.
+            Start with your latest role, then use Add another job for earlier employers. Short bullets with
+            results read best on phones and on paper.
           </p>
         </div>
       ) : null}
       {entries.map((entry, index) => (
         <EntryCard
           key={entry.id}
-          title={entry.title || entry.company || "New position"}
+          title={`${index + 1}. ${entry.title || entry.company || "New job"}`}
           subtitle={
             entry.startDate
               ? `${entry.startDate}${entry.current ? " — Present" : entry.endDate ? ` — ${entry.endDate}` : ""}`
@@ -4099,7 +4144,7 @@ function ExperienceBody({
               }
             >
               <Plus className="size-4" aria-hidden />
-              Add bullet
+              Add highlight
             </Button>
           </div>
           {jobAssist ? (
@@ -4125,39 +4170,21 @@ function ExperienceBody({
           ) : null}
         </EntryCard>
       ))}
-      <Button
-        type="button"
-        variant="outline"
-        size="touch"
-        className={cn(
-          "w-full justify-center motion-safe:transition-[opacity,filter] motion-safe:duration-200",
-          activeEntryId !== null && "opacity-[0.42] saturate-[0.65]",
-        )}
-        onClick={() => {
-          setActiveEntryId(null);
-          setState((s) => ({
-            ...s,
-            experience: {
-              entries: [
-                ...s.experience.entries,
-                {
-                  id: ensureEntryId(undefined),
-                  company: "",
-                  title: "",
-                  location: "",
-                  startDate: "",
-                  endDate: "",
-                  current: false,
-                  highlights: [""],
-                },
-              ],
-            },
-          }));
-        }}
-      >
-        <Plus className="size-4" aria-hidden />
-        Add position
-      </Button>
+      <div className="space-y-1.5 pt-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="touch"
+          className="w-full justify-center border-slate-300 bg-white font-semibold text-slate-900 hover:bg-white"
+          onClick={addAnotherJob}
+        >
+          <Plus className="size-4" aria-hidden />
+          Add another job
+        </Button>
+        <p className="text-center text-[0.7rem] leading-snug text-muted-foreground">
+          Adds a new employer to your work history (separate from highlights above).
+        </p>
+      </div>
     </div>
   );
 }
