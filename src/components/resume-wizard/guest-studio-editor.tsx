@@ -4415,7 +4415,7 @@ function SkillsBody({
       <Field
         id="skills"
         label="Skills"
-        description="Add the skills you have — one per line. Keep it focused — 8–12 top skills usually read best."
+        description="Add the skills you have — one per line."
       >
         <Textarea
           className="min-h-[10rem]"
