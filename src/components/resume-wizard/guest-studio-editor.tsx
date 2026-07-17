@@ -30,6 +30,7 @@ import {
   Loader2,
   Maximize2,
   Minimize2,
+  Minus,
   MoreHorizontal,
   MoreVertical,
   Plus,
@@ -602,14 +603,9 @@ export function GuestStudioEditor({
   const [templateHoverSlug, setTemplateHoverSlug] = useState<TemplateSlug | null>(null);
   const [focusMode, setFocusMode] = useState(false);
 
-  /** Mobile preview zoom: fit for final review, 75/100 for closer inspection. */
-  const [previewZoomMode, setPreviewZoomMode] = useState<"fit" | "75" | "100">("fit");
-  const previewZoomed = previewZoomMode !== "fit";
-  const [fitScale, setFitScale] = useState(1);
-  /** Unscaled content size — used to clip + center the scaled preview in fit mode. */
-  const [fitContentSize, setFitContentSize] = useState({ w: 0, h: 0 });
-  const previewFitBodyRef = useRef<HTMLDivElement | null>(null);
-  const previewMeasureRef = useRef<HTMLDivElement | null>(null);
+  /** Mobile preview zoom: 75% or 100%, adjustable via the +/- controls. */
+  const [previewZoom, setPreviewZoom] = useState<75 | 100>(100);
+  const previewScrollRef = useRef<HTMLDivElement | null>(null);
   const templateStripScrollRef = useRef<HTMLDivElement | null>(null);
   /** Arrow affordances replace a subtle native scrollbar for the template row. */
   const [templateStripArrows, setTemplateStripArrows] = useState({
@@ -719,41 +715,10 @@ export function GuestStudioEditor({
     el.scrollBy({ left: delta, behavior: "smooth" });
   }
 
-  useLayoutEffect(() => {
-    if (previewZoomMode !== "fit") {
-      setFitScale(previewZoomMode === "75" ? 0.75 : 1);
-      return;
-    }
-    const container = previewFitBodyRef.current;
-    const content = previewMeasureRef.current;
-    if (!container || !content) return;
-
-    const measure = () => {
-      // While hovering templates, content height can change — keep scale stable.
-      if (templateHoverSlug) return;
-      const cw = container.clientWidth;
-      const ch = container.clientHeight;
-      const mw = Math.max(content.scrollWidth, content.offsetWidth);
-      const mh = Math.max(content.scrollHeight, content.offsetHeight);
-      if (mw <= 0 || mh <= 0 || cw <= 0 || ch <= 0) return;
-      const s = Math.min(cw / mw, ch / mh, 1);
-      setFitContentSize({ w: mw, h: mh });
-      setFitScale((prev) => (Math.abs(prev - s) > 0.001 ? s : prev));
-    };
-
-    measure();
-    const ro = new ResizeObserver(() => {
-      measure();
-    });
-    ro.observe(container);
-    ro.observe(content);
-    return () => ro.disconnect();
-  }, [previewZoomMode, previewDocument, templateSlug, resumeStyle, templateHoverSlug]);
-
   /** Scroll the preview so the block for the open studio section stays in view. */
   useLayoutEffect(() => {
     if (openSection == null) return;
-    const root = previewFitBodyRef.current;
+    const root = previewScrollRef.current;
     if (!root) return;
     let cancelled = false;
     const run = () => {
@@ -778,7 +743,7 @@ export function GuestStudioEditor({
       cancelled = true;
       window.cancelAnimationFrame(id);
     };
-  }, [openSection, previewDocument, previewZoomed, previewTemplateSlug]);
+  }, [openSection, previewDocument, previewTemplateSlug]);
 
   if (showInitialStartScreen) {
     return (
@@ -1348,22 +1313,27 @@ export function GuestStudioEditor({
           {/* Floating controls — not part of the template; keeps the canvas = one real sheet */}
           <div className="pointer-events-none absolute right-4 top-[4.75rem] z-50 flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2 sm:right-6 lg:top-5">
             <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-border/70 bg-white/95 p-1 text-[0.7rem] font-medium text-muted-foreground shadow-md backdrop-blur-sm dark:bg-zinc-900/95 dark:text-zinc-200">
-              {(["fit", "75", "100"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setPreviewZoomMode(mode)}
-                  className={cn(
-                    "min-h-8 rounded-full px-2.5 text-xs font-semibold transition-colors",
-                    previewZoomMode === mode
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-700 hover:bg-slate-100",
-                  )}
-                  aria-pressed={previewZoomMode === mode}
-                >
-                  {mode === "fit" ? "Fit" : `${mode}%`}
-                </button>
-              ))}
+              <button
+                type="button"
+                onClick={() => setPreviewZoom(75)}
+                disabled={previewZoom === 75}
+                className="inline-flex size-8 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-30"
+                aria-label="Zoom out to 75%"
+              >
+                <Minus className="size-3.5 shrink-0" aria-hidden />
+              </button>
+              <span className="min-w-[2.75rem] text-center text-xs font-semibold text-slate-900 dark:text-zinc-100">
+                {previewZoom}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewZoom(100)}
+                disabled={previewZoom === 100}
+                className="inline-flex size-8 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 disabled:pointer-events-none disabled:opacity-30"
+                aria-label="Zoom in to 100%"
+              >
+                <Plus className="size-3.5 shrink-0" aria-hidden />
+              </button>
               {focusMode ? (
                 <button
                   type="button"
@@ -1379,105 +1349,26 @@ export function GuestStudioEditor({
           </div>
 
           <div className="mx-auto flex min-h-0 w-full max-w-[min(780px,100%)] flex-1 flex-col">
-            {/* Fit: scaled sheet centered H+V, fully visible, no scroll. Zoomed: 1:1 + scroll. */}
             <div
-              ref={previewFitBodyRef}
-              className={cn(
-                "relative min-h-0 w-full flex-1",
-                previewZoomed
-                  ? "cursor-default overflow-y-auto overflow-x-auto px-1 py-10 sm:px-2"
-                  : "cursor-zoom-in overflow-hidden",
-              )}
-              onClick={(e) => {
-                if (previewZoomed) return;
-                const t = e.target as HTMLElement;
-                if (
-                  t.closest(
-                    "button,a,input,select,textarea,[role='dialog'],[role='link'],[data-prevent-zoom]",
-                  )
-                ) {
-                  return;
-                }
-                setPreviewZoomMode("100");
-              }}
-              onKeyDown={(e) => {
-                if (previewZoomed) return;
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setPreviewZoomMode("100");
-                }
-              }}
-              role={previewZoomed ? undefined : "button"}
-              tabIndex={previewZoomed ? undefined : 0}
-              aria-label={previewZoomed ? undefined : "Zoom preview — click to enlarge and scroll"}
+              ref={previewScrollRef}
+              className="relative min-h-0 w-full flex-1 cursor-default overflow-y-auto overflow-x-auto px-1 py-10 sm:px-2"
             >
-              {previewZoomed ? (
-                <div
-                  ref={previewMeasureRef}
-                  className="inline-block min-w-0 max-w-full origin-top-left py-2 sm:px-1"
-                  style={{
-                    transform: previewZoomMode === "75" ? "scale(0.75)" : undefined,
-                    transformOrigin: "top left",
-                  }}
-                >
-                  <PreviewViewport presentation="document" clipCanvas={false}>
-                    <ResumePreviewRenderer
-                      document={previewDocument}
-                      templateSlug={previewTemplateSlug}
-                      resumeStyle={resumeStyle}
-                      studioFocusSection={mobilePreviewOpen ? null : openSection}
-                    />
-                  </PreviewViewport>
-                </div>
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-3 sm:p-4">
-                  {fitContentSize.w > 0 && fitContentSize.h > 0 ? (
-                    <div
-                      className="overflow-hidden rounded-[2px]"
-                      style={{
-                        width: fitContentSize.w * fitScale,
-                        height: fitContentSize.h * fitScale,
-                      }}
-                    >
-                      <div
-                        ref={previewMeasureRef}
-                        className="inline-block min-w-0 origin-top-left will-change-transform"
-                        style={{
-                          transform: `scale(${fitScale})`,
-                          transformOrigin: "top left",
-                        }}
-                      >
-                        <PreviewViewport presentation="document" clipCanvas>
-                          <ResumePreviewRenderer
-                            document={previewDocument}
-                            templateSlug={previewTemplateSlug}
-                            resumeStyle={resumeStyle}
-                            studioFocusSection={mobilePreviewOpen ? null : openSection}
-                          />
-                        </PreviewViewport>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      ref={previewMeasureRef}
-                      className="inline-block min-w-0 max-w-full origin-center will-change-transform"
-                      style={{
-                        transform: `scale(${fitScale})`,
-                        transformOrigin: "center center",
-                      }}
-                    >
-                      <PreviewViewport presentation="document" clipCanvas>
-                        <ResumePreviewRenderer
-                          document={previewDocument}
-                          templateSlug={previewTemplateSlug}
-                          resumeStyle={resumeStyle}
-                          studioFocusSection={mobilePreviewOpen ? null : openSection}
-                        />
-                      </PreviewViewport>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div
+                className="inline-block origin-top-left py-2 sm:px-1"
+                style={{
+                  transform: previewZoom === 75 ? "scale(0.75)" : undefined,
+                  transformOrigin: "top left",
+                }}
+              >
+                <PreviewViewport presentation="document" clipCanvas={false}>
+                  <ResumePreviewRenderer
+                    document={previewDocument}
+                    templateSlug={previewTemplateSlug}
+                    resumeStyle={resumeStyle}
+                    studioFocusSection={mobilePreviewOpen ? null : openSection}
+                  />
+                </PreviewViewport>
+              </div>
             </div>
           </div>
         </div>
@@ -1657,7 +1548,7 @@ export function GuestStudioEditor({
               >
                 Advanced style options
               </button>
-              <span className="text-[0.68rem] text-muted-foreground">{previewZoomMode === "fit" ? "Fit" : `${previewZoomMode}%`}</span>
+              <span className="text-[0.68rem] text-muted-foreground">{previewZoom}%</span>
             </div>
 
             {advancedStyleOpen ? (
