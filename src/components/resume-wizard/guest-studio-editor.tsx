@@ -167,6 +167,8 @@ type SectionDef = {
   id: SectionId;
   label: string;
   hint?: string;
+  /** Not required for a strong resume — flagged in the UI so people don't feel obligated to fill it in. */
+  optional?: boolean;
 };
 
 /** Order matches common resume/CV builders: profile → education → work → supporting sections. */
@@ -176,12 +178,12 @@ const SECTIONS: SectionDef[] = [
   { id: "education", label: "Education" },
   { id: "experience", label: "Employment" },
   { id: "skills", label: "Skills" },
-  { id: "languages", label: "Languages" },
-  { id: "hobbies", label: "Hobbies" },
-  { id: "courses", label: "Courses" },
-  { id: "internships", label: "Internships" },
-  { id: "certifications", label: "Certificates" },
-  { id: "projects", label: "Projects" },
+  { id: "languages", label: "Languages", optional: true },
+  { id: "hobbies", label: "Hobbies", optional: true },
+  { id: "courses", label: "Courses", optional: true },
+  { id: "internships", label: "Internships", optional: true },
+  { id: "certifications", label: "Certificates", optional: true },
+  { id: "projects", label: "Projects", optional: true },
   { id: "additional", label: "Additional information" },
 ];
 
@@ -629,6 +631,30 @@ export function GuestStudioEditor({
     persistMode === "project"
       ? MOBILE_PREVIEW_TEMPLATE_SLUGS
       : sortTemplateSlugsPhotoCapableFirst([...TEMPLATE_SLUG_ORDER]);
+
+  /** Flags sections that still hold untouched "Start with an example" sample content, so we can mark it as replaceable/removable. */
+  const templateDemoState = useMemo(
+    () => createDemoWizardStateForTemplate(templateSlug),
+    [templateSlug],
+  );
+  const exampleContentFlags = {
+    languages:
+      state.languages.lines.trim() !== "" &&
+      state.languages.lines === templateDemoState.languages.lines,
+    hobbies:
+      state.hobbies.lines.trim() !== "" &&
+      state.hobbies.lines === templateDemoState.hobbies.lines,
+    certifications: entryListMatchesExample(
+      state.certifications.entries,
+      templateDemoState.certifications.entries,
+      ["name", "issuer", "issued", "expires"],
+    ),
+    projects: entryListMatchesExample(
+      state.projects.entries,
+      templateDemoState.projects.entries,
+      ["name", "url", "description", "technologies"],
+    ),
+  };
 
   // Close any open popover when clicking elsewhere.
   const toolbarRef = useRef<HTMLDivElement | null>(null);
@@ -1113,6 +1139,7 @@ export function GuestStudioEditor({
                   jobAssist={jobAssist}
                   aiAssistProjectId={aiAssistProjectId}
                   personalPillOpenRequest={personalPillOpenRequest}
+                  exampleContentFlags={exampleContentFlags}
                 />
               </SectionCard>
               </div>
@@ -2704,6 +2731,11 @@ function SectionCard({
               >
                 {displayLabel}
               </span>
+              {section.optional && !isSectionDragSource && !isSectionDropTarget ? (
+                <span className="shrink-0 rounded-full border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide text-neutral-400">
+                  Optional
+                </span>
+              ) : null}
             </span>
           </button>
         )}
@@ -2765,6 +2797,32 @@ function SectionCard({
         ) : null}
       </div>
     </section>
+  );
+}
+
+/** True when every entry's tracked fields exactly match the demo's — i.e. still untouched sample data. */
+function entryListMatchesExample<T extends Record<string, unknown>>(
+  entries: readonly T[],
+  demoEntries: readonly T[],
+  fields: readonly (keyof T)[],
+): boolean {
+  if (entries.length === 0 || entries.length !== demoEntries.length) return false;
+  return entries.every((entry, i) =>
+    fields.every((field) => entry[field] === demoEntries[i]![field]),
+  );
+}
+
+/** Small notice for fields still holding untouched "Start with an example" sample content. */
+function ExampleContentNotice({ what }: { what: string }) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-xl border border-dashed border-amber-300/90 bg-amber-50/70 px-4 py-3 sm:px-5">
+      <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-amber-400/90 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-amber-950">
+        Example
+      </span>
+      <p className="text-pretty text-sm leading-relaxed text-amber-950/80">
+        {`Sample ${what} from the template. Edit this section with your own details, or remove it if it doesn't apply to you.`}
+      </p>
+    </div>
   );
 }
 
@@ -2921,6 +2979,7 @@ function SectionBody({
   jobAssist,
   aiAssistProjectId,
   personalPillOpenRequest = null,
+  exampleContentFlags,
 }: {
   section: SectionId;
   state: WizardStateV1;
@@ -2929,6 +2988,12 @@ function SectionBody({
   jobAssist?: StudioJobAssistProps;
   aiAssistProjectId: string;
   personalPillOpenRequest?: { id: number; keys: PersonalPillKey[] } | null;
+  exampleContentFlags: {
+    languages: boolean;
+    hobbies: boolean;
+    certifications: boolean;
+    projects: boolean;
+  };
 }) {
   switch (section) {
     case "personal":
@@ -2978,6 +3043,7 @@ function SectionBody({
           placeholder={"English — Native\nSpanish — Professional working proficiency"}
           value={state.languages.lines}
           onChange={(lines) => setState((s) => ({ ...s, languages: { lines } }))}
+          isExample={exampleContentFlags.languages}
         />
       );
     case "hobbies":
@@ -2989,6 +3055,7 @@ function SectionBody({
           placeholder={"Photography\nChess club\nCommunity volunteering"}
           value={state.hobbies.lines}
           onChange={(lines) => setState((s) => ({ ...s, hobbies: { lines } }))}
+          isExample={exampleContentFlags.hobbies}
         />
       );
     case "courses":
@@ -3014,9 +3081,17 @@ function SectionBody({
         />
       );
     case "projects":
-      return <ProjectsBody state={state} setState={setState} />;
+      return (
+        <ProjectsBody state={state} setState={setState} isExample={exampleContentFlags.projects} />
+      );
     case "certifications":
-      return <CertificationsBody state={state} setState={setState} />;
+      return (
+        <CertificationsBody
+          state={state}
+          setState={setState}
+          isExample={exampleContentFlags.certifications}
+        />
+      );
     case "additional":
       return <AdditionalBody state={state} setState={setState} aiAssistProjectId={aiAssistProjectId} />;
     default:
@@ -4262,6 +4337,7 @@ function LinesBlockBody({
   placeholder,
   value,
   onChange,
+  isExample = false,
 }: {
   id: string;
   label: string;
@@ -4269,16 +4345,20 @@ function LinesBlockBody({
   placeholder: string;
   value: string;
   onChange: (lines: string) => void;
+  isExample?: boolean;
 }) {
   return (
-    <Field id={id} label={label} description={description}>
-      <Textarea
-        className="min-h-[10rem]"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
-    </Field>
+    <div className="space-y-3">
+      {isExample ? <ExampleContentNotice what={label.toLowerCase()} /> : null}
+      <Field id={id} label={label} description={description}>
+        <Textarea
+          className="min-h-[10rem]"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
+      </Field>
+    </div>
   );
 }
 
@@ -4336,11 +4416,20 @@ function SkillsBody({
   );
 }
 
-function ProjectsBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
+function ProjectsBody({
+  state,
+  setState,
+  isExample = false,
+}: {
+  state: WizardStateV1;
+  setState: Setter;
+  isExample?: boolean;
+}) {
   const entries = state.projects.entries;
   const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
     <div ref={stackRef} className="space-y-3">
+      {isExample ? <ExampleContentNotice what="project" /> : null}
       {!isSectionFilled("projects", state) ? (
         <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
           <p className="text-sm font-semibold text-slate-900">Show work you are proud to explain</p>
@@ -4461,11 +4550,20 @@ function ProjectsBody({ state, setState }: { state: WizardStateV1; setState: Set
   );
 }
 
-function CertificationsBody({ state, setState }: { state: WizardStateV1; setState: Setter }) {
+function CertificationsBody({
+  state,
+  setState,
+  isExample = false,
+}: {
+  state: WizardStateV1;
+  setState: Setter;
+  isExample?: boolean;
+}) {
   const entries = state.certifications.entries;
   const { activeEntryId, setActiveEntryId, stackRef } = useDimInactiveEntryStack(entries);
   return (
     <div ref={stackRef} className="space-y-3">
+      {isExample ? <ExampleContentNotice what="certification" /> : null}
       {!isSectionFilled("certifications", state) ? (
         <div className="rounded-xl border border-dashed border-slate-300/90 bg-slate-50/80 px-4 py-4 sm:px-5">
           <p className="text-sm font-semibold text-slate-900">Certifications signal credibility</p>
