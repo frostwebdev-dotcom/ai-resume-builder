@@ -246,12 +246,12 @@ export default function MarketingHomePage() {
               </p>
               <div className="mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:justify-center lg:justify-start">
                 <TrackedLink
-                  href={ROUTES.create}
-                  cta="start_free"
+                  href={ROUTES.templates}
+                  cta="choose_template"
                   trackEvents={[
                     ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED,
                     ANALYTICS_EVENTS.HOMEPAGE_PRIMARY_CTA_CLICKED,
-                    ANALYTICS_EVENTS.RESUME_STARTED_FROM_HOMEPAGE,
+                    ANALYTICS_EVENTS.HOMEPAGE_TEMPLATES_CLICKED,
                   ]}
                   className={cn(
                     buttonVariants({ size: "touch" }),
@@ -477,12 +477,12 @@ export default function MarketingHomePage() {
               </li>
             </ul>
             <TrackedLink
-              href={ROUTES.create}
-              cta="start_free"
+              href={ROUTES.templates}
+              cta="choose_template"
               trackEvents={[
                 ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED,
                 ANALYTICS_EVENTS.HOMEPAGE_PRIMARY_CTA_CLICKED,
-                ANALYTICS_EVENTS.RESUME_STARTED_FROM_HOMEPAGE,
+                ANALYTICS_EVENTS.HOMEPAGE_TEMPLATES_CLICKED,
               ]}
               className={cn(
                 buttonVariants({ size: "touch" }),
@@ -540,12 +540,12 @@ export default function MarketingHomePage() {
             </p>
             <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               <TrackedLink
-                href={ROUTES.create}
-                cta="start_free"
+                href={ROUTES.templates}
+                cta="choose_template"
                 trackEvents={[
                   ANALYTICS_EVENTS.HOMEPAGE_CTA_CLICKED,
                   ANALYTICS_EVENTS.HOMEPAGE_PRIMARY_CTA_CLICKED,
-                  ANALYTICS_EVENTS.RESUME_STARTED_FROM_HOMEPAGE,
+                  ANALYTICS_EVENTS.HOMEPAGE_TEMPLATES_CLICKED,
                 ]}
                 className={cn(
                   buttonVariants({ size: "touch" }),
