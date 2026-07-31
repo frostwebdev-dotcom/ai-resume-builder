@@ -1378,7 +1378,7 @@ export function GuestStudioEditor({
           <div className="mx-auto flex min-h-0 w-full max-w-[min(780px,100%)] flex-1 flex-col">
             <div
               ref={previewScrollRef}
-              className="relative min-h-0 w-full flex-1 cursor-default overflow-y-auto overflow-x-auto px-1 py-10 sm:px-2"
+              className="relative min-h-0 w-full flex-1 cursor-default overflow-y-auto overflow-x-auto px-1 pb-10 pt-32 sm:px-2 lg:pt-10"
             >
               <div
                 className="inline-block origin-top-left py-2 sm:px-1"

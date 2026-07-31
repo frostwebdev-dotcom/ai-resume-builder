@@ -6,6 +6,7 @@ export type LandingCtaPayload = {
     | "start_building"
     | "view_pricing"
     | "view_templates"
+    | "choose_template"
     | "hero_secondary"
     | "footer_signup"
     | "other";
