@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { SUPPRESS_TEXT_ASSIST } from "@/lib/suppress-text-assist";
 import { AI_ASSIST_FAIR_USE_LINE } from "@/lib/ai/assist-client-copy";
 import {
   isProfileDescriptionEmpty,
@@ -245,6 +246,7 @@ export function ProfileDescriptionEditor({
         role="textbox"
         aria-multiline
         aria-label="Profile description"
+        {...SUPPRESS_TEXT_ASSIST}
         onInput={emitFromDom}
         onBlur={emitFromDom}
         onMouseUp={scheduleToolbarRefresh}

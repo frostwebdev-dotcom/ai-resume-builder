@@ -538,7 +538,7 @@ export function ProjectStudioShell({
                 buttonVariants({ size: "sm" }),
                 "h-10 min-h-10 max-w-full shrink gap-1.5 truncate rounded-full bg-[#2268d7] px-3 text-xs font-semibold hover:bg-[#1f5fca] disabled:cursor-wait disabled:opacity-75 sm:h-8 sm:min-h-0 sm:max-w-none sm:px-3",
               )}
-              aria-label={canDownload ? "Download PDF" : "Pay once to download"}
+              aria-label={canDownload ? "Download resume" : "Download resume — continues to checkout"}
               aria-busy={Boolean(exportPending)}
             >
               {exportPending ? (
@@ -547,7 +547,7 @@ export function ProjectStudioShell({
                 <Download className="size-3.5 shrink-0" aria-hidden />
               )}
               <span className="truncate">
-                {ctaBusyLabel ?? (canDownload ? "Download PDF" : "Pay once to download")}
+                {ctaBusyLabel ?? "Download resume"}
               </span>
             </button>
             </div>

@@ -104,6 +104,7 @@ import { GuestResumeUploadIntake } from "@/components/resume-wizard/guest-resume
 import { SelectTemplateForExampleModal } from "@/components/resume-wizard/select-template-for-example-modal";
 import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
 import { JobTailoringHub } from "@/components/resume-wizard/job-tailoring-hub";
+import { SUPPRESS_TEXT_ASSIST } from "@/lib/suppress-text-assist";
 import { cn } from "@/lib/utils";
 
 type SectionId = WizardEditorSectionId;
@@ -1147,9 +1148,49 @@ export function GuestStudioEditor({
             })}
           </nav>
 
+          {/*
+            The moment the form ends, the download is the next thing you see —
+            ahead of the AI review and the optional "add a section" pills. The
+            header pill is too easy to scroll past to be the only way out.
+          */}
+          {persistMode === "project" && onProjectPreviewClick ? (
+            <div className="mt-8">
+              <Button
+                type="button"
+                disabled={projectPreviewPending}
+                aria-busy={projectPreviewPending}
+                aria-label={
+                  projectCanDownload ? "Download resume" : "Download resume — continues to checkout"
+                }
+                className="h-14 min-h-14 w-full gap-2.5 rounded-xl bg-[#2268d7] text-base font-semibold text-white shadow-lg shadow-[#2268d7]/25 transition-colors hover:bg-[#1f5fca] disabled:cursor-wait disabled:opacity-75"
+                onClick={onProjectPreviewClick}
+              >
+                {projectPreviewPending ? (
+                  <Loader2 className="size-5 shrink-0 animate-spin" aria-hidden />
+                ) : (
+                  <Download className="size-5 shrink-0" aria-hidden />
+                )}
+                {projectPreviewPending
+                  ? (projectPreviewPendingText ?? "Preparing PDF...")
+                  : "Download resume"}
+              </Button>
+              <p className="mt-2 text-center text-xs leading-snug text-muted-foreground">
+                {projectCanDownload
+                  ? "Your PDF export is unlocked."
+                  : "Preview is free · Pay once to download your PDF"}
+              </p>
+            </div>
+          ) : null}
+
           {persistMode === "project" && showAiScoreCard ? (
             <div className="mt-6" id="studio-final-ai-review">
-              <ResumeAiScoreCard projectId={aiAssistProjectId} variant="studio" />
+              <ResumeAiScoreCard
+                projectId={aiAssistProjectId}
+                variant="studio"
+                onDownload={onProjectPreviewClick}
+                downloadPending={projectPreviewPending}
+                downloadPendingText={projectPreviewPendingText}
+              />
             </div>
           ) : null}
 
@@ -1249,10 +1290,11 @@ export function GuestStudioEditor({
                   aria-label="Sign in to download as PDF"
                 >
                   <Download className="size-4 shrink-0" aria-hidden />
-                  Download
+                  Download resume
                 </Link>
               )}
             </div>
+
           </footer>
 
           <p className="pt-4 pb-28 text-center text-xs text-muted-foreground lg:pb-10">
@@ -1901,9 +1943,7 @@ export function GuestStudioEditor({
                   <span className="leading-tight">
                     {projectPreviewPending
                       ? (projectPreviewPendingText ?? "Preparing PDF...")
-                      : projectCanDownload
-                        ? "Download PDF"
-                        : "Pay once to download"}
+                      : "Download resume"}
                   </span>
                 </Button>
                 ) : null}
@@ -1967,9 +2007,7 @@ export function GuestStudioEditor({
                     <span className="leading-tight">
                       {projectPreviewPending
                         ? (projectPreviewPendingText ?? "Preparing PDF...")
-                        : projectCanDownload
-                          ? "Download PDF"
-                          : "Pay once to download"}
+                        : "Download resume"}
                     </span>
                   </Button>
                 ) : null}
@@ -3793,6 +3831,7 @@ function SummaryBody({
         <Input
           className={softInput}
           placeholder="e.g. Software engineer · Backend & APIs"
+          {...SUPPRESS_TEXT_ASSIST}
           value={state.summary.headline}
           onChange={(e) =>
             setState((s) => ({ ...s, summary: { ...s.summary, headline: e.target.value } }))

@@ -7,6 +7,7 @@ import {
   ArrowRight,
   CheckCircle2,
   ClipboardList,
+  Download,
   Info,
   Loader2,
   RefreshCw,
@@ -31,6 +32,15 @@ type Props = {
   resumeTitle?: string;
   className?: string;
   resultMode?: "full" | "summary";
+  /**
+   * When provided, the result actions lead with "Download resume" (which runs
+   * the caller's export/checkout flow) instead of only linking onward. Lets
+   * people finish straight from the review instead of hunting for the header
+   * button.
+   */
+  onDownload?: () => void;
+  downloadPending?: boolean;
+  downloadPendingText?: string;
 };
 
 type ApiOk = { ok: true; data: ResumeScoreOutput };
@@ -69,6 +79,9 @@ export function ResumeAiScoreCard({
   resumeTitle,
   className,
   resultMode = "full",
+  onDownload,
+  downloadPending = false,
+  downloadPendingText,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +125,26 @@ export function ResumeAiScoreCard({
   const topRecommendations = result
     ? [...result.priorityFixes, ...result.improvements, ...result.missingInformationWarnings].slice(0, 3)
     : [];
+
+  const downloadAction = onDownload ? (
+    <Button
+      type="button"
+      disabled={downloadPending}
+      aria-busy={downloadPending}
+      onClick={onDownload}
+      className="inline-flex w-full justify-center gap-2 bg-[#2268d7] text-white hover:bg-[#1f5fca] disabled:cursor-wait disabled:opacity-75 sm:w-auto"
+    >
+      {downloadPending ? (
+        <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
+      ) : (
+        <Download className="size-4 shrink-0" aria-hidden />
+      )}
+      {downloadPending ? (downloadPendingText ?? "Preparing PDF...") : "Download resume"}
+    </Button>
+  ) : null;
+
+  /** With a download action present, onward links step back so it reads as primary. */
+  const improveVariant = onDownload ? "outline" : "default";
 
   return (
     <Card
@@ -258,10 +291,11 @@ export function ResumeAiScoreCard({
               </div>
             </div>
             <div className="flex flex-col gap-2 border-t border-border/60 pt-4 sm:flex-row sm:flex-wrap">
+              {downloadAction}
               <Link
                 href={buildHref}
                 className={cn(
-                  buttonVariants({ variant: "default", size: "default" }),
+                  buttonVariants({ variant: improveVariant, size: "default" }),
                   "inline-flex w-full justify-center gap-2 sm:w-auto",
                 )}
               >
@@ -426,10 +460,11 @@ export function ResumeAiScoreCard({
             ) : null}
 
             <div className="flex flex-col gap-2 border-t border-border/60 pt-4 sm:flex-row sm:flex-wrap">
+              {downloadAction}
               <Link
                 href={buildHref}
                 className={cn(
-                  buttonVariants({ variant: "default", size: "default" }),
+                  buttonVariants({ variant: improveVariant, size: "default" }),
                   "inline-flex w-full justify-center gap-2 sm:w-auto",
                 )}
               >
