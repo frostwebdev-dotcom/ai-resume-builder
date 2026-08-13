@@ -69,6 +69,14 @@ export async function createStripeCheckoutSession(params: {
       {
         mode: "payment",
         client_reference_id: orderId,
+        /**
+         * Pinned on purpose: pay-in-full only. Leaving this unset hands the
+         * choice to the dashboard's dynamic payment methods, which surfaced
+         * Klarna's "Pay later" instalment plan on a single low-price export.
+         * Adding a method here also requires enabling it in the Stripe
+         * Dashboard, or session creation fails.
+         */
+        payment_method_types: ["card", "link"],
         line_items: [
           {
             quantity: 1,
