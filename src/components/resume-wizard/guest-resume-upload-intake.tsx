@@ -1,18 +1,9 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-  type ChangeEvent,
-} from "react";
+import { useCallback, useEffect } from "react";
 import { FileText, FileType2, FileUp, Loader2, X } from "lucide-react";
 
-import { importResumeFromFileAction } from "@/services/resume-import/actions";
+import { useResumeFileImport } from "./use-resume-file-import";
 import type { TemplateSlug } from "@/lib/resume-preview/template-ids";
 import type { WizardStateV1 } from "@/lib/resume-wizard/types";
 import { Button } from "@/components/ui/button";
@@ -26,61 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-const MAX_BYTES = 9 * 1024 * 1024;
-
-type AcceptedMime =
-  | "application/pdf"
-  | "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
-const ACCEPT =
-  ".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
-function mimeForUpload(file: File): AcceptedMime | null {
-  if (file.type === "application/pdf") return "application/pdf";
-  if (
-    file.type ===
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-  ) {
-    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  }
-  const n = file.name.toLowerCase();
-  if (n.endsWith(".pdf")) return "application/pdf";
-  if (n.endsWith(".docx")) {
-    return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  }
-  return null;
-}
-
-function readFileAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const r = reader.result;
-      if (typeof r !== "string") {
-        reject(new Error("read"));
-        return;
-      }
-      const i = r.indexOf(",");
-      resolve(i >= 0 ? r.slice(i + 1) : r);
-    };
-    reader.onerror = () => reject(new Error("read"));
-    reader.readAsDataURL(file);
-  });
-}
-
-function formatFileSize(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) return "—";
-  if (bytes < 1024) return `${bytes} B`;
-  const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(kb >= 100 ? 0 : 1)} KB`;
-  const mb = kb / 1024;
-  return `${mb.toFixed(mb >= 100 ? 0 : mb >= 10 ? 1 : 2)} MB`;
-}
-
-function labelForMime(mime: AcceptedMime): string {
-  return mime === "application/pdf" ? "PDF document" : "Word document (.docx)";
-}
-
 type Props = {
   templateSlug: TemplateSlug;
   onImported: (wizard: WizardStateV1) => void;
@@ -88,61 +24,31 @@ type Props = {
   onPickerOpen?: () => void;
 };
 
-type Selected = { file: File; mime: AcceptedMime };
-
 export function GuestResumeUploadIntake({
   templateSlug,
   onImported,
   cardClassName,
   onPickerOpen,
 }: Props) {
-  const inputId = useId();
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const [selected, setSelected] = useState<Selected | null>(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  const resetInput = useCallback(() => {
-    if (inputRef.current) inputRef.current.value = "";
-  }, []);
-
-  const onPickerChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) {
-        resetInput();
-        return;
-      }
-
-      const mime = mimeForUpload(file);
-      if (!mime) {
-        setValidationError("Use a PDF or a Word (.docx) file.");
-        setSelected(null);
-        resetInput();
-        return;
-      }
-      if (file.size > MAX_BYTES) {
-        setValidationError("Max file size is 9 MB.");
-        setSelected(null);
-        resetInput();
-        return;
-      }
-
-      setValidationError(null);
-      setImportError(null);
-      setSelected({ file, mime });
-    },
-    [resetInput],
-  );
+  const {
+    inputId,
+    inputRef,
+    accept,
+    selected,
+    fileMeta,
+    validationError,
+    importError,
+    pending,
+    onPickerChange,
+    openPicker,
+    clearSelection,
+    confirmImport,
+  } = useResumeFileImport({ templateSlug, onImported });
 
   const closeModal = useCallback(() => {
     if (pending) return;
-    setSelected(null);
-    setImportError(null);
-    resetInput();
-  }, [pending, resetInput]);
+    clearSelection();
+  }, [clearSelection, pending]);
 
   const onModalOpenChange = useCallback(
     (open: boolean) => {
@@ -150,35 +56,6 @@ export function GuestResumeUploadIntake({
     },
     [closeModal],
   );
-
-  const confirmImport = useCallback(() => {
-    if (!selected || pending) return;
-    const { file, mime } = selected;
-
-    setImportError(null);
-    startTransition(() => {
-      void (async () => {
-        try {
-          const fileBase64 = await readFileAsBase64(file);
-          const res = await importResumeFromFileAction({
-            templateSlug,
-            fileName: file.name,
-            mimeType: mime,
-            fileBase64,
-          });
-          if (!res.ok) {
-            setImportError(res.error);
-            return;
-          }
-          onImported(res.wizard);
-          setSelected(null);
-          resetInput();
-        } catch {
-          setImportError("Something went wrong while importing. Please try again.");
-        }
-      })();
-    });
-  }, [onImported, pending, resetInput, selected, templateSlug]);
 
   // Allow Enter to confirm while modal is open and not pending.
   useEffect(() => {
@@ -193,16 +70,6 @@ export function GuestResumeUploadIntake({
     return () => window.removeEventListener("keydown", onKey);
   }, [confirmImport, pending, selected]);
 
-  const fileMeta = useMemo(() => {
-    if (!selected) return null;
-    return {
-      name: selected.file.name,
-      size: formatFileSize(selected.file.size),
-      typeLabel: labelForMime(selected.mime),
-      isPdf: selected.mime === "application/pdf",
-    };
-  }, [selected]);
-
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       {/*
@@ -213,7 +80,7 @@ export function GuestResumeUploadIntake({
         ref={inputRef}
         id={inputId}
         type="file"
-        accept={ACCEPT}
+        accept={accept}
         disabled={pending}
         className="sr-only"
         onChange={onPickerChange}
@@ -296,15 +163,13 @@ export function GuestResumeUploadIntake({
                   {fileMeta.name}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {fileMeta.typeLabel} · {fileMeta.size}
+                  {fileMeta.typeLabel} &middot; {fileMeta.size}
                 </p>
               </div>
               {!pending ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    inputRef.current?.click();
-                  }}
+                  onClick={openPicker}
                   className="text-xs font-medium text-[#2268d7] underline-offset-2 hover:underline"
                   aria-label="Choose a different file"
                 >
@@ -342,7 +207,7 @@ export function GuestResumeUploadIntake({
               {pending ? (
                 <>
                   <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
-                  Importing…
+                  Importing&hellip;
                 </>
               ) : (
                 "Import résumé"

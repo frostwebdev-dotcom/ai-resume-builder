@@ -101,6 +101,7 @@ import { ProfileDescriptionEditor } from "@/components/resume-wizard/profile-des
 import { ResumeStudioSplitLayout } from "@/components/resume-wizard/resume-studio-split-layout";
 import { StickyBottomBar } from "@/components/layout/sticky-bottom-bar";
 import { GuestResumeUploadIntake } from "@/components/resume-wizard/guest-resume-upload-intake";
+import { LinkedInImportIntake } from "@/components/resume-wizard/linkedin-import-intake";
 import { SelectTemplateForExampleModal } from "@/components/resume-wizard/select-template-for-example-modal";
 import type { JobTailorReviewV1, TailoringCompareV1 } from "@/lib/job-target/types";
 import { JobTailoringHub } from "@/components/resume-wizard/job-tailoring-hub";
@@ -141,6 +142,32 @@ const OPTIONAL_PILL_LABELS: Record<PersonalPillKey, string> = {
   websitePill: "Website",
   linkedInPill: "LinkedIn",
 };
+
+/** Personal field backing each optional pill, so a pill can be shown when it already has a value. */
+const OPTIONAL_PILL_VALUE_KEYS: Record<PersonalPillKey, keyof WizardStateV1["personal"]> = {
+  dateOfBirth: "dateOfBirth",
+  placeOfBirth: "placeOfBirth",
+  driversLicense: "driversLicense",
+  gender: "gender",
+  nationality: "nationality",
+  civilStatus: "civilStatus",
+  websitePill: "website",
+  linkedInPill: "linkedIn",
+};
+
+/**
+ * Pills are hidden until added, but imported drafts (résumé upload, LinkedIn export) can arrive
+ * with these fields already filled. Seed the open set from the data so imported values are never
+ * invisible in the editor.
+ */
+function pillsWithValues(personal: WizardStateV1["personal"]): Set<PersonalPillKey> {
+  const open = new Set<PersonalPillKey>();
+  for (const key of OPTIONAL_PILL_ORDER) {
+    const value = personal[OPTIONAL_PILL_VALUE_KEYS[key]];
+    if (typeof value === "string" && value.trim()) open.add(key);
+  }
+  return open;
+}
 
 const CUSTOM_FIELD_CHIP_LABEL = "Custom field";
 
@@ -310,7 +337,7 @@ type StudioEditorProps = {
   showIntakeShortcuts?: boolean;
   showPreviewAction?: boolean;
   showDownloadAction?: boolean;
-  onDraftStarted?: (method: "scratch" | "example" | "upload") => void;
+  onDraftStarted?: (method: "scratch" | "example" | "upload" | "linkedin") => void;
 };
 
 /**
@@ -382,11 +409,6 @@ export function GuestStudioEditor({
 
   // Only one section is expanded at a time — keeps the left panel calm and focused.
   const [openSection, setOpenSection] = useState<SectionId | null>("personal");
-  /** When set (e.g. from intake shortcuts), Personal details opens optional pills like LinkedIn. */
-  const [personalPillOpenRequest, setPersonalPillOpenRequest] = useState<{
-    id: number;
-    keys: PersonalPillKey[];
-  } | null>(null);
   const [selectExampleTemplateOpen, setSelectExampleTemplateOpen] = useState(false);
   const [sectionLabelOverrides, setSectionLabelOverrides] = useState<
     Partial<Record<SectionId, string>>
@@ -544,11 +566,18 @@ export function GuestStudioEditor({
     setOpenSection("personal");
   }, [onDraftStarted, setState]);
 
-  const handleLinkedInIntakeShortcut = useCallback(() => {
-    setOpenSection("personal");
-    setPersonalPillOpenRequest({
-      id: typeof performance !== "undefined" ? performance.now() : Date.now(),
-      keys: ["linkedInPill"],
+  const handleLinkedInImported = useCallback(
+    (wizard: WizardStateV1) => {
+      setState(wizard);
+      onDraftStarted?.("linkedin");
+      setOpenSection("personal");
+    },
+    [setState, onDraftStarted],
+  );
+
+  const handleLinkedInCardOpen = useCallback(() => {
+    trackClientEvent(ANALYTICS_EVENTS.LINKEDIN_IMPORT_CLICKED, {
+      surface: "guest_create",
     });
   }, []);
 
@@ -800,6 +829,15 @@ export function GuestStudioEditor({
                   cardClassName="flex min-h-[5.75rem] w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left outline-none transition-[border-color,box-shadow,transform] duration-200 min-[380px]:min-h-[6.25rem] min-[380px]:px-4 min-[380px]:py-4"
                 />
               }
+              linkedInImport={
+                <LinkedInImportIntake
+                  templateSlug={templateSlug}
+                  onImported={handleLinkedInImported}
+                  onCardOpen={handleLinkedInCardOpen}
+                  layout="row"
+                  cardClassName="flex min-h-[5.75rem] w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left outline-none transition-[border-color,box-shadow,transform] duration-200 min-[380px]:min-h-[6.25rem] min-[380px]:px-4 min-[380px]:py-4"
+                />
+              }
             />
           </div>
 
@@ -873,7 +911,15 @@ export function GuestStudioEditor({
                   cardClassName="flex min-h-[7.75rem] w-full flex-col items-center justify-center gap-3 rounded-xl border px-4 py-4 text-center outline-none transition-[border-color,box-shadow,transform] duration-200 sm:min-h-[8.25rem] sm:gap-3.5 sm:py-5"
                 />
               }
-              onLinkedInImport={handleLinkedInIntakeShortcut}
+              linkedInImport={
+                <LinkedInImportIntake
+                  templateSlug={templateSlug}
+                  onImported={handleLinkedInImported}
+                  onCardOpen={handleLinkedInCardOpen}
+                  layout="stacked"
+                  cardClassName="flex min-h-[7.75rem] w-full flex-col items-center justify-center gap-3 rounded-xl border px-4 py-4 text-center outline-none transition-[border-color,box-shadow,transform] duration-200 sm:min-h-[8.25rem] sm:gap-3.5 sm:py-5"
+                />
+              }
             />
           ) : null}
 
@@ -1139,7 +1185,6 @@ export function GuestStudioEditor({
                   loginHref={loginHref}
                   jobAssist={jobAssist}
                   aiAssistProjectId={aiAssistProjectId}
-                  personalPillOpenRequest={personalPillOpenRequest}
                   exampleContentFlags={exampleContentFlags}
                 />
               </SectionCard>
@@ -2360,11 +2405,11 @@ function sectionRowDragAllowed(
 function IntakeShortcuts({
   onOpenSelectExampleTemplate,
   resumeUpload,
-  onLinkedInImport,
+  linkedInImport,
 }: {
   onOpenSelectExampleTemplate: () => void;
   resumeUpload: ReactNode;
-  onLinkedInImport: () => void;
+  linkedInImport: ReactNode;
 }) {
   const cardBase =
     "flex min-h-[7.75rem] w-full flex-col items-center justify-center gap-3 rounded-xl border px-4 py-4 text-center outline-none transition-[border-color,box-shadow,transform] duration-200 sm:min-h-[8.25rem] sm:gap-3.5 sm:py-5";
@@ -2415,34 +2460,7 @@ function IntakeShortcuts({
 
         {resumeUpload}
 
-        <button
-          type="button"
-          onClick={onLinkedInImport}
-          className={cn(
-            cardBase,
-            "group border-slate-200/90 bg-white shadow-sm",
-            "hover:border-[#0a66c2]/40 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2",
-            "motion-safe:active:scale-[0.99] motion-reduce:active:scale-100",
-          )}
-        >
-          <span
-            className={cn(
-              "flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#0a66c2]/10 ring-1 ring-[#0a66c2]/15 transition-colors sm:size-[3.25rem]",
-              "group-hover:bg-[#0a66c2]/14",
-            )}
-            aria-hidden
-          >
-            <span className="flex size-9 items-center justify-center rounded-lg bg-[#0a66c2] text-[0.68rem] font-bold leading-none text-white shadow-sm">
-              in
-            </span>
-          </span>
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-sm font-semibold tracking-tight text-slate-900">Import LinkedIn profile</span>
-            <span className="text-pretty text-xs font-medium leading-snug text-slate-500">
-              Opens Personal details with LinkedIn — paste your profile URL
-            </span>
-          </span>
-        </button>
+        {linkedInImport}
       </div>
     </section>
   );
@@ -2452,10 +2470,12 @@ function GuestStartMethodCards({
   onStartFromScratch,
   onOpenSelectExampleTemplate,
   resumeUpload,
+  linkedInImport,
 }: {
   onStartFromScratch: () => void;
   onOpenSelectExampleTemplate: () => void;
   resumeUpload: ReactNode;
+  linkedInImport: ReactNode;
 }) {
   const cardBase =
     "group flex min-h-[5.75rem] w-full items-center gap-3 rounded-2xl border border-slate-200/90 bg-white px-3 py-3 text-left shadow-sm outline-none transition-[border-color,box-shadow,transform] duration-200 hover:border-[#2268d7]/35 hover:shadow-md focus-visible:ring-2 focus-visible:ring-[#2268d7]/35 focus-visible:ring-offset-2 motion-safe:active:scale-[0.99] motion-reduce:active:scale-100 min-[380px]:min-h-[6.25rem] min-[380px]:px-4 min-[380px]:py-4";
@@ -2514,31 +2534,7 @@ function GuestStartMethodCards({
 
         {resumeUpload}
 
-        <button
-          type="button"
-          disabled
-            className="flex min-h-[5.75rem] w-full cursor-not-allowed items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-left opacity-80 min-[380px]:min-h-[6.25rem] min-[380px]:px-4 min-[380px]:py-4"
-        >
-          <span
-            className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-slate-200/70 text-slate-500"
-            aria-hidden
-          >
-            <span className="flex size-8 items-center justify-center rounded-lg bg-slate-500 text-[0.65rem] font-bold leading-none text-white">
-              in
-            </span>
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="text-base font-semibold tracking-tight text-slate-700">Import LinkedIn profile</span>
-              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-slate-600">
-                Coming soon
-              </span>
-            </span>
-            <span className="mt-1 block text-sm leading-relaxed text-slate-500">
-              LinkedIn import is not available yet.
-            </span>
-          </span>
-        </button>
+        {linkedInImport}
       </div>
     </section>
   );
@@ -3016,7 +3012,6 @@ function SectionBody({
   loginHref,
   jobAssist,
   aiAssistProjectId,
-  personalPillOpenRequest = null,
   exampleContentFlags,
 }: {
   section: SectionId;
@@ -3025,7 +3020,6 @@ function SectionBody({
   loginHref: string;
   jobAssist?: StudioJobAssistProps;
   aiAssistProjectId: string;
-  personalPillOpenRequest?: { id: number; keys: PersonalPillKey[] } | null;
   exampleContentFlags: {
     languages: boolean;
     hobbies: boolean;
@@ -3036,11 +3030,7 @@ function SectionBody({
   switch (section) {
     case "personal":
       return (
-        <PersonalBody
-          state={state}
-          setState={setState}
-          pillOpenRequest={personalPillOpenRequest}
-        />
+        <PersonalBody state={state} setState={setState} />
       );
     case "summary":
       return (
@@ -3142,18 +3132,17 @@ type Setter = Dispatch<SetStateAction<WizardStateV1>>;
 function PersonalBody({
   state,
   setState,
-  pillOpenRequest = null,
 }: {
   state: WizardStateV1;
   setState: Setter;
-  pillOpenRequest?: { id: number; keys: PersonalPillKey[] } | null;
 }) {
   const p = state.personal;
-  const [openPills, setOpenPills] = useState<Set<PersonalPillKey>>(() => new Set());
+  const [openPills, setOpenPills] = useState<Set<PersonalPillKey>>(() =>
+    pillsWithValues(state.personal),
+  );
   const [renamingCustomFieldId, setRenamingCustomFieldId] = useState<string | null>(null);
   const [photoPending, setPhotoPending] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const linkedInShortcutFocusRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (
@@ -3176,25 +3165,18 @@ function PersonalBody({
     return () => window.clearTimeout(t);
   }, [renamingCustomFieldId]);
 
+  // An import can replace the draft while this section is mounted; reveal any pill whose field
+  // arrived with a value. Removing a pill also clears its value, so this never resurrects one.
   useEffect(() => {
-    if (!pillOpenRequest?.keys.length) return;
-    const keys = pillOpenRequest.keys;
+    const withValues = pillsWithValues(p);
     setOpenPills((prev) => {
+      const missing = [...withValues].filter((k) => !prev.has(k));
+      if (missing.length === 0) return prev;
       const n = new Set(prev);
-      for (const k of keys) {
-        n.add(k);
-      }
+      for (const k of missing) n.add(k);
       return n;
     });
-  }, [pillOpenRequest?.id, pillOpenRequest]);
-
-  useLayoutEffect(() => {
-    if (!pillOpenRequest?.keys?.includes("linkedInPill")) return;
-    if (!openPills.has("linkedInPill")) return;
-    if (linkedInShortcutFocusRef.current === pillOpenRequest.id) return;
-    linkedInShortcutFocusRef.current = pillOpenRequest.id;
-    document.getElementById("li-pill")?.querySelector<HTMLInputElement>("input")?.focus();
-  }, [openPills, pillOpenRequest]);
+  }, [p]);
 
   const addOptionalPill = (key: PersonalPillKey) => {
     setOpenPills((prev) => {

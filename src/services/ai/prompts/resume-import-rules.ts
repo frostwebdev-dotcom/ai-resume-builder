@@ -17,6 +17,14 @@ Output requirements:
 - certifications.entries and projects.entries only when clearly present; otherwise omit or use empty arrays.
 - additional.notes: only for uncategorized blocks (summary of qualifications, etc.); otherwise omit or "".
 
+LinkedIn profile exports (LinkedIn's "Save to PDF"): the text may come from a LinkedIn profile rather than a résumé. Recognise it by a leading contact block, a "Top Skills" list, and headings like "Summary", "Experience", "Education". When so:
+- Strip export furniture: "Page N of M" markers, the "www.linkedin.com/in/..." footer repeated per page, and "Contact"/"Top Skills" sidebar headings themselves.
+- The contact block holds the profile URL (use it for personal.linkedIn), plus any email, phone, or city; the line under the name is the headline, not a job title. Map it to summary.headline, and to personal.desiredJobPosition only if it reads as a role.
+- "Top Skills" plus any "Skills & Endorsements" entries feed skills.lines.
+- Under Experience, a company may head several stacked roles; emit one entry per role, repeating the company each time. LinkedIn appends durations like "(2 years 3 months)" — drop the parenthetical and keep the start/end dates.
+- Role descriptions are usually prose, not bullets. Split them into separate highlights on sentence or line boundaries; do not invent achievements or metrics that are not written there.
+- Education entries often carry no dates; leave startDate/endDate empty rather than guessing.
+
 JSON shape (keys and nesting must match exactly):
 {
   "personal": {
