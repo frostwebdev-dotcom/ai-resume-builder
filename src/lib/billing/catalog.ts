@@ -27,7 +27,7 @@ export const BILLING_PRODUCTS: Record<BillingProductSku, BillingProductDefinitio
     label: "Resume PDF export",
     description:
       "One-time purchase unlocks PDF export for this resume project—including new downloads after you edit.",
-    amountCents: 999,
+    amountCents: 1999,
     currency: "usd",
     availableAtCheckout: true,
     category: "resume_export",
