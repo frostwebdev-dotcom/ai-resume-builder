@@ -7,7 +7,7 @@ export type CheckoutReturnState =
   | { kind: "missing_session" }
   | { kind: "not_found" }
   | { kind: "pending"; orderId: string; status: "pending" | "processing" }
-  | { kind: "paid"; orderId: string }
+  | { kind: "paid"; orderId: string; amountCents: number; currency: string }
   | { kind: "failed"; orderId: string };
 
 /**
@@ -26,7 +26,7 @@ export async function getCheckoutReturnState(
 
   const { data: order, error } = await supabase
     .from("orders")
-    .select("id, status, project_id")
+    .select("id, status, project_id, amount_cents, currency")
     .eq("stripe_checkout_session_id", checkoutSessionId.trim())
     .eq("user_id", userId)
     .maybeSingle();
@@ -40,7 +40,12 @@ export async function getCheckoutReturnState(
   }
 
   if (order.status === "completed") {
-    return { kind: "paid", orderId: order.id };
+    return {
+      kind: "paid",
+      orderId: order.id,
+      amountCents: order.amount_cents,
+      currency: order.currency,
+    };
   }
 
   if (order.status === "failed" || order.status === "refunded") {
@@ -53,7 +58,12 @@ export async function getCheckoutReturnState(
     projectId,
   });
   if (reconciled === "completed") {
-    return { kind: "paid", orderId: order.id };
+    return {
+      kind: "paid",
+      orderId: order.id,
+      amountCents: order.amount_cents,
+      currency: order.currency,
+    };
   }
 
   return {

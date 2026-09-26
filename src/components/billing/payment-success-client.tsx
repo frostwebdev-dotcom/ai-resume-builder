@@ -14,25 +14,83 @@ import { requestResumeDownloadAction } from "@/services/downloads/actions";
 
 type PaymentStatus = "pending" | "paid" | "failed" | "cancelled" | "not_found";
 type DownloadState = "idle" | "preparing" | "ready" | "error";
+type PurchaseConversion = {
+  transactionId: string;
+  value: number;
+  currency: string;
+};
 
 type Props = {
   projectId: string;
   projectTitle: string;
   sessionId: string | undefined;
   initialStatus: PaymentStatus;
+  initialPurchase?: PurchaseConversion;
 };
 
 const POLL_MS = 2500;
 const TIMEOUT_MS = 30000;
 
-async function fetchPaymentStatus(projectId: string, sessionId: string): Promise<PaymentStatus> {
+async function fetchPaymentStatus(
+  projectId: string,
+  sessionId: string,
+): Promise<{ status: PaymentStatus; purchase?: PurchaseConversion }> {
   const params = new URLSearchParams({ session_id: sessionId });
   const response = await fetch(`/api/projects/${projectId}/payment-status?${params.toString()}`, {
     method: "GET",
     cache: "no-store",
   });
-  const json = (await response.json().catch(() => null)) as { status?: PaymentStatus } | null;
-  return json?.status ?? "not_found";
+  const json = (await response.json().catch(() => null)) as
+    | { status?: PaymentStatus; purchase?: PurchaseConversion }
+    | null;
+  return {
+    status: json?.status ?? "not_found",
+    purchase: json?.purchase,
+  };
+}
+
+function trackGoogleAdsPurchase(purchase: PurchaseConversion) {
+  const adsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim() || "AW-18476637000";
+  const label =
+    process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL?.trim() || "GW3ZCJS12IYdEMi2rOpE";
+  if (!adsId || !label || typeof window === "undefined") return;
+
+  const dedupeKey = `google-ads-purchase:${purchase.transactionId}`;
+  try {
+    if (window.localStorage.getItem(dedupeKey)) return;
+  } catch {
+    // Conversion tracking should still work when storage is unavailable.
+  }
+
+  const gtag = (
+    window as typeof window & {
+      gtag?: (
+        command: "event",
+        eventName: "conversion",
+        params: {
+          send_to: string;
+          value: number;
+          currency: string;
+          transaction_id: string;
+        },
+      ) => void;
+    }
+  ).gtag;
+
+  if (!gtag) return;
+
+  gtag("event", "conversion", {
+    send_to: `${adsId}/${label}`,
+    value: purchase.value,
+    currency: purchase.currency,
+    transaction_id: purchase.transactionId,
+  });
+
+  try {
+    window.localStorage.setItem(dedupeKey, "1");
+  } catch {
+    // Ignore storage failures after the event has been queued.
+  }
 }
 
 export function PaymentSuccessClient({
@@ -40,8 +98,12 @@ export function PaymentSuccessClient({
   projectTitle,
   sessionId,
   initialStatus,
+  initialPurchase,
 }: Props) {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initialStatus);
+  const [purchaseConversion, setPurchaseConversion] = useState<PurchaseConversion | undefined>(
+    initialPurchase,
+  );
   const [timedOut, setTimedOut] = useState(false);
   const [checking, setChecking] = useState(initialStatus === "pending");
   const [downloadState, setDownloadState] = useState<DownloadState>("idle");
@@ -71,14 +133,17 @@ export function PaymentSuccessClient({
 
       try {
         const next = await fetchPaymentStatus(projectId, sessionId);
-        setPaymentStatus(next);
-        if (next === "paid" && !verifiedTracked.current) {
+        setPaymentStatus(next.status);
+        if (next.purchase) {
+          setPurchaseConversion(next.purchase);
+        }
+        if (next.status === "paid" && !verifiedTracked.current) {
           verifiedTracked.current = true;
           trackClientEvent(ANALYTICS_EVENTS.PAYMENT_VERIFIED, {
             project_id_prefix: projectIdPrefix,
           });
         }
-        if (next !== "pending") {
+        if (next.status !== "pending") {
           setTimedOut(false);
         }
       } catch {
@@ -106,6 +171,12 @@ export function PaymentSuccessClient({
       });
     }
   }, [initialStatus, projectIdPrefix]);
+
+  useEffect(() => {
+    if (paymentStatus === "paid" && purchaseConversion) {
+      trackGoogleAdsPurchase(purchaseConversion);
+    }
+  }, [paymentStatus, purchaseConversion]);
 
   useEffect(() => {
     if (paymentStatus !== "pending" || !sessionId || timedOut) return;

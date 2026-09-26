@@ -57,6 +57,15 @@ export default async function PaymentSuccessPage({ params, searchParams }: PageP
         projectTitle={detail.project.title}
         sessionId={sessionId}
         initialStatus={toPaymentStatus(initialState)}
+        initialPurchase={
+          initialState.kind === "paid"
+            ? {
+                transactionId: initialState.orderId,
+                value: initialState.amountCents / 100,
+                currency: initialState.currency.toUpperCase(),
+              }
+            : undefined
+        }
       />
     </section>
   );
