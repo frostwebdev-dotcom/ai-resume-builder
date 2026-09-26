@@ -3281,10 +3281,10 @@ function PersonalBody({
     setState((s) => {
       const on = !s.personal.useJobPositionAsHeadline;
       const personal = { ...s.personal, useJobPositionAsHeadline: on };
-      let summary = { ...s.summary };
-      if (on && personal.desiredJobPosition.trim()) {
-        summary.headline = personal.desiredJobPosition;
-      }
+      const summary =
+        on && personal.desiredJobPosition.trim()
+          ? { ...s.summary, headline: personal.desiredJobPosition }
+          : { ...s.summary };
       return { ...s, personal, summary };
     });
   };
