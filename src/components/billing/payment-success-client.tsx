@@ -50,8 +50,9 @@ async function fetchPaymentStatus(
 }
 
 function trackGoogleAdsPurchase(purchase: PurchaseConversion) {
-  const adsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim();
-  const label = process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL?.trim();
+  const adsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim() || "AW-18476637000";
+  const label =
+    process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL?.trim() || "GW3ZCJS12IYdEMi2rOpE";
   if (!adsId || !label || typeof window === "undefined") return;
 
   const dedupeKey = `google-ads-purchase:${purchase.transactionId}`;
