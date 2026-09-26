@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 
+import { GoogleTag } from "@/components/analytics/google-tag";
 import { AppProviders } from "@/components/providers/app-providers";
 import { APP_NAME } from "@/lib/constants";
 
@@ -41,6 +42,7 @@ export default function RootLayout({
           {/* Flex pass-through so nested `flex-1 min-h-0` shells (e.g. app studio) get a bounded height */}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-clip">{children}</div>
         </AppProviders>
+        <GoogleTag />
       </body>
     </html>
   );
