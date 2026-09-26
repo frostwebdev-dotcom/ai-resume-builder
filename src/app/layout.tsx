@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     "Create a professional ATS-friendly resume in minutes. Preview free — pay only to export your PDF.",
 };
 
-const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim();
+const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim() || "AW-18476637000";
 
 export default function RootLayout({
   children,
