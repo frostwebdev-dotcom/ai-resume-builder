@@ -67,6 +67,14 @@ export const clientEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: optionalUrl,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalSecret,
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: optionalSecret,
+  NEXT_PUBLIC_GOOGLE_ADS_ID: z.preprocess(
+    emptyToUndefined,
+    z.string().regex(/^AW-\d+$/).optional(),
+  ),
+  NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_LABEL: z.preprocess(
+    emptyToUndefined,
+    z.string().min(1).optional(),
+  ),
   NEXT_PUBLIC_SENTRY_DSN: z.preprocess(
     emptyToUndefined,
     z.union([z.string().url(), z.literal("")]).optional(),
