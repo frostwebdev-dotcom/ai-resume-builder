@@ -12,8 +12,12 @@ type RouteContext = {
 
 type SafePaymentStatus = "pending" | "paid" | "failed" | "cancelled" | "not_found";
 
-function jsonStatus(status: SafePaymentStatus, init?: ResponseInit) {
-  return NextResponse.json({ status }, init);
+function jsonStatus(
+  status: SafePaymentStatus,
+  purchase?: { transactionId: string; value: number; currency: string },
+  init?: ResponseInit,
+) {
+  return NextResponse.json({ status, ...(purchase ? { purchase } : {}) }, init);
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -26,7 +30,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return jsonStatus("not_found", { status: 401 });
+    return jsonStatus("not_found", undefined, { status: 401 });
   }
 
   const { data: project, error: projectError } = await supabase
@@ -38,14 +42,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
     .maybeSingle();
 
   if (projectError || !project) {
-    return jsonStatus("not_found", { status: 404 });
+    return jsonStatus("not_found", undefined, { status: 404 });
   }
 
   const state = await getCheckoutReturnState(user.id, projectId, sessionId);
 
   if (state.kind === "paid") {
     const access = await getResumeDownloadAccess(user.id, projectId);
-    return jsonStatus(access.canDownload ? "paid" : "pending");
+    return access.canDownload
+      ? jsonStatus("paid", {
+          transactionId: state.orderId,
+          value: state.amountCents / 100,
+          currency: state.currency.toUpperCase(),
+        })
+      : jsonStatus("pending");
   }
 
   if (state.kind === "failed") {
@@ -56,5 +66,5 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return jsonStatus("pending");
   }
 
-  return jsonStatus("not_found", { status: 404 });
+  return jsonStatus("not_found", undefined, { status: 404 });
 }
