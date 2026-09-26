@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BrandGlyph } from "@/components/brand/brand-glyph";
 import {
   MarketingAuthLinks,
   MarketingPrimaryNav,
@@ -26,7 +27,7 @@ export async function MarketingHeader() {
           className="group flex min-h-11 min-w-0 shrink-0 items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand-ring sm:gap-2.5"
         >
           <span className="brand-mark" aria-hidden>
-            S
+            <BrandGlyph />
           </span>
           <span className="flex min-w-0 flex-col leading-none">
             <span className="truncate text-sm font-semibold tracking-tight">

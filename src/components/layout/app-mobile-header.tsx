@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { UserMenu } from "@/components/auth/user-menu";
+import { BrandGlyph } from "@/components/brand/brand-glyph";
 import type { AppShellUser } from "@/components/layout/app-shell";
 import { useAppLoginPanel } from "@/components/layout/app-login-panel";
 import { buttonVariants } from "@/components/ui/button";
@@ -46,8 +47,8 @@ export function AppMobileHeader({
               aria-label={`${APP_NAME} — home`}
               className="inline-flex min-h-10 items-center gap-2 px-2"
             >
-              <span className="brand-mark !size-7 !text-[0.65rem]" aria-hidden>
-                S
+              <span className="brand-mark !size-7" aria-hidden>
+                <BrandGlyph />
               </span>
             </Link>
           )}

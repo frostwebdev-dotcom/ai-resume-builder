@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Lock, ShieldCheck } from "lucide-react";
 
+import { BrandGlyph } from "@/components/brand/brand-glyph";
 import { PageContainer } from "@/components/layout/page-container";
 import { APP_NAME, ROUTES } from "@/lib/constants";
 
@@ -22,7 +23,7 @@ export function AuthCard({ title, description, children }: AuthCardProps) {
             className="group mb-6 inline-flex items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand-ring"
           >
             <span className="brand-mark" aria-hidden>
-              S
+              <BrandGlyph />
             </span>
             <span className="text-sm font-semibold tracking-tight">
               {APP_NAME}

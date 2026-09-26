@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Lock, ShieldCheck, Sparkles } from "lucide-react";
 
+import { BrandGlyph } from "@/components/brand/brand-glyph";
 import { PageContainer } from "@/components/layout/page-container";
 import { APP_NAME, ROUTES } from "@/lib/constants";
 
@@ -40,7 +41,7 @@ export function MarketingFooter() {
           <div className="max-w-sm">
             <div className="flex items-center gap-2.5">
               <span className="brand-mark" aria-hidden>
-                S
+                <BrandGlyph />
               </span>
               <p className="text-sm font-semibold tracking-tight">{APP_NAME}</p>
             </div>

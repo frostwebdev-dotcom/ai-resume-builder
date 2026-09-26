@@ -1,5 +1,6 @@
 import { FileText, Lock, ShieldCheck, Sparkles } from "lucide-react";
 
+import { BrandGlyph } from "@/components/brand/brand-glyph";
 import { PageContainer } from "@/components/layout/page-container";
 import { StickyBottomBar } from "@/components/layout/sticky-bottom-bar";
 import { StyleGuideDialogDemo } from "@/components/design-system";
@@ -83,11 +84,11 @@ export default function StyleGuidePage() {
           <div className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-card p-6 shadow-soft sm:p-8">
             <div className="flex items-center gap-3">
               <span className="brand-mark" aria-hidden>
-                S
+                <BrandGlyph />
               </span>
               <div>
                 <p className="text-label">Brand mark</p>
-                <p className="text-caption">Gradient tile with monogram · ring-1 · shadow-soft</p>
+                <p className="text-caption">Gradient tile with résumé + sparkle glyph · ring-1 · shadow-soft</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
